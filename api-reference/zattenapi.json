@@ -124,12 +124,12 @@
                   "oneOf": [
                     {
                       "description": "Contexto formatado para LLMs",
-                      "title": "ContextResponse",
+                      "title": "Com llm_format=true",
                       "$ref": "#/components/schemas/ContextResponse"
                     },
                     {
                       "description": "Histórico de mensagens e dados do lead em JSON",
-                      "title": "MessageHistoryResponse",
+                      "title": "Com llm_format=false",
                       "$ref": "#/components/schemas/MessageHistoryResponse"
                     }
                   ]
