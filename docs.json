@@ -28,15 +28,9 @@
         "groups": [
           {
             "group": "API documentation",
-            "pages": ["api-reference/introduction"]
-          },
-          {
-            "group": "Endpoint examples",
+            "openapi": "api-reference/zattenapi.json",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/introduction"
             ]
           }
         ]
