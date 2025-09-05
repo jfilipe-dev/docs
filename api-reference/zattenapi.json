@@ -1,0 +1,536 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API de Atendimento e Mensageria",
+    "description": "API para interagir com o sistema de atendimento, permitindo o envio de mensagens via template do WhatsApp e a gestão de informações de leads. A autenticação é realizada através de uma chave de API (`x-api-key`) enviada no cabeçalho de cada requisição. A API também possui um sistema de limite de requisições (rate limiting) para garantir a estabilidade.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://zatten-server-staging.up.railway.app/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Mensagens",
+      "description": "Endpoints para envio e consulta de mensagens."
+    },
+    {
+      "name": "Leads",
+      "description": "Endpoints para gerenciamento de dados de leads."
+    }
+  ],
+  "paths": {
+    "/messages/template": {
+      "post": {
+        "tags": [
+          "Mensagens"
+        ],
+        "summary": "Envia uma mensagem de template",
+        "description": "Inicia uma conversa ou envia uma notificação para um lead utilizando um template pré-aprovado do WhatsApp. Se o lead com o `lead_number` informado não existir, um novo será criado no sistema.",
+        "requestBody": {
+          "description": "Dados necessários para o envio do template.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendTemplateMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação nos dados da requisição.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido. Tente novamente mais tarde.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/history": {
+      "get": {
+        "tags": [
+          "Mensagens"
+        ],
+        "summary": "Busca o histórico de mensagens de um lead",
+        "description": "Recupera o histórico de conversas e os dados associados a um lead, identificado pelo seu `thread_id`. Pode retornar os dados em formato JSON ou como um texto único formatado para uso com Modelos de Linguagem (LLMs).",
+        "parameters": [
+          {
+            "name": "thread_id",
+            "in": "query",
+            "description": "O ID da thread de conversa associada ao lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "llm_format",
+            "in": "query",
+            "description": "Se `true`, retorna um contexto formatado em texto para LLMs. Se `false`, retorna o histórico e os dados do lead em JSON.",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Histórico de mensagens retornado com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ContextResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MessageHistoryResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação nos parâmetros da requisição.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead com o `thread_id` especificado não encontrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads/{leadNumber}/notes": {
+      "patch": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Atualiza a anotação de um lead",
+        "description": "Adiciona ou substitui a anotação (nota) de um lead existente. É possível concatenar a nova nota com a anterior ou sobrescrevê-la completamente.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead a ser atualizado.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Conteúdo da anotação a ser adicionada.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Anotação atualizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação no corpo da requisição.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead com o `leadNumber` especificado não encontrado para este atendente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads/{leadNumber}/properties": {
+      "patch": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Atualiza uma propriedade de um lead",
+        "description": "Modifica o valor de uma propriedade customizada associada a um lead. A propriedade (identificada pelo seu `slug`) deve ter sido previamente cadastrada no sistema.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead a ser atualizado.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Propriedade e novo valor a serem aplicados ao lead.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePropertyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Propriedade atualizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação no corpo da requisição ou valor da propriedade já é o mesmo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead ou Propriedade não encontrados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SendTemplateMessageRequest": {
+        "type": "object",
+        "required": [
+          "lead_number",
+          "template_name"
+        ],
+        "properties": {
+          "lead_number": {
+            "type": "string",
+            "description": "Número de WhatsApp do destinatário (lead)."
+          },
+          "template_name": {
+            "type": "string",
+            "description": "Nome do template a ser enviado."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nome do lead, utilizado caso o lead precise ser criado."
+          }
+        }
+      },
+      "SendMessageResponse": {
+        "type": "object",
+        "properties": {
+          "wa_id": {
+            "type": "string",
+            "description": "O ID do WhatsApp (WaId) do lead que recebeu a mensagem."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome do lead."
+          },
+          "thread_id": {
+            "type": "string",
+            "description": "O ID da thread de conversa associada ao lead."
+          }
+        }
+      },
+      "UpdateNoteRequest": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string",
+            "description": "O conteúdo da anotação a ser salva."
+          },
+          "delete_previous_note": {
+            "type": "boolean",
+            "description": "Se `true`, a anotação antiga será substituída. Se `false`, a nova anotação será concatenada à antiga.",
+            "default": false
+          }
+        }
+      },
+      "UpdatePropertyRequest": {
+        "type": "object",
+        "required": [
+          "property",
+          "value"
+        ],
+        "properties": {
+          "property": {
+            "type": "string",
+            "description": "O `slug` da propriedade a ser atualizada."
+          },
+          "value": {
+            "type": "string",
+            "description": "O novo valor para a propriedade.",
+            "minLength": 3,
+            "maxLength": 255
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LeadDetails": {
+        "type": "object",
+        "properties": {
+          "lead_id": {
+            "type": "string"
+          },
+          "lead_name": {
+            "type": "string"
+          },
+          "lead_phone": {
+            "type": "string"
+          },
+          "lead_metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "lead_annotation": {
+            "type": "string"
+          },
+          "kanban_column_name": {
+            "type": "string"
+          },
+          "current_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lead_created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ContextResponse": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "string",
+            "description": "Um texto consolidado com as informações do lead e o histórico da conversa, formatado para LLMs."
+          }
+        }
+      },
+      "MessageHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "message_history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "lead": {
+            "$ref": "#/components/schemas/LeadDetails"
+          }
+        }
+      },
+      "SuccessMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Mensagem de sucesso da operação."
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Descrição do erro ocorrido."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Chave de API necessária para autenticar todas as requisições."
+      }
+    }
+  }
+}
