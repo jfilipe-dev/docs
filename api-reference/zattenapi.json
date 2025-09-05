@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://zatten-server-staging.up.railway.app/api/v1"
+      "url": "https://api.zatten.online/api/v1"
     }
   ],
   "security": [
