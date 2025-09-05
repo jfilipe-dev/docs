@@ -27,7 +27,7 @@
         "tab": "API reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Documentação da API",
             "openapi": "api-reference/zattenapi.json",
             "pages": [
               "api-reference/introduction"
