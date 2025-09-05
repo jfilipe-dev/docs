@@ -1,0 +1,338 @@
+---
+title: "Configurar Primeiro Agente"
+description: "Guia completo para configurar seu primeiro agente de IA"
+sidebarTitle: "Primeiro Agente"
+icon: "robot"
+---
+
+## Configurando seu Primeiro Agente de IA
+
+Este guia detalhado vai ensinar você a configurar completamente seu primeiro agente, desde as configurações básicas até as otimizações avançadas.
+
+## Entendendo o Agente
+
+### O que é um agente?
+Um agente é um assistente virtual com IA que:
+- Conversa com clientes via WhatsApp
+- Responde perguntas sobre seu negócio
+- Qualifica leads automaticamente
+- Transfere para humanos quando necessário
+
+### Componentes de um agente
+1. **Identidade**: Nome e personalidade
+2. **Conhecimento**: Informações sobre o negócio
+3. **Comportamento**: Como deve agir e responder
+4. **Ações**: O que pode fazer (agendar, transferir, etc)
+
+## Configurações Básicas
+
+### Acessando o painel do agente
+
+1. Faça login em [app.zatten.com](https://app.zatten.com)
+2. No menu lateral, clique em **Agente**
+3. Certifique-se que está **Ativo** (botão verde)
+
+### Nome e identificação
+
+**Nome do Agente**
+Escolha um nome amigável e profissional:
+- ✅ Bons exemplos: "Ana", "Carlos", "Assistente Virtual"
+- ❌ Evite: "Bot123", "Teste", "IA"
+
+**Status do Agente**
+- **Ativo**: Responde mensagens automaticamente
+- **Inativo**: Não responde (útil para manutenção)
+
+## Configurando o Prompt do Sistema
+
+O prompt é o "cérebro" do seu agente. Ele define personalidade, conhecimento e comportamento.
+
+### Estrutura recomendada para o prompt
+
+```
+# Identidade
+Você é [nome], assistente virtual da [empresa].
+
+# Sobre a empresa
+[Descreva o que a empresa faz, principais serviços/produtos]
+
+# Personalidade
+- Seja sempre educado e profissional
+- Use linguagem [formal/informal] 
+- [Outras características desejadas]
+
+# Conhecimento
+[Informações importantes sobre o negócio]
+- Horário de funcionamento: 
+- Localização:
+- Formas de pagamento:
+- Principais produtos/serviços:
+
+# Objetivos
+Seu objetivo principal é:
+1. [Objetivo 1]
+2. [Objetivo 2]
+3. [Objetivo 3]
+
+# Regras importantes
+- [Regra 1]
+- [Regra 2]
+- [Regra 3]
+
+# O que você NÃO deve fazer
+- Nunca forneça informações falsas
+- Não prometa o que a empresa não oferece
+- [Outras restrições]
+```
+
+### Exemplo prático de prompt
+
+```
+Você é Marina, assistente virtual da Clínica Saúde Plus, uma clínica médica especializada em medicina familiar.
+
+Sobre a clínica:
+Oferecemos consultas médicas, exames laboratoriais e check-ups completos. Temos 15 anos de experiência e uma equipe de 8 médicos especialistas.
+
+Personalidade:
+- Seja sempre acolhedora e empática
+- Use linguagem clara e acessível
+- Demonstre preocupação genuína com a saúde do paciente
+
+Informações importantes:
+- Horário: Segunda a Sexta, 7h às 19h | Sábado, 8h às 12h
+- Endereço: Rua das Flores, 123 - Centro - São Paulo/SP
+- Telefone: (11) 3333-3333
+- Convênios aceitos: Unimed, Bradesco Saúde, SulAmérica, Amil
+- Consulta particular: R$ 150,00
+- Principais especialidades: Clínica Geral, Pediatria, Ginecologia, Cardiologia
+
+Seus objetivos são:
+1. Esclarecer dúvidas sobre a clínica e serviços
+2. Ajudar no agendamento de consultas
+3. Informar sobre convênios e valores
+4. Coletar dados básicos do paciente (nome e telefone)
+
+Regras importantes:
+- Sempre sugira agendamento quando apropriado
+- Colete o nome e telefone do paciente interessado
+- Se não souber algo, informe que vai verificar e peça contato
+- Para urgências, oriente procurar o pronto-socorro
+
+Você NÃO deve:
+- Dar diagnósticos médicos
+- Prescrever medicamentos
+- Prometer horários específicos sem confirmar disponibilidade
+- Discutir casos médicos específicos
+```
+
+## Configurando Modelo de IA
+
+### Escolhendo o modelo GPT
+
+Em **Modelo**, selecione:
+
+**GPT-4o** (Recomendado)
+- Mais inteligente e preciso
+- Melhor compreensão de contexto
+- Custo: ~$0.03 por conversa
+
+**GPT-4** 
+- Muito inteligente
+- Ótimo para casos complexos
+- Custo: ~$0.05 por conversa
+
+**GPT-3.5-turbo**
+- Mais econômico
+- Bom para casos simples
+- Custo: ~$0.01 por conversa
+
+### Configurações avançadas
+
+**Temperatura** (0.0 a 1.0)
+- **0.0-0.3**: Respostas mais consistentes e previsíveis
+- **0.4-0.7**: Balanceado (recomendado: 0.5)
+- **0.8-1.0**: Mais criativo, mas pode ser inconsistente
+
+**Máximo de Tokens**
+- Define o tamanho máximo da resposta
+- Recomendado: 500-1000 tokens
+- 1 token ≈ 4 caracteres
+
+## Adicionando Conhecimento
+
+### Base de conhecimento
+
+O agente pode aprender de várias formas:
+
+**1. Direto no prompt**
+Inclua informações essenciais diretamente no prompt do sistema.
+
+**2. Upload de documentos**
+- PDFs com catálogos
+- Documentos com FAQ
+- Tabelas de preços
+- Manuais de procedimento
+
+**3. Ações nativas**
+Configure respostas específicas para perguntas comuns.
+
+### Boas práticas para conhecimento
+
+- ✅ Seja específico e detalhado
+- ✅ Mantenha informações atualizadas
+- ✅ Organize por categorias
+- ✅ Inclua exemplos quando possível
+- ❌ Não sobrecarregue com informações desnecessárias
+
+## Configurando Ações
+
+### Ações disponíveis
+
+**Transferir para humano**
+Configure palavras-chave que acionam transferência:
+- "Falar com atendente"
+- "Quero um humano"
+- "Preciso de ajuda"
+
+**Agendar mensagem**
+Permite que o agente agende follow-ups.
+
+**Coletar informações**
+Configure campos que o agente deve coletar:
+- Nome
+- Email
+- Telefone
+- CPF/CNPJ
+
+**Classificar lead**
+O agente pode classificar leads como:
+- Quente (pronto para comprar)
+- Morno (interesse médio)
+- Frio (apenas pesquisando)
+
+## Testando o Agente
+
+### Fazendo testes internos
+
+1. **Preview do Chat**
+   - Use o preview dentro da plataforma
+   - Teste diferentes perguntas
+   - Verifique se responde corretamente
+
+2. **Teste via WhatsApp**
+   - Envie mensagem para o número configurado
+   - Teste como um cliente real
+   - Faça perguntas difíceis
+
+### Checklist de testes
+
+- [ ] Agente se apresenta corretamente
+- [ ] Responde sobre produtos/serviços
+- [ ] Informa preços corretamente  
+- [ ] Coleta informações de contato
+- [ ] Transfere para humano quando solicitado
+- [ ] Lida bem com perguntas fora do escopo
+- [ ] Mantém tom e personalidade consistentes
+
+## Otimizando o Agente
+
+### Analisando conversas
+
+Após os primeiros atendimentos:
+
+1. Acesse **Conversas** no menu
+2. Leia as interações completas
+3. Identifique pontos de melhoria
+4. Ajuste o prompt conforme necessário
+
+### Melhorias comuns
+
+**Se o agente está muito verboso:**
+- Adicione no prompt: "Seja conciso e direto"
+- Reduza o máximo de tokens
+
+**Se não entende perguntas:**
+- Adicione mais exemplos no prompt
+- Inclua variações de como clientes perguntam
+
+**Se dá informações erradas:**
+- Revise a base de conhecimento
+- Seja mais específico no prompt
+
+## Configurações Avançadas
+
+### Horário de funcionamento
+
+Configure quando o agente deve estar ativo:
+1. Em **Configurações Avançadas**
+2. Defina **Horário de Atendimento**
+3. Configure mensagem fora do horário
+
+### Departamentos
+
+Organize o atendimento por setores:
+1. Acesse **Departamentos**
+2. Crie departamentos (Vendas, Suporte, Financeiro)
+3. Configure regras de roteamento
+
+### Integrações
+
+**Webhooks**
+Configure para enviar dados para seu sistema:
+- Novo lead capturado
+- Conversa finalizada
+- Lead qualificado
+
+**API**
+Use a API para:
+- Criar conversas programaticamente
+- Atualizar base de conhecimento
+- Extrair relatórios
+
+## Monitoramento e Manutenção
+
+### Métricas importantes
+
+Acompanhe no **Analytics**:
+- Número de conversas atendidas
+- Taxa de resolução automática
+- Tempo médio de resposta
+- Satisfação dos clientes
+
+### Manutenção regular
+
+**Diariamente:**
+- Verificar conversas com problemas
+- Responder transferências para humano
+
+**Semanalmente:**
+- Revisar métricas de desempenho
+- Atualizar base de conhecimento
+- Ajustar prompt se necessário
+
+**Mensalmente:**
+- Análise completa de performance
+- Atualizar informações desatualizadas
+- Treinar equipe sobre mudanças
+
+## Próximos Passos
+
+<Card title="Conectar WhatsApp" icon="whatsapp" href="/configuracao-inicial/conectar-whatsapp">
+  Integre com WhatsApp Business
+</Card>
+
+<Card title="Configurar Automações" icon="wand-magic-sparkles" href="/features/automacoes/follow-up">
+  Configure follow-ups e automações
+</Card>
+
+<Card title="Gestão de Conversas" icon="messages" href="/features/crm/conversas">
+  Aprenda a gerenciar conversas
+</Card>
+
+## Dicas Finais
+
+- 💡 Comece simples e vá refinando
+- 💡 Teste constantemente com casos reais
+- 💡 Ouça feedback dos clientes
+- 💡 Mantenha informações sempre atualizadas
+- 💡 Use o suporte quando precisar
