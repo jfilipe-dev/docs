@@ -24,13 +24,24 @@
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API",
         "groups": [
           {
             "group": "Documentação da API",
             "openapi": "api-reference/zattenapi.json",
             "pages": [
               "api-reference/introduction"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Webhooks",
+        "groups": [
+          {
+            "group": "Documentação dos Webhooks",
+            "pages": [
+              "webhooks/referencia-webhooks"
             ]
           }
         ]
