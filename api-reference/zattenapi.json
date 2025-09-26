@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://api.zatten.online/api/v1"
+      "url": "https://api.zatten.com/api/v1"
     }
   ],
   "security": [
@@ -304,7 +304,7 @@
             }
           },
           "400": {
-            "description": "Erro de validação no corpo da requisição ou valor da propriedade já é o mesmo.",
+            "description": "Erro de validação no corpo da requisição.",
             "content": {
               "application/json": {
                 "schema": {
@@ -325,6 +325,147 @@
           },
           "404": {
             "description": "Lead ou Propriedade não encontrados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads/{leadNumber}/thread": {
+      "patch": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Reinicia a thread de conversa de um lead",
+        "description": "Gera um novo ID de thread para o lead, efetivamente arquivando a conversa atual e iniciando uma nova. Útil para limpar o contexto que a IA utiliza para responder, sem apagar o histórico de mensagens.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Thread reiniciada com sucesso. Nenhum conteúdo retornado."
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead com o `leadNumber` especificado não encontrado para este atendente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads/{leadNumber}/toggle-attendant-response": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Ativa ou desativa a resposta da IA para um lead",
+        "description": "Permite controlar programaticamente se o atendente de IA pode ou não responder a um lead específico. Útil para cenários onde uma intervenção humana é necessária e a IA deve ser silenciada temporariamente.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Define o estado desejado para a resposta da IA.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleAttendantResponseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "O estado da resposta da IA foi alterado com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessage"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Nenhuma alteração foi necessária, pois a IA já se encontrava no estado desejado."
+          },
+          "400": {
+            "description": "Erro de validação no corpo da requisição.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead com o `leadNumber` especificado não encontrado para este atendente.",
             "content": {
               "application/json": {
                 "schema": {
@@ -420,6 +561,18 @@
             "description": "O novo valor para a propriedade.",
             "minLength": 3,
             "maxLength": 255
+          }
+        }
+      },
+      "ToggleAttendantResponseRequest": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Define se a resposta automática do atendente de IA deve ser ativada (`true`) ou desativada (`false`) para o lead."
           }
         }
       },
