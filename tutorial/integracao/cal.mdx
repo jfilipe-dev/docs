@@ -1,0 +1,842 @@
+---
+title: 'Cal.com'
+---
+
+## **🎯 Objetivo do Tutorial**
+
+Criar uma estratégia completa de agendamento onde seu agente de IA no WhatsApp consegue:
+
+- Enviar links de agendamento para os contatos
+- Saber automaticamente quando alguém agendou, cancelou ou reagendou
+- Atualizar o CRM com essas informações em tempo real
+
+## **✅ O que você precisa ter antes de começar**
+
+- Conta na Zatten (ou seu White Label)
+- Conta no Cal.com (gratuita)
+- Conta no n8n (para automação)
+- WhatsApp conectado na Zatten
+---
+
+## **🧰 Recursos** 
+
+Recursos uteis para seguir esse tutorial:  
+
+###  ▶️ Vídeo tutorial
+
+<div style={{ position: 'relative', paddingBottom: '56.25%', height: '0' }}>
+  <iframe 
+    style={{ position: 'absolute', top: '0', left: '0', width: '100%', height: '100%', border: '0' }}
+    src="https://www.tella.tv/video/cmghx9kfd00030bjpd22l4fbt/embed?b=0&title=0&a=1&loop=0&t=0&muted=0&wt=1" 
+    allowFullScreen 
+    allowTransparency>
+  </iframe>
+</div>
+
+### ⚡ Automação do n8n
+- Copie e cole o json abaixo dentro de um workflow no n8n
+
+```json expandable
+{
+  "name": "[Agendamento - Cal.com]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aula-gratis",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        48
+      ],
+      "id": "4b58209a-3d50-49c5-8fdc-3fe9abaa9ead",
+      "name": "Webhook",
+      "webhookId": "c3997550-a1f6-4372-8f27-d3491c044969"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "85b53758-06d4-4f86-9682-89824daaa871",
+              "name": "event-name",
+              "value": "={{ $json.body.triggerEvent }}",
+              "type": "string"
+            },
+            {
+              "id": "387fb313-167e-4860-a93a-367ffcab8f8f",
+              "name": "type",
+              "value": "={{ $json.body.payload.type }}",
+              "type": "string"
+            },
+            {
+              "id": "648945d3-709a-49dd-a799-6ae62c1c2d9d",
+              "name": "bookerUrl",
+              "value": "=https://app.cal.com",
+              "type": "string"
+            },
+            {
+              "id": "f6f968b0-63cb-4d7d-bd64-a3f1f157e0e9",
+              "name": "email",
+              "value": "={{ $json.body.payload.attendees[0].email }}",
+              "type": "string"
+            },
+            {
+              "id": "e25af28c-7746-4cf3-bd99-79e6512b2b46",
+              "name": "phone",
+              "value": "={{ $json.body.payload.attendees[0].phoneNumber.toNumber() }}",
+              "type": "string"
+            },
+            {
+              "id": "a37eda57-d661-4213-9676-6fe9c613dc2a",
+              "name": "uuid",
+              "value": "={{ $json.body.payload.uid }}",
+              "type": "string"
+            },
+            {
+              "id": "0f527920-a532-4f70-a206-86e64feeefa2",
+              "name": "status",
+              "value": "={{ $json.body.payload.status }}",
+              "type": "string"
+            },
+            {
+              "id": "64d842fb-1c38-4ed4-a26c-cdb159f5945f",
+              "name": "username",
+              "value": "={{ $json.body.payload.organizer.username }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -464,
+        48
+      ],
+      "id": "3b32dd76-2e83-4bdd-9bae-cde80882728d",
+      "name": "Dados de Entrada"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.zatten.com/api/v1/leads/{{ $('Dados de Entrada').item.json.phone }}/properties",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "property",
+              "value": "urlagendamento"
+            },
+            {
+              "name": "value",
+              "value": "={{ $('Tratamento URL').item.json.url_agendamento }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        48
+      ],
+      "id": "0633c494-829a-4759-bb1d-d65c077a5219",
+      "name": "Atualiza as url-agendamento",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "avqam72U58T7B1aT",
+          "name": "Zatten - Tutorial"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8c988537-a1da-4a0d-891e-ba2cc46191e5",
+              "name": "=url_agendamento",
+              "value": "={{ $json.status === 'CANCELLED' ? '---' : `https://app.cal.com/booking/${$json.uuid}?allRemainingBookings=false&phone=${$json.phone}` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        48
+      ],
+      "id": "259219e8-caed-431f-bee4-b6179b4349fa",
+      "name": "Tratamento URL"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.zatten.com/api/v1/leads/{{ $('Dados de Entrada').item.json.phone }}/properties",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "property",
+              "value": "statusaulagratis"
+            },
+            {
+              "name": "value",
+              "value": "={{ $('Dados de Entrada').item.json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        16,
+        48
+      ],
+      "id": "b9839dce-cb87-4356-a367-b8e36e5a4ed2",
+      "name": "Atualiza o status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "avqam72U58T7B1aT",
+          "name": "Zatten - Tutorial"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "488357ff-d3d5-4e71-98fb-943d94eecf00",
+              "leftValue": "={{ $('Dados de Entrada').item.json.status }}",
+              "rightValue": "ACCEPTED",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        48
+      ],
+      "id": "a4454295-32ed-4503-a904-834a8cfd70cf",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.zatten.com/api/v1/messages/template",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "lead_number",
+              "value": "={{ $('Dados de Entrada').item.json.phone }}"
+            },
+            {
+              "name": "template_name",
+              "value": "aula_gratis_agendada"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        -96
+      ],
+      "id": "ae8ef41a-bf6d-48f6-8ce5-f162e1949c40",
+      "name": "Send Message - Aula confirmada",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "avqam72U58T7B1aT",
+          "name": "Zatten - Tutorial"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.zatten.com/api/v1/messages/template",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "lead_number",
+              "value": "={{ $('Dados de Entrada').item.json.phone }}"
+            },
+            {
+              "name": "template_name",
+              "value": "aula_gratis_agendada"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        176
+      ],
+      "id": "ee40dae0-ba78-41af-8182-4a7a70ae811b",
+      "name": "Send Message - Aula Cancelada",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "avqam72U58T7B1aT",
+          "name": "Zatten - Tutorial"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "primary-production-3ecb.up.railway.app",
+            "user-agent": "node",
+            "content-length": "2764",
+            "accept": "*/*",
+            "accept-encoding": "br, gzip, deflate",
+            "accept-language": "*",
+            "baggage": "sentry-environment=vercel-production,sentry-public_key=7fa2ea46dede9404597bde582525baca,sentry-trace_id=2fcee53bb95348cba213f885d1c1fc39,sentry-sampled=false,sentry-sample_rand=0.07995967376561619,sentry-sample_rate=0",
+            "content-type": "application/json",
+            "sec-fetch-mode": "cors",
+            "sentry-trace": "2fcee53bb95348cba213f885d1c1fc39-0b342e97dbc5c85e-0",
+            "x-cal-signature-256": "no-secret-provided",
+            "x-forwarded-for": "3.144.120.129",
+            "x-forwarded-host": "primary-production-3ecb.up.railway.app",
+            "x-forwarded-proto": "https",
+            "x-railway-edge": "railway/us-east4-eqdc4a",
+            "x-railway-request-id": "zHbDKqGqTNGcV-IzCx5-qw",
+            "x-real-ip": "3.144.120.129",
+            "x-request-start": "1759926862199",
+            "x-vercel-id": "gru1:gru1::9z5dq-1759926859762-ffb4cfff97f3"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "triggerEvent": "BOOKING_CREATED",
+            "createdAt": "2025-10-08T12:34:22.105Z",
+            "payload": {
+              "bookerUrl": "https://cal.com",
+              "title": "Aula GrÃ¡tis entre Suporte - Zatten e Suporte - Zatten",
+              "startTime": "2025-10-09T17:10:00Z",
+              "endTime": "2025-10-09T18:00:00Z",
+              "additionalNotes": "",
+              "type": "aula-gratis",
+              "description": "Uma aula experimental de pilates",
+              "eventTypeId": 3607843,
+              "hideCalendarNotes": false,
+              "hideCalendarEventDetails": false,
+              "hideOrganizerEmail": false,
+              "schedulingType": null,
+              "seatsPerTimeSlot": null,
+              "seatsShowAttendees": true,
+              "seatsShowAvailabilityCount": true,
+              "customReplyToEmail": null,
+              "disableRescheduling": false,
+              "disableCancelling": false,
+              "organizer": {
+                "id": 1717812,
+                "name": "Suporte - Zatten",
+                "email": "tools@zatten.com",
+                "username": "zatten",
+                "timeZone": "America/Sao_Paulo",
+                "language": {
+                  "locale": "pt-BR"
+                },
+                "timeFormat": "HH:mm",
+                "utcOffset": -180
+              },
+              "attendees": [
+                {
+                  "email": "tools@zatten.com",
+                  "name": "Suporte - Zatten",
+                  "phoneNumber": "+5519992776503",
+                  "firstName": "",
+                  "lastName": "",
+                  "timeZone": "America/Sao_Paulo",
+                  "language": {
+                    "locale": "pt-BR"
+                  },
+                  "utcOffset": -180
+                }
+              ],
+              "customInputs": {},
+              "responses": {
+                "name": {
+                  "label": "your_name",
+                  "value": "Suporte - Zatten",
+                  "isHidden": false
+                },
+                "email": {
+                  "label": "email_address",
+                  "value": "tools@zatten.com",
+                  "isHidden": false
+                },
+                "attendeePhoneNumber": {
+                  "label": "phone_number",
+                  "value": "+5519992776503",
+                  "isHidden": false
+                },
+                "location": {
+                  "label": "location",
+                  "value": {
+                    "value": "integrations:google:meet",
+                    "optionValue": ""
+                  },
+                  "isHidden": false
+                },
+                "title": {
+                  "label": "what_is_this_meeting_about",
+                  "isHidden": true
+                },
+                "notes": {
+                  "label": "additional_notes",
+                  "isHidden": false
+                },
+                "guests": {
+                  "label": "additional_guests",
+                  "value": [],
+                  "isHidden": false
+                },
+                "rescheduleReason": {
+                  "label": "reason_for_reschedule",
+                  "isHidden": false
+                }
+              },
+              "userFieldsResponses": {},
+              "location": "integrations:google:meet",
+              "destinationCalendar": [
+                {
+                  "id": 776965,
+                  "integration": "google_calendar",
+                  "externalId": "felipe.raitano@gmail.com",
+                  "primaryEmail": "felipe.raitano@gmail.com",
+                  "userId": 1717812,
+                  "eventTypeId": null,
+                  "credentialId": 1271943,
+                  "createdAt": "2025-08-26T13:04:40.664Z",
+                  "updatedAt": "2025-08-26T13:04:40.664Z",
+                  "delegationCredentialId": null,
+                  "domainWideDelegationCredentialId": null
+                }
+              ],
+              "iCalUID": "fnR8pNY8HHPTrT2XAWF5Vc@Cal.com",
+              "iCalSequence": 0,
+              "requiresConfirmation": false,
+              "oneTimePassword": null,
+              "uid": "fnR8pNY8HHPTrT2XAWF5Vc",
+              "conferenceData": {
+                "createRequest": {
+                  "requestId": "8a0ce172-f69a-51b5-8481-93feb73d58e2"
+                }
+              },
+              "appsStatus": [
+                {
+                  "appName": "google-calendar",
+                  "type": "google_calendar",
+                  "success": 1,
+                  "failures": 0,
+                  "errors": [],
+                  "warnings": []
+                },
+                {
+                  "appName": "Google Meet",
+                  "type": "conferencing",
+                  "success": 1,
+                  "failures": 0,
+                  "errors": []
+                }
+              ],
+              "eventTitle": "Aula GrÃ¡tis",
+              "eventDescription": "Uma aula experimental de pilates",
+              "price": 0,
+              "currency": "usd",
+              "length": 50,
+              "bookingId": 11574824,
+              "metadata": {
+                "videoCallUrl": "https://meet.google.com/tdj-mvsv-ifv"
+              },
+              "status": "ACCEPTED"
+            }
+          },
+          "webhookUrl": "https://primary-production-3ecb.up.railway.app/webhook/aula-gratis",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Dados de Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dados de Entrada": {
+      "main": [
+        [
+          {
+            "node": "Tratamento URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tratamento URL": {
+      "main": [
+        [
+          {
+            "node": "Atualiza o status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualiza as url-agendamento": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualiza o status": {
+      "main": [
+        [
+          {
+            "node": "Atualiza as url-agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send Message - Aula confirmada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "66f76781-0d4e-4f4a-9c41-a2d794db2110",
+  "meta": {
+    "instanceId": "fc2e5e8993a55e6ebef2d29a4a91b953429ccaa3244f8ec74915d138867884bf"
+  },
+  "id": "iXeS63PfUGYvbqzW",
+  "tags": [
+    {
+      "createdAt": "2025-10-07T15:56:59.031Z",
+      "updatedAt": "2025-10-07T15:56:59.031Z",
+      "id": "7EJjnwwYJa2PETTW",
+      "name": "tutorial"
+    }
+  ]
+}
+```
+---
+
+## **📝 PASSO 1: Configurar o Cal.com**
+
+### **1.1 Criar conta e evento**
+
+1. Acesse [Cal.com](https://cal.com/) e crie sua conta gratuita
+2. Crie um novo tipo de evento:
+    - Clique em **"Criar novo"**
+    - Defina o título (Ex: "Aula Grátis")
+    - Adicione a descrição do evento
+    - Configure a duração (Ex: 50 minutos)
+
+### **1.2 Personalizar o evento**
+
+1. Configure o local (presencial ou online)
+2. Defina sua disponibilidade (dias e horários)
+3. Configure os limites de agendamento
+
+### **1.3 Adicionar campo de telefone**
+
+**⚠️ IMPORTANTE**: Este passo é essencial para a integração funcionar!
+
+1. Vá em **Configurações Avançadas**
+2. Ative a opção **"Pedir número de telefone"**
+3. Salve as configurações
+4. Copie o link do seu evento (você vai usar no próximo passo)
+
+---
+
+## **📝 PASSO 2: Configurar o Agente na Zatten**
+
+### **2.1 Adicionar o link no prompt**
+
+1. Entre no seu agente dentro da Zatten
+2. Vá em **Configurações → Agente**
+3. No campo de prompt, adicione o link do Cal.com
+4. Instrua o agente a enviar este link quando solicitado agendamento
+
+**Exemplo de prompt:**
+
+Você é um agente SDR do Estúdio Pilates Vitalidade.
+
+Quando alguém quiser agendar uma aula grátis, envie este link:
+
+https://cal.com/seu-usuario/aula-gratis
+
+### **2.2 Testar o agente**
+
+1. Use o **Preview do Chat** para testar
+2. Peça: "Olá, me passe o link para agendar uma aula grátis"
+3. Verifique se o agente envia o link corretamente
+
+---
+
+## **📝 PASSO 3: Preparar o CRM da Zatten**
+
+### **3.1 Criar propriedades personalizadas**
+
+Entre em **CRM → Contatos → Propriedades** e crie duas propriedades:
+
+**Propriedade 1:**
+
+- Nome: urlagendamento
+- Descrição: URL de agendamento da aula grátis
+- Slug: urlagendamento
+
+**Propriedade 2:**
+
+- Nome: Status Aula Grátis
+- Descrição: Se está cancelada ou confirmada
+- Slug: statusaulagratis
+
+---
+
+## **📝 PASSO 4: Configurar o n8n**
+
+### **4.1 Criar o Webhook no n8n**
+
+1. Crie um novo workflow no n8n
+2. Adicione um nó **Webhook**
+3. Configure:
+    - Método: **POST**
+    - Path: aula-gratis
+    - Response Mode: **When Last Node Finishes**
+4. Copie a URL de teste do webhook
+
+### **4.2 Conectar Cal.com ao n8n**
+
+1. No Cal.com, vá até seu evento
+2. Acesse **Webhooks**
+3. Clique em **Criar novo Webhook**
+4. Cole a URL do n8n
+5. Marque todos os eventos que deseja receber
+6. Salve o webhook
+
+### **4.3 Testar a conexão**
+
+1. No n8n, clique em **"Listen for Test Event"**
+2. No Cal.com, clique em **"Testar Webhook"**
+3. Verifique se os dados chegaram no n8n
+
+---
+
+## **📝 PASSO 5: Criar a Automação Completa**
+
+### **5.1 Organizar os dados recebidos**
+
+Adicione um nó **Set** após o Webhook para organizar os dados:
+
+```
+- event-name: {{ $json.body.triggerEvent }}
+- email: {{ $json.body.payload.attendees[0].email }}
+- phone: {{ $json.body.payload.attendees[0].phoneNumber }}
+- status: {{ $json.body.payload.status }}
+- uuid: {{ $json.body.payload.uid }}
+```
+
+### **5.2 Criar a URL de agendamento**
+
+Adicione outro nó **Set** para tratar a URL: 
+```
+{{ $json.status === 'CANCELLED' ? '---' : `https://app.cal.com/booking/${$json.uuid}?allRemainingBookings=false&phone=${$json.phone}` }}
+```
+
+### **5.3 Atualizar o CRM via API**
+
+**Para atualizar o status:**
+
+1. Adicione um nó **HTTP Request**
+2. Configure:
+```
+    - Método: **PATCH**
+    - URL: `https://api.zatten.com/api/v1/leads/{{ phone }}/properties`
+    - Body:
+        - property: statusaulagratis
+        - value: {{ status }}
+```
+
+**Para atualizar a URL:**
+
+1. Adicione outro nó **HTTP Request**
+2. Configure:
+
+```
+    - Método: **PATCH**
+    - URL: `https://api.zatten.com/api/v1/leads/{{ phone }}/properties`
+    - Body:
+        - property: urlagendamento
+        - value: {{ url_agendamento }}
+```
+---
+
+## **📝 PASSO 6: Configurar a API Key da Zatten**
+
+### **6.1 Criar a API Key**
+
+1. Na Zatten, vá em **Gestão → API Keys**
+2. Clique em **"Criar nova chave secreta"**
+3. Dê um nome (Ex: "cal.com")
+4. Copie a chave gerada
+
+### **6.2 Adicionar no n8n**
+
+1. Nos nós HTTP Request
+2. Em Authentication, escolha **Generic Credential Type**
+3. Selecione **Header Auth**
+4. Adicione:
+    - Name: x-api-key
+    - Value: [sua chave API]
+
+---
+
+## **📝 PASSO 7: Enviar Template de Confirmação (Opcional)**
+
+### **7.1 Criar template no WhatsApp**
+
+1. Na Zatten, vá em **Templates**
+2. Crie um template tipo **Utilitário**
+3. Nome: aula_gratis_agendada
+4. Mensagem: "Parabéns! Sua aula gratuita foi agendada com sucesso..."
+
+### **7.2 Adicionar condição no n8n**
+
+1. Adicione um nó **IF**
+2. Condição: status == ACCEPTED
+3. Se verdadeiro: Enviar template de confirmação
+4. Se falso: Não enviar nada (ou enviar template de cancelamento)
+
+---
+
+## **📝 PASSO 8: Ativar em Produção**
+
+### **8.1 Ativar workflow no n8n**
+
+1. Clique no botão **"Ativar"** no topo do workflow
+2. Copie a URL de produção (sem "/test")
+
+### **8.2 Atualizar webhook no Cal.com**
+
+1. Volte ao Cal.com
+2. Edite o webhook
+3. Substitua a URL de teste pela URL de produção
+4. Salve
+
+---
+
+## **✅ Testando a Integração Completa**
+
+1. **No WhatsApp:** Envie mensagem pedindo agendamento
+2. **Receba o link** do agente
+3. **Faça um agendamento** no Cal.com
+4. **Verifique no CRM** se as propriedades foram atualizadas
+5. **Peça ao agente** o status ou link - ele deve saber automaticamente!
+
+---
+
+## **🎯 Resultado Final**
+
+Após seguir todos os passos, você terá:
+
+- ✅ Agente que envia links de agendamento automaticamente
+- ✅ CRM sempre atualizado com status dos agendamentos
+- ✅ Agente que sabe quando alguém agendou, cancelou ou reagendou
+- ✅ Mensagens automáticas de confirmação via WhatsApp
+- ✅ Sistema completo funcionando 24/7 sem intervenção manual
+
+---
+
+## **💡 Dicas Importantes**
+
+- **Sempre teste** cada etapa antes de prosseguir
+- **Guarde suas API Keys** em local seguro
+- **Use a URL de produção** após os testes
+- **Configure o campo "On Error"** como "Continue" no nó de atualização de status
+
+---
+
+## **📞 Suporte**
+
+Se tiver dúvidas durante a implementação:
+
+- Entre em contato com o suporte da Zatten
+- O arquivo JSON do n8n está disponível para download na documentação
+
+---
+
+*Tutorial criado com base na aula prática gravada. Tempo estimado de implementação: 30 minutos*

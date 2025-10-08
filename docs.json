@@ -45,6 +45,17 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Tutoriais",
+        "groups": [
+          {
+            "group": "Integrações",
+            "pages": [
+              "tutorial/integracao/cal"
+            ]
+          }
+        ]
       }
     ],
     "global": {
