@@ -35,13 +35,20 @@
           }
         ]
       },
-      {
+       {
         "tab": "Webhooks",
         "groups": [
           {
-            "group": "Documentação dos Webhooks",
+            "group": "Webhooks",
             "pages": [
-              "webhooks/referencia-webhooks"
+              "webhooks/introduction",
+              {
+                "group": "Tipos de Evento",
+                "pages": [
+                  "webhooks/eventos/eventos-conversa-lead",
+                  "webhooks/eventos/eventos-kanban-tags"
+                ]
+              }
             ]
           }
         ]

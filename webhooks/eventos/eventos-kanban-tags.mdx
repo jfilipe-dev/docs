@@ -1,0 +1,218 @@
+---
+title: 'Eventos de Kanban e Tags'
+description: 'Webhooks disparados por alterações no Kanban e gerenciamento de tags.'
+---
+
+### LEAD_KANBAN_UPDATED
+
+Enviado quando o **lead muda de coluna no Kanban**.
+
+<Card>
+  <ResponseField name="event" type="string" required>
+    O tipo do evento: `LEAD_KANBAN_UPDATED`.
+  </ResponseField>
+  <ResponseField name="lead_id" type="string" required>
+    Identificador único do lead.
+  </ResponseField>
+  <ResponseField name="lead_name" type="string">
+    Nome do lead.
+  </ResponseField>
+  <ResponseField name="lead_phone" type="string" required>
+    Número de WhatsApp do lead no formato E.164.
+  </ResponseField>
+  <ResponseField name="previous_column_id" type="string">
+    Identificador da coluna anterior.
+  </ResponseField>
+  <ResponseField name="previous_column_name" type="string">
+    Nome da coluna anterior.
+  </ResponseField>
+  <ResponseField name="new_column_id" type="string" required>
+    Identificador da nova coluna para a qual o lead foi movido.
+  </ResponseField>
+  <ResponseField name="new_column_name" type="string" required>
+    Nome da nova coluna.
+  </ResponseField>
+  <ResponseField name="timestamp" type="string (ISO 8601)" required>
+    Data e hora em que a atualização ocorreu.
+  </ResponseField>
+  <ResponseField name="attendant_id" type="string" required>
+    Identificador do atendente que realizou a ação.
+  </ResponseField>
+  <ResponseField name="attendant_name" type="string">
+    Nome do atendente.
+  </ResponseField>
+  <ResponseField name="current_tags" type="array">
+    Lista de objetos representando as tags atuais do lead.
+  </ResponseField>
+  <ResponseField name="lead_metadata" type="array">
+    Lista de objetos com as propriedades personalizadas do lead.
+  </ResponseField>
+</Card>
+
+**Exemplo de Payload:**
+```json
+{
+  "event": "LEAD_KANBAN_UPDATED",
+  "lead_id": "abc213def456",
+  "lead_name": "Novo Cliente",
+  "lead_phone": "5511999999999",
+  "previous_column_id": "col111abc123",
+  "previous_column_name": "Proposta Enviada",
+  "previous_column_description": null,
+  "new_column_id": "col333def456",
+  "new_column_name": "Lead Quente",
+  "new_column_description": null,
+  "timestamp": "2025-08-18T14:30:58.939Z",
+  "attendant_id": "def456abc123",
+  "attendant_name": "Zatten",
+  "current_tags": [],
+  "lead_metadata": [
+    { "prop_name": "nome_do_chefe", "prop_value": "Chefe" },
+    { "prop_name": "cpf", "prop_value": "12345678909" }
+  ]
+}
+````
+
+-----
+
+### LEAD\_TAG\_ADDED
+
+Enviado quando uma **tag é adicionada** a um lead.
+
+<Card>
+  <ResponseField name="event" type="string" required>
+    O tipo do evento: `LEAD_TAG_ADDED`.
+  </ResponseField>
+  <ResponseField name="lead_id" type="string" required>
+    Identificador único do lead.
+  </ResponseField>
+  <ResponseField name="lead_name" type="string">
+    Nome do lead.
+  </ResponseField>
+  <ResponseField name="lead_phone" type="string" required>
+    Número de WhatsApp do lead no formato E.164.
+  </ResponseField>
+  <ResponseField name="tag_id" type="string" required>
+    Identificador da tag que foi adicionada.
+  </ResponseField>
+  <ResponseField name="tag_name" type="string" required>
+    Nome da tag adicionada.
+  </ResponseField>
+  <ResponseField name="current_tags" type="array" required>
+   Lista completa de objetos representando as tags do lead após a adição.
+  <Expandable title="properties">
+  <ResponseField name="id" type="string" required>
+    Identificador da tag.
+  </ResponseField>
+  <ResponseField name="name" type="string" required>
+    Nome da tag.
+  </ResponseField>
+  <ResponseField name="description" type="string">
+    Descrição da tag.
+  </ResponseField>
+  </Expandable>
+  </ResponseField>
+  <ResponseField name="timestamp" type="string (ISO 8601)" required>
+    Data e hora em que a atualização ocorreu.
+  </ResponseField>
+  <ResponseField name="attendant_id" type="string" required>
+    Identificador do atendente que realizou a ação.
+  </ResponseField>
+  <ResponseField name="kanban_column_id" type="string">
+    Identificador da coluna atual do lead no Kanban.
+  </ResponseField>
+  <ResponseField name="kanban_column_name" type="string">
+    Nome da coluna atual do lead no Kanban.
+  </ResponseField>
+</Card>
+
+**Exemplo de Payload:**
+
+```json
+{
+  "event": "LEAD_TAG_ADDED",
+  "lead_id": "abc213def456",
+  "lead_name": "Novo Cliente",
+  "lead_phone": "5511999999999",
+  "tag_id": "tag999ghi123",
+  "tag_name": "Só quer conversar",
+  "tag_description": null,
+  "current_tags": [
+    {
+      "id": "tag777def890",
+      "name": "Esperando Retorno",
+      "description": ""
+    },
+    {
+      "id": "tag999ghi123",
+      "name": "Só quer conversar",
+      "description": ""
+    }
+  ],
+  "timestamp": "2025-08-18T14:31:19.692Z",
+  "attendant_id": "def456abc123",
+  "attendant_name": "Zatten",
+  "kanban_column_id": "col555ghi678",
+  "kanban_column_name": "Lead Frio",
+  "kanban_column_description": null,
+  "lead_metadata": [
+    { "prop_name": "nome_do_chefe", "prop_value": "teste" },
+    { "prop_name": "cpf", "prop_value": "12345678909" }
+  ]
+}
+```
+
+-----
+
+### LEAD_TAG_REMOVED
+
+Enviado quando uma **tag é removida** de um lead.
+
+<Card>
+  <ResponseField name="event" type="string" required>
+    O tipo do evento: `LEAD_TAG_REMOVED`.
+  </ResponseField>
+  <ResponseField name="lead_id" type="string" required>
+    Identificador único do lead.
+  </ResponseField>
+  <ResponseField name="tag_id" type="string" required>
+    Identificador da tag que foi removida.
+  </ResponseField>
+  <ResponseField name="tag_name" type="string" required>
+    Nome da tag removida.
+  </ResponseField>
+  <ResponseField name="current_tags" type="array" required>
+    Lista de objetos representando as tags restantes do lead após a remoção.
+  </ResponseField>
+  <ResponseField name="timestamp" type="string (ISO 8601)" required>
+    Data e hora em que a atualização ocorreu.
+  </ResponseField>
+  <ResponseField name="attendant_id" type="string" required>
+    Identificador do atendente que realizou a ação.
+  </ResponseField>
+</Card>
+
+**Exemplo de Payload:**
+
+```json
+{
+  "event": "LEAD_TAG_REMOVED",
+  "lead_id": "abc213def456",
+  "lead_name": "Novo Cliente",
+  "lead_phone": "5511999999999",
+  "tag_id": "tag777def890",
+  "tag_name": "Esperando Retorno",
+  "tag_description": null,
+  "current_tags": [],
+  "timestamp": "2025-08-18T14:36:31.409Z",
+  "attendant_id": "def456abc123",
+  "attendant_name": "Zatten",
+  "kanban_column_id": "col555ghi678",
+  "kanban_column_name": "Lead Frio",
+  "kanban_column_description": null,
+  "lead_metadata": [
+    { "prop_name": "nome_do_chefe", "prop_value": "Chefe" },
+    { "prop_name": "cpf", "prop_value": "12345678909" }
+  ]
+}
+```

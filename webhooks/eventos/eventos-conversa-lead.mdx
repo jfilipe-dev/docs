@@ -1,0 +1,303 @@
+---
+title: 'Eventos de Conversa e Lead'
+description: 'Webhooks disparados durante interações e o ciclo de vida do lead.'
+---
+
+## Payload
+
+O payload enviado para a sua URL segue a estrutura principal abaixo. Os campos opcionais podem ou não estar presentes, dependendo do tipo de evento.
+
+<Card>
+  <ResponseField name="type" type="string" required>
+    O tipo do evento que ocorreu. Ex: `LEAD_CREATED`, `LEAD_INTERACTION`.
+  </ResponseField>
+
+  <ResponseField name="lead" type="object" required>
+    Objeto contendo todos os dados do lead relacionado ao evento.
+    <Expandable title="properties">
+      <ResponseField name="id" type="string" required>
+        Identificador único do lead.
+      </ResponseField>
+      <ResponseField name="phone" type="string" required>
+        Número de WhatsApp do lead no formato E.164.
+      </ResponseField>
+      <ResponseField name="created_at" type="string (ISO 8601)" required>
+        Data e hora em que o lead foi criado.
+      </ResponseField>
+      <ResponseField name="name" type="string">
+        Nome do lead.
+      </ResponseField>
+      <ResponseField name="thread_id" type="string" required>
+        Identificador da thread de conversa interna da Zatten.
+      </ResponseField>
+      <ResponseField name="last_interaction" type="string (ISO 8601)" required>
+        Data e hora da última interação com o lead.
+      </ResponseField>
+      <ResponseField name="conversation_expires_in" type="string (ISO 8601)" required>
+        Data e hora em que a janela de conversa de 24h expira.
+      </ResponseField>
+      <ResponseField name="ai_response_block" type="boolean" required>
+        Indica se a resposta da IA está bloqueada.
+      </ResponseField>
+      <ResponseField name="tags" type="string[]">
+        Lista de IDs das tags associadas ao lead.
+      </ResponseField>
+      <ResponseField name="notes" type="string">
+        Anotações salvas sobre o lead.
+      </ResponseField>
+      <ResponseField name="metadata" type="object">
+        Objeto chave-valor com as propriedades personalizadas do lead.
+      </ResponseField>
+      <ResponseField name="kanban_column" type="string" required>
+        Objeto contendo os valores da coluna do kanban onde está o lead.
+        <Card>
+          <ResponseField name="id" type="string" required>
+            Identificador da coluna do kanban onde está o lead.
+          </ResponseField>
+          <ResponseField name="name" type="string" required>
+            Nome da coluna do kanban onde está o lead.
+          </ResponseField>
+        </Card>
+      </ResponseField>
+      <ResponseField name="assigned_to_user" type="object">
+        Objeto contendo os valores do usuário responsável pelo lead.
+        <Card>
+          <ResponseField name="id" type="string" required>
+            Identificador do usuário responsável pelo lead.
+          </ResponseField>
+          <ResponseField name="name" type="string" required>
+            Nome do usuário responsável pelo lead.
+          </ResponseField>
+        </Card>
+      </ResponseField>
+      <ResponseField name="assigned_to_department" type="object">
+        Objeto contendo os valores do departamento responsável pelo lead.
+        <Card>
+          <ResponseField name="id" type="string" required>
+            Identificador do departamento responsável pelo lead.
+          </ResponseField>
+          <ResponseField name="name" type="string" required>
+            Nome do departamento responsável pelo lead.
+          </ResponseField>
+        </Card>
+      </ResponseField>
+    </Expandable>
+  </ResponseField>
+
+  <ResponseField name="attendant" type="object" required>
+    Objeto contendo informações do atendente associado ao evento.
+    <Expandable title="properties">
+      <ResponseField name="id" type="string" required>
+        Identificador único do atendente.
+      </ResponseField>
+      <ResponseField name="meta_number_id" type="string" required>
+        ID do número de telefone da Meta que enviou ou recebeu a mensagem.
+      </ResponseField>
+      <ResponseField name="name" type="string">
+        Nome do atendente.
+      </ResponseField>
+    </Expandable>
+  </ResponseField>
+
+  <ResponseField name="message" type="object">
+    Objeto presente apenas em eventos de mensagem (`LEAD_INTERACTION`, `AI_RESPONSE`) ou `ERROR`.
+      <Expandable title="properties">
+        <ResponseField name="messages" type="string[]">
+          Lista com o conteúdo das mensagens enviadas ou recebidas.
+        </ResponseField>
+        <ResponseField name="error" type="string">
+          Descrição do erro, presente apenas no evento `ERROR`.
+        </ResponseField>
+    </Expandable>
+  </ResponseField>
+
+  <ResponseField name="timestamp" type="string (ISO 8601)" required>
+        Data e hora em que o evento foi disparado.
+  </ResponseField>
+</Card>
+
+## Exemplos por Evento
+
+Abaixo estão exemplos de payload para cada tipo de evento.
+
+#### LEAD_CREATED
+
+Enviado sempre que um **novo lead é criado** no sistema. Note que o objeto `message` não é incluído.
+
+```json
+{
+  "type": "LEAD_CREATED",
+  "lead": {
+    "id": "lead_abc123def456",
+    "phone": "5511987654321",
+    "created_at": "2025-10-09T21:00:00.000Z",
+    "name": "Cliente Exemplo",
+    "thread_id": "thread_zt123abc456",
+    "last_interaction": null,
+    "conversation_expires_in": null,
+    "ai_response_block": false,
+    "tags": [],
+    "notes": null,
+    "metadata": null,
+    "kanban_column": {
+      "id": "col_123xyz",
+      "name": "Novo"
+    },
+    "assigned_to_user": {
+      "id": "user_789ghi",
+      "name": "João Silva"
+    },
+    "assigned_to_department": {
+      "id": "dept_456jkl",
+      "name": "Vendas"
+    }
+  },
+  "attendant": {
+    "id": "attendant_ia_1",
+    "meta_number_id": "102030405060708",
+    "name": "Atendente IA Pro"
+  },
+  "timestamp": "2025-10-09T21:00:00.000Z"
+}
+````
+
+#### LEAD\_INTERACTION
+
+Enviado quando um **lead envia uma nova mensagem**.
+
+```json
+{
+  "type": "LEAD_INTERACTION",
+  "lead": {
+    "id": "lead_abc123def456",
+    "phone": "5511987654321",
+    "created_at": "2025-10-09T21:00:00.000Z",
+    "name": "Cliente Exemplo",
+    "thread_id": "thread_zt123abc456",
+    "last_interaction": "2025-10-09T21:05:10.123Z",
+    "conversation_expires_in": "2025-10-10T21:05:10.123Z",
+    "ai_response_block": false,
+    "tags": ["tag_abc111", "tag_def222"],
+    "notes": "Lead interessado no plano Pro.",
+    "metadata": {
+      "origem": "campanha-dez-2025",
+      "score": "95"
+    },
+    "kanban_column": {
+      "id": "col_123xyz",
+      "name": "Qualificação"
+    },
+    "assigned_to_user": {
+      "id": "user_789ghi",
+      "name": "João Silva"
+    },
+    "assigned_to_department": {
+      "id": "dept_456jkl",
+      "name": "Vendas"
+    }
+  },
+  "attendant": {
+    "id": "attendant_ia_1",
+    "meta_number_id": "102030405060708",
+    "name": "Atendente IA Pro"
+  },
+  "message": {
+    "messages": ["Olá, gostaria de mais informações sobre o plano Pro."]
+  },
+  "timestamp": "2025-10-09T21:05:10.123Z"
+}
+```
+
+#### AI\_RESPONSE
+
+Enviado sempre que a **inteligência artificial responde** a um lead.
+
+```json
+{
+  "type": "AI_RESPONSE",
+  "lead": {
+    "id": "lead_abc123def456",
+    "phone": "5511987654321",
+    "created_at": "2025-10-09T21:00:00.000Z",
+    "name": "Cliente Exemplo",
+    "thread_id": "thread_zt123abc456",
+    "last_interaction": "2025-10-09T21:05:15.456Z",
+    "conversation_expires_in": "2025-10-10T21:05:10.123Z",
+    "ai_response_block": false,
+    "tags": ["tag_abc111", "tag_def222"],
+    "notes": "Lead interessado no plano Pro.",
+    "metadata": {
+      "origem": "campanha-dez-2025",
+      "score": "95"
+    },
+    "kanban_column": {
+      "id": "col_123xyz",
+      "name": "Qualificação"
+    },
+    "assigned_to_user": {
+      "id": "user_789ghi",
+      "name": "João Silva"
+    },
+    "assigned_to_department": {
+      "id": "dept_456jkl",
+      "name": "Vendas"
+    }
+  },
+  "attendant": {
+    "id": "attendant_ia_1",
+    "meta_number_id": "102030405060708",
+    "name": "Atendente IA Pro"
+  },
+  "message": {
+    "messages": ["Olá, Cliente Exemplo! O plano Pro oferece recursos avançados de automação. Posso detalhar os benefícios para você?"]
+  },
+  "timestamp": "2025-10-09T21:05:15.456Z"
+}
+```
+
+#### ERROR
+
+Enviado quando ocorre um **erro ao processar ou enviar uma mensagem**.
+
+```json
+{
+  "type": "ERROR",
+  "lead": {
+    "id": "lead_abc123def456",
+    "phone": "5511987654321",
+    "created_at": "2025-10-09T21:00:00.000Z",
+    "name": "Cliente Exemplo",
+    "thread_id": "thread_zt123abc456",
+    "last_interaction": "2025-10-09T21:05:15.456Z",
+    "conversation_expires_in": "2025-10-10T21:05:10.123Z",
+    "ai_response_block": false,
+    "tags": ["tag_abc111", "tag_def222"],
+    "notes": "Lead interessado no plano Pro.",
+    "metadata": {
+      "origem": "campanha-dez-2025",
+      "score": "95"
+    },
+    "kanban_column": {
+      "id": "col_123xyz",
+      "name": "Qualificação"
+    },
+    "assigned_to_user": {
+      "id": "user_789ghi",
+      "name": "João Silva"
+    },
+    "assigned_to_department": {
+      "id": "dept_456jkl",
+      "name": "Vendas"
+    }
+  },
+  "attendant": {
+    "id": "attendant_ia_1",
+    "meta_number_id": "102030405060708",
+    "name": "Atendente IA Pro"
+  },
+  "message": {
+    "error": "Message failed to send. (24-hour window closed)"
+  },
+  "timestamp": "2025-10-11T22:00:00.000Z"
+}
+```

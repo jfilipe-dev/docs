@@ -1,0 +1,39 @@
+---
+title: 'Introdução'
+description: 'Guia sobre os eventos, payloads e campos enviados pelos webhooks da Zatten.'
+---
+
+<Note>
+  Nesta seção, você encontrará detalhes sobre os eventos que a Zatten pode enviar para a sua aplicação via webhook. Configure uma URL no seu painel para começar a receber esses eventos em tempo real.
+</Note>
+---
+
+## Como funcionam os Webhooks?
+
+Quando ocorrem ações específicas na plataforma, como a criação de um lead ou o recebimento de uma mensagem, enviamos uma requisição `POST` para a URL que você configurou. O corpo dessa requisição contém um payload JSON com todas as informações relevantes sobre o evento.
+
+<Columns cols={2}>
+  <Card 
+    title="Conversa e Lead"
+    href="/webhooks/eventos/eventos-conversa-lead"
+  >
+     Eventos disparados durante o ciclo de vida e interações com o lead, como criação e troca de mensagens.
+  </Card>
+  <Card 
+    title="Kanban e Tags"
+    href="/webhooks/eventos/eventos-kanban-tags"
+  >
+    Eventos disparados por alterações no Kanban e no gerenciamento de tags do lead.
+  </Card>
+</Columns>
+---
+
+<Warning>
+**Observações Importantes**
+
+- **Formato de Data:** Todos os timestamps e campos de data/hora seguem o padrão **ISO 8601 UTC**.
+
+- **Idempotência:** Sua aplicação deve ser construída para lidar com a possibilidade de receber o mesmo evento mais de uma vez. Tornar o processamento do webhook idempotente (processar o mesmo evento múltiplas vezes sem criar resultados duplicados) é uma prática recomendada.
+
+- **Dados Atualizados:** O payload de cada evento sempre contém os dados mais atualizados daquele lead no momento em que a ação ocorreu.
+</Warning>
