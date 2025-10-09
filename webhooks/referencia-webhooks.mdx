@@ -15,73 +15,142 @@ Quando ocorrem ações específicas na plataforma, como a criação de um lead o
 
 ## Eventos de Conversa e Lead
 
-### LEAD_CREATED
+
+### LEAD\_CREATED
 
 Enviado sempre que um **novo lead é criado** no sistema, seja por uma interação inicial ou manualmente.
 
 ```json
 {
-  "event": "LEAD_CREATED",
-  "lead_id": "abc213def456",
-  "lead_name": "Novo Cliente",
-  "lead_phone": "5511999999999",
-  "thread_id": "zt-thread-123abc456def",
-  "attendant_id": "def456abc123",
-  "meta_number_id": "109876543210987",
-  "created_at": "2025-09-10T22:45:10.123Z",
-  "timestamp": "2025-09-10T22:45:10.123Z"
-}
-````
-
-**Campos do Payload:**
-
-  - **event**: `string` - Tipo do evento (`LEAD_CREATED`).
-  - **lead\_id**: `string` - Identificador do lead.
-  - **lead\_name**: `string | null` - Nome do lead, se houver.
-  - **lead\_phone**: `string` - Número de WhatsApp do lead (formato E.164).
-  - **thread\_id**: `string` - Identificador da thread interna da Zatten.
-  - **attendant\_id**: `string` - Identificador do atendente vinculado.
-  - **meta\_number\_id**: `string` - Identificador do número de telefone (da Meta).
-  - **created\_at**: `string` - Data e hora em que o lead foi criado (ISO 8601).
-  - **timestamp**: `string` - Data/hora da atualização (ISO 8601).
-
-### LEAD\_INTERACTION
-
-Enviado quando um **lead envia uma nova mensagem** dentro da janela de conversa de 24 horas.
-
-```json
-{
-  "event": "LEAD_INTERACTION",
-  "lead_id": "abc213def456",
-  "lead_name": "Novo Cliente",
-  "lead_phone": "5511999999999",
-  "thread_id": "zt-thread-123abc456def",
-  "attendant_id": "def456abc123",
-  "meta_number_id": "109876543210987",
-  "messages": [
-    "Olá, gostaria de mais informações."
-  ],
-  "last_interaction": "2025-09-10T22:50:00.456Z",
-  "conversation_expires_in": "2025-09-11T22:50:00.456Z",
-  "created_at": "2025-08-18T14:30:00.000Z",
-  "timestamp": "2025-08-18T14:30:00.000Z"
+  "type": "LEAD_CREATED",
+  "lead": {
+    "id": "lead_abc123def456",
+    "name": "Cliente Potencial",
+    "wa_id": "5511987654321",
+    "thread_id": "thr_external_xyz789",
+    "last_interaction": null,
+    "conversation_expires_in": null,
+    "created_at": "2025-10-09T20:00:00.000Z",
+    "ai_response_block_until": null,
+    "tags": [],
+    "tenant_id": "tenant_acme_corp_789",
+    "unread_messages": 1,
+    "column_id": "col_new_lead_111",
+    "notes": null,
+    "metadata": null,
+    "assigned_to_user": null,
+    "assigned_to_team": null,
+    "zatten_thread_id": "zt-thread-internal-123"
+  },
+  "attendant": {
+    "id": "attendant_ia_pro_333",
+    "meta_number_id": "102030405060708",
+    "name": "Assistente Virtual"
+  },
+  "timestamp": "2025-10-09T20:00:00.000Z"
 }
 ```
 
 **Campos do Payload:**
 
-  - **event**: `string` - Tipo do evento (`LEAD_INTERACTION`).
-  - **lead\_id**: `string` - Identificador do lead.
-  - **lead\_name**: `string | null` - O nome do lead.
-  - **lead\_phone**: `string` - Número de WhatsApp do lead.
-  - **thread\_id**: `string` - Identificador da thread interna da Zatten.
-  - **attendant\_id**: `string` - Identificador do atendente vinculado.
-  - **meta\_number\_id**: `string` - Identificador do número de telefone (da Meta).
-  - **messages**: `array` - Lista contendo as mensagens recebidas do lead.
-  - **last\_interaction**: `string` - Data e hora da última interação (ISO 8601).
-  - **conversation\_expires\_in**: `string` - Data e hora em que a janela de conversa de 24 horas expira (ISO 8601).
-  - **created\_at**: `string` - Data de criação do lead (ISO 8601).
-  - **timestamp**: `string` - Data/hora da atualização (ISO 8601).
+  * **type**: `string` - Tipo do evento (`LEAD_CREATED`).
+  * **lead**: `object` - Objeto contendo os dados do lead.
+      * **id**: `string` - Identificador único do lead.
+      * **name**: `string | null` - Nome do lead.
+      * **wa\_id**: `string` - Número de WhatsApp do lead (E.164).
+      * **thread\_id**: `string | null` - ID da thread externa (se aplicável).
+      * **last\_interaction**: `string | null` - Data da última interação (ISO 8601).
+      * **conversation\_expires\_in**: `string | null` - Data de expiração da janela de conversa (ISO 8601).
+      * **created\_at**: `string` - Data de criação do lead (ISO 8601).
+      * **ai\_response\_block\_until**: `string | null` - Data até a qual a IA está bloqueada de responder.
+      * **tags**: `string[] | null` - Array com os IDs das tags do lead.
+      * **tenant\_id**: `string` - ID da sua organização (tenant).
+      * **unread\_messages**: `number | null` - Quantidade de mensagens não lidas.
+      * **column\_id**: `string | null` - ID da coluna do Kanban onde o lead se encontra.
+      * **notes**: `string | null` - Anotações sobre o lead.
+      * **metadata**: `object | null` - Objeto com dados personalizados do lead.
+      * **assigned\_to\_user**: `string | null` - ID do usuário para o qual o lead está atribuído.
+      * **assigned\_to\_team**: `string | null` - ID da equipe para a qual o lead está atribuído.
+      * **zatten\_thread\_id**: `string | null` - ID da thread interna da Zatten.
+  * **attendant**: `object` - Objeto com dados do atendente.
+      * **id**: `string` - Identificador único do atendente.
+      * **meta\_number\_id**: `string | null` - ID do número de telefone da Meta.
+      * **name**: `string | null` - Nome do atendente.
+  * **timestamp**: `string` - Data e hora do evento (ISO 8601).
+
+-----
+
+### LEAD\_INTERACTION
+
+Enviado quando um **lead envia uma nova mensagem**.
+
+```json
+{
+  "type": "LEAD_INTERACTION",
+  "lead": {
+    "id": "lead_abc123def456",
+    "name": "Cliente Potencial",
+    "wa_id": "5511987654321",
+    "thread_id": "thr_external_xyz789",
+    "last_interaction": "2025-10-09T21:30:15.123Z",
+    "conversation_expires_in": "2025-10-10T21:30:15.123Z",
+    "created_at": "2025-10-09T20:00:00.000Z",
+    "ai_response_block_until": null,
+    "tags": ["tag_vip_123", "tag_followup_456"],
+    "tenant_id": "tenant_acme_corp_789",
+    "unread_messages": 2,
+    "column_id": "col_negotiation_xyz",
+    "notes": "Demonstrou interesse no plano Enterprise.",
+    "metadata": {
+      "origem": "webinar-outubro",
+      "score_venda": 85
+    },
+    "assigned_to_user": "user_joao_silva_111",
+    "assigned_to_team": "team_vendas_sp_222",
+    "zatten_thread_id": "zt-thread-internal-123"
+  },
+  "attendant": {
+    "id": "attendant_ia_pro_333",
+    "meta_number_id": "102030405060708",
+    "name": "Assistente Virtual"
+  },
+  "message": {
+    "messages": ["Olá, bom dia!", "Gostaria de agendar uma demonstração."]
+  },
+  "timestamp": "2025-10-09T21:30:15.123Z"
+}
+```
+
+**Campos do Payload:**
+
+  * **type**: `string` - Tipo do evento (`LEAD_INTERACTION`).
+  * **lead**: `object` - Objeto contendo os dados do lead.
+    * **id**: `string` - Identificador único do lead.
+    * **name**: `string | null` - Nome do lead.
+    * **wa\_id**: `string` - Número de WhatsApp do lead (E.164).
+    * **thread\_id**: `string | null` - ID da thread externa (se aplicável).
+    * **last\_interaction**: `string | null` - Data da última interação (ISO 8601).
+    * **conversation\_expires\_in**: `string | null` - Data de expiração da janela de conversa (ISO 8601).
+    * **created\_at**: `string` - Data de criação do lead (ISO 8601).
+    * **ai\_response\_block\_until**: `string | null` - Data até a qual a IA está bloqueada de responder.
+    * **tags**: `string[] | null` - Array com os IDs das tags do lead.
+    * **tenant\_id**: `string` - ID da sua organização (tenant).
+    * **unread\_messages**: `number | null` - Quantidade de mensagens não lidas.
+    * **column\_id**: `string | null` - ID da coluna do Kanban onde o lead se encontra.
+    * **notes**: `string | null` - Anotações sobre o lead.
+    * **metadata**: `object | null` - Objeto com dados personalizados do lead.
+    * **assigned\_to\_user**: `string | null` - ID do usuário para o qual o lead está atribuído.
+    * **assigned\_to\_team**: `string | null` - ID da equipe para a qual o lead está atribuído.
+    * **zatten\_thread\_id**: `string | null` - ID da thread interna da Zatten.
+  * **attendant**: `object` - Objeto com dados do atendente.
+      * **id**: `string` - Identificador único do atendente.
+      * **meta\_number\_id**: `string | null` - ID do número de telefone da Meta.
+      * **name**: `string | null` - Nome do atendente.
+  * **message**: `object` - Objeto com o conteúdo da mensagem.
+      * **messages**: `string[]` - Array com as mensagens enviadas pelo lead.
+  * **timestamp**: `string` - Data e hora do evento (ISO 8601).
+
+-----
 
 ### AI\_RESPONSE
 
@@ -89,38 +158,143 @@ Enviado sempre que a **inteligência artificial responde** a um lead.
 
 ```json
 {
-  "event": "AI_RESPONSE",
-  "lead_id": "abc213def456",
-  "lead_name": "Novo Cliente",
-  "lead_phone": "5511999999999",
-  "thread_id": "zt-thread-123abc456def",
-  "attendant_id": "def456abc123",
-  "meta_number_id": "109876543210987",
-  "messages": [
-    "Olá, Novo Cliente! Claro, em que posso ajudar?"
-  ],
-  "last_interaction": "2025-09-10T22:50:05.789Z",
-  "conversation_expires_in": "2025-09-11T22:50:00.456Z",
-  "created_at": "2025-08-18T14:30:00.000Z",
-  "timestamp": "2025-08-18T14:30:00.000Z"
-  
+  "type": "AI_RESPONSE",
+  "lead": {
+    "id": "lead_abc123def456",
+    "name": "Cliente Potencial",
+    "wa_id": "5511987654321",
+    "thread_id": "thr_external_xyz789",
+    "last_interaction": "2025-10-09T21:30:20.456Z",
+    "conversation_expires_in": "2025-10-10T21:30:15.123Z",
+    "created_at": "2025-10-09T20:00:00.000Z",
+    "ai_response_block_until": null,
+    "tags": ["tag_vip_123", "tag_followup_456"],
+    "tenant_id": "tenant_acme_corp_789",
+    "unread_messages": 0,
+    "column_id": "col_negotiation_xyz",
+    "notes": "Demonstrou interesse no plano Enterprise.",
+    "metadata": {
+      "origem": "webinar-outubro",
+      "score_venda": 85
+    },
+    "assigned_to_user": "user_joao_silva_111",
+    "assigned_to_team": "team_vendas_sp_222",
+    "zatten_thread_id": "zt-thread-internal-123"
+  },
+  "attendant": {
+    "id": "attendant_ia_pro_333",
+    "meta_number_id": "102030405060708",
+    "name": "Assistente Virtual"
+  },
+  "message": {
+    "messages": ["Olá! Claro, qual o melhor horário para você?"]
+  },
+  "timestamp": "2025-10-09T21:30:20.456Z"
 }
 ```
 
 **Campos do Payload:**
 
-  - **event**: `string` - Tipo do evento (`AI_RESPONSE`).
-  - **lead\_id**: `string` - Identificador do lead.
-  - **lead\_name**: `string | null` - Nome do lead.
-  - **lead\_phone**: `string` - Número de WhatsApp do lead.
-  - **thread\_id**: `string` - Identificador da thread interna da Zatten.
-  - **attendant\_id**: `string` - Identificador do atendente vinculado.
-  - **meta\_number\_id**: `string` - Identificador do número de telefone (da Meta).
-  - **messages**: `array` - Lista de strings contendo as respostas enviadas pela IA.
-  - **last\_interaction**: `string` - Data e hora da última interação (ISO 8601).
-  - **conversation\_expires\_in**: `string` - Data em que a janela de conversa expira (ISO 8601).
-  - **created\_at**: `string` - Data de criação do lead (ISO 8601).
-  - **timestamp**: `string` - Data/hora da atualização (ISO 8601).
+  * **type**: `string` - Tipo do evento (`AI_RESPONSE`).
+  * **lead**: `object` - Objeto contendo os dados do lead.
+    * **id**: `string` - Identificador único do lead.
+    * **name**: `string | null` - Nome do lead.
+    * **wa\_id**: `string` - Número de WhatsApp do lead (E.164).
+    * **thread\_id**: `string | null` - ID da thread externa (se aplicável).
+    * **last\_interaction**: `string | null` - Data da última interação (ISO 8601).
+    * **conversation\_expires\_in**: `string | null` - Data de expiração da janela de conversa (ISO 8601).
+    * **created\_at**: `string` - Data de criação do lead (ISO 8601).
+    * **ai\_response\_block\_until**: `string | null` - Data até a qual a IA está bloqueada de responder.
+    * **tags**: `string[] | null` - Array com os IDs das tags do lead.
+    * **tenant\_id**: `string` - ID da sua organização (tenant).
+    * **unread\_messages**: `number | null` - Quantidade de mensagens não lidas.
+    * **column\_id**: `string | null` - ID da coluna do Kanban onde o lead se encontra.
+    * **notes**: `string | null` - Anotações sobre o lead.
+    * **metadata**: `object | null` - Objeto com dados personalizados do lead.
+    * **assigned\_to\_user**: `string | null` - ID do usuário para o qual o lead está atribuído.
+    * **assigned\_to\_team**: `string | null` - ID da equipe para a qual o lead está atribuído.
+    * **zatten\_thread\_id**: `string | null` - ID da thread interna da Zatten.
+  * **attendant**: `object` - Objeto com dados do atendente.
+      * **id**: `string` - Identificador único do atendente.
+      * **meta\_number\_id**: `string | null` - ID do número de telefone da Meta.
+      * **name**: `string | null` - Nome do atendente.
+  * **message**: `object` - Objeto com o conteúdo da mensagem.
+      * **messages**: `string[]` - Array com as mensagens enviadas pelo lead.
+  * **timestamp**: `string` - Data e hora do evento (ISO 8601).
+
+-----
+
+### ERROR
+
+Enviado quando ocorre um **erro ao processar ou enviar uma mensagem**.
+
+```json
+{
+  "type": "ERROR",
+  "lead": {
+    "id": "lead_abc123def456",
+    "name": "Cliente Potencial",
+    "wa_id": "5511987654321",
+    "thread_id": "thr_external_xyz789",
+    "last_interaction": "2025-10-09T21:30:20.456Z",
+    "conversation_expires_in": "2025-10-10T21:30:15.123Z",
+    "created_at": "2025-10-09T20:00:00.000Z",
+    "ai_response_block_until": "2035-10-09T21:30:20.456Z",
+    "tags": ["tag_vip_123", "tag_followup_456"],
+    "tenant_id": "tenant_acme_corp_789",
+    "unread_messages": 2,
+    "column_id": "col_negotiation_xyz",
+    "notes": "Demonstrou interesse no plano Enterprise.",
+    "metadata": {
+      "origem": "webinar-outubro",
+      "score_venda": 85
+    },
+    "assigned_to_user": "user_joao_silva_111",
+    "assigned_to_team": "team_vendas_sp_222",
+    "zatten_thread_id": "zt-thread-internal-123"
+  },
+  "attendant": {
+    "id": "attendant_ia_pro_333",
+    "meta_number_id": "102030405060708",
+    "name": "Assistente Virtual"
+  },
+  "message": {
+    "error": "Failed to send message: Recipient is outside of the 24-hour conversation window."
+  },
+  "timestamp": "2025-10-11T22:15:00.000Z"
+}
+```
+
+**Campos do Payload:**
+
+  * **type**: `string` - Tipo do evento (`ERROR`).
+  * **lead**: `object` - Objeto contendo os dados do lead.
+      * **id**: `string` - Identificador único do lead.
+      * **name**: `string | null` - Nome do lead.
+      * **wa\_id**: `string` - Número de WhatsApp do lead (E.164).
+      * **thread\_id**: `string | null` - ID da thread externa (se aplicável).
+      * **last\_interaction**: `string | null` - Data da última interação (ISO 8601).
+      * **conversation\_expires\_in**: `string | null` - Data de expiração da janela de conversa (ISO 8601).
+      * **created\_at**: `string` - Data de criação do lead (ISO 8601).
+      * **ai\_response\_block\_until**: `string | null` - Data até a qual a IA está bloqueada de responder.
+      * **tags**: `string[] | null` - Array com os IDs das tags do lead.
+      * **tenant\_id**: `string` - ID da sua organização (tenant).
+      * **unread\_messages**: `number | null` - Quantidade de mensagens não lidas.
+      * **column\_id**: `string | null` - ID da coluna do Kanban onde o lead se encontra.
+      * **notes**: `string | null` - Anotações sobre o lead.
+      * **metadata**: `object | null` - Objeto com dados personalizados do lead.
+      * **assigned\_to\_user**: `string | null` - ID do usuário para o qual o lead está atribuído.
+      * **assigned\_to\_team**: `string | null` - ID da equipe para a qual o lead está atribuído.
+      * **zatten\_thread\_id**: `string | null` - ID da thread interna da Zatten.
+  * **attendant**: `object` - Objeto com dados do atendente.
+      * **id**: `string` - Identificador único do atendente.
+      * **meta\_number\_id**: `string | null` - ID do número de telefone da Meta.
+      * **name**: `string | null` - Nome do atendente.
+  * **message**: `object` - Objeto com o conteúdo da mensagem.
+      * **messages**: `string[]` - Array com as mensagens enviadas pelo lead.
+  * **message**: `object` - Objeto com a descrição do erro.
+      * **error**: `string` - Detalhes sobre o erro que ocorreu.
+  * **timestamp**: `string` - Data e hora do evento (ISO 8601).
 
 -----
 
