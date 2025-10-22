@@ -88,6 +88,86 @@
         }
       }
     },
+    "/messages/text": {
+      "post": {
+        "tags": [
+          "Mensagens"
+        ],
+        "summary": "Envia uma mensagem de texto",
+        "description": "Envia uma mensagem de texto simples (não-template) para um lead **existente**. Esta rota só funciona **dentro da janela de conversa de 24 horas** iniciada pelo lead.",
+        "requestBody": {
+          "description": "Dados necessários para o envio da mensagem de texto.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendTextMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro na requisição. Pode ser devido a dados inválidos, lead não encontrado ou janela de conversa expirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "description": "Erro de validação Zod nos dados do corpo da requisição.",
+                      "example": { "error": "Validation error: Message is required" }
+                    },
+                    {
+                      "description": "Lead com o `lead_number` fornecido não foi encontrado.",
+                      "example": { "error": "Lead with number 5511999999999 not found" }
+                    },
+                    {
+                       "description": "A janela de conversa de 24 horas expirou.",
+                       "example": { "error": "Cannot send message — 24 hour conversation window expired" }
+                    },
+                    {
+                       "description": "Erro genérico ao tentar enviar a mensagem pela API da Meta.",
+                       "example": { "error": "Could not send message to number 5511999999999 - (Meta API Error Message)" }
+                    }
+                  ],
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido. Tente novamente mais tarde.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/messages/history": {
       "get": {
         "tags": [
@@ -508,6 +588,27 @@
           "name": {
             "type": "string",
             "description": "Nome do lead, utilizado caso o lead precise ser criado."
+          }
+        }
+      },
+      "SendTextMessageRequest": {
+        "type": "object",
+        "required": [
+          "lead_number",
+          "message"
+        ],
+        "properties": {
+          "lead_number": {
+            "type": "string",
+            "description": "Número de WhatsApp do destinatário (lead)."
+          },
+          "message": {
+            "type": "string",
+            "description": "Conteúdo da mensagem de texto a ser enviada."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nome do lead (opcional, não é usado para criar o lead nesta rota)."
           }
         }
       },
