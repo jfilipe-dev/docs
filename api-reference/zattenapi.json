@@ -125,19 +125,27 @@
                   "oneOf": [
                     {
                       "description": "Erro de validação Zod nos dados do corpo da requisição.",
-                      "example": { "error": "Validation error: Message is required" }
+                      "example": {
+                        "error": "Validation error: Message is required"
+                      }
                     },
                     {
                       "description": "Lead com o `lead_number` fornecido não foi encontrado.",
-                      "example": { "error": "Lead with number 5511999999999 not found" }
+                      "example": {
+                        "error": "Lead with number 5511999999999 not found"
+                      }
                     },
                     {
-                       "description": "A janela de conversa de 24 horas expirou.",
-                       "example": { "error": "Cannot send message — 24 hour conversation window expired" }
+                      "description": "A janela de conversa de 24 horas expirou.",
+                      "example": {
+                        "error": "Cannot send message — 24 hour conversation window expired"
+                      }
                     },
                     {
-                       "description": "Erro genérico ao tentar enviar a mensagem pela API da Meta.",
-                       "example": { "error": "Could not send message to number 5511999999999 - (Meta API Error Message)" }
+                      "description": "Erro genérico ao tentar enviar a mensagem pela API da Meta.",
+                      "example": {
+                        "error": "Could not send message to number 5511999999999 - (Meta API Error Message)"
+                      }
                     }
                   ],
                   "$ref": "#/components/schemas/Error"
@@ -566,6 +574,303 @@
           }
         }
       }
+    },
+    "/leads/{leadNumber}/tag": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Adiciona uma tag a um lead",
+        "description": "Associa uma tag existente a um lead específico. A tag deve estar previamente cadastrada no sistema.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "O ID da tag a ser adicionada.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTagRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tag adicionada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Tag added successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação no corpo da requisição.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead ou Tag não encontrados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O lead já possui esta tag.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Lead already has tag {tagId}"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Remove uma tag de um lead",
+        "description": "Desassocia uma tag de um lead específico. O ID da tag deve ser enviado no corpo da requisição.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "O ID da tag a ser removida.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveTagRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tag removida com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Tag removed successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação no corpo da requisição.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead não encontrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O lead não possui esta tag.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Lead does not have tag {tagId}"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads/{leadNumber}/kanban": {
+      "patch": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Move um lead no Kanban",
+        "description": "Altera a coluna do lead no Kanban.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "O ID da coluna de destino.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKanbanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lead movido com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Update kanban successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação ou o lead já está nesta coluna.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Lead is already in the specified kanban column"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead ou Coluna não encontrados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -674,6 +979,42 @@
           "enabled": {
             "type": "boolean",
             "description": "Define se a resposta automática do atendente de IA deve ser ativada (`true`) ou desativada (`false`) para o lead."
+          }
+        }
+      },
+      "AddTagRequest": {
+        "type": "object",
+        "required": [
+          "tag_id"
+        ],
+        "properties": {
+          "tag_id": {
+            "type": "string",
+            "description": "O ID da tag a ser adicionada."
+          }
+        }
+      },
+      "RemoveTagRequest": {
+        "type": "object",
+        "required": [
+          "tag_id"
+        ],
+        "properties": {
+          "tag_id": {
+            "type": "string",
+            "description": "O ID da tag a ser removida."
+          }
+        }
+      },
+      "UpdateKanbanRequest": {
+        "type": "object",
+        "required": [
+          "column_id"
+        ],
+        "properties": {
+          "column_id": {
+            "type": "string",
+            "description": "O ID da coluna de destino no Kanban."
           }
         }
       },
