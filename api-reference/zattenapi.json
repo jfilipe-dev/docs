@@ -182,12 +182,12 @@
           "Mensagens"
         ],
         "summary": "Busca o histórico de mensagens de um lead",
-        "description": "Recupera o histórico de conversas e os dados associados a um lead, identificado pelo seu `thread_id`. Pode retornar os dados em formato JSON ou como um texto único formatado para uso com Modelos de Linguagem (LLMs).",
+        "description": "Recupera o histórico de conversas e os dados associados a um lead, identificado pelo seu número de telefone. Pode retornar os dados em formato JSON ou como um texto único formatado para uso com Modelos de Linguagem (LLMs).",
         "parameters": [
           {
-            "name": "thread_id",
+            "name": "phone",
             "in": "query",
-            "description": "O ID da thread de conversa associada ao lead.",
+            "description": "O número de telefone do lead.",
             "required": true,
             "schema": {
               "type": "string"
@@ -246,7 +246,84 @@
             }
           },
           "404": {
-            "description": "Lead com o `thread_id` especificado não encontrado.",
+            "description": "Lead com o telefone especificado não encontrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads/{leadNumber}": {
+      "get": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Obtém informações do lead",
+        "description": "Retorna os detalhes completos de um lead, incluindo tags, coluna do kanban e metadados.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Informações do lead retornadas com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lead": {
+                      "$ref": "#/components/schemas/LeadInformation"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação ou requisição inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead não encontrado.",
             "content": {
               "application/json": {
                 "schema": {
@@ -392,7 +469,7 @@
             }
           },
           "400": {
-            "description": "Erro de validação no corpo da requisição.",
+            "description": "Erro de validação no corpo da requisição ou valor da propriedade já é o mesmo.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1042,6 +1119,28 @@
           }
         }
       },
+      "KanbanColumnInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "TagInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
       "LeadDetails": {
         "type": "object",
         "properties": {
@@ -1063,16 +1162,52 @@
           "lead_annotation": {
             "type": "string"
           },
-          "kanban_column_name": {
-            "type": "string"
+          "kanban_column": {
+            "$ref": "#/components/schemas/KanbanColumnInfo"
           },
           "current_tags": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/TagInfo"
             }
           },
           "lead_created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LeadInformation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "annotation": {
+            "type": "string"
+          },
+          "kanban_column": {
+            "$ref": "#/components/schemas/KanbanColumnInfo"
+          },
+          "current_tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagInfo"
+            }
+          },
+          "created_at": {
             "type": "string",
             "format": "date-time"
           }
