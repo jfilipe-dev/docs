@@ -185,7 +185,7 @@
         "description": "Recupera o histórico de conversas e os dados associados a um lead, identificado pelo seu número de telefone. Pode retornar os dados em formato JSON ou como um texto único formatado para uso com Modelos de Linguagem (LLMs).",
         "parameters": [
           {
-            "name": "phone",
+            "name": "leadNumber",
             "in": "query",
             "description": "O número de telefone do lead.",
             "required": true,
@@ -1144,22 +1144,22 @@
       "LeadDetails": {
         "type": "object",
         "properties": {
-          "lead_id": {
+          "id": {
             "type": "string"
           },
-          "lead_name": {
+          "name": {
             "type": "string"
           },
-          "lead_phone": {
+          "phone": {
             "type": "string"
           },
-          "lead_metadata": {
+          "metadata": {
             "type": "object",
             "additionalProperties": {
               "type": "string"
             }
           },
-          "lead_annotation": {
+          "annotation": {
             "type": "string"
           },
           "kanban_column": {
@@ -1171,7 +1171,7 @@
               "$ref": "#/components/schemas/TagInfo"
             }
           },
-          "lead_created_at": {
+          "created_at": {
             "type": "string",
             "format": "date-time"
           }
