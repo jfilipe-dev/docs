@@ -259,7 +259,8 @@ Enviado quando ocorre um **erro ao processar ou enviar uma mensagem**.
     "name": "Assistente Virtual"
   },
   "message": {
-    "error": "Failed to send message: Recipient is outside of the 24-hour conversation window."
+    "error": "Failed to send message: Recipient is outside of the 24-hour conversation window.",
+    "code": "ERROR_META_REENGAGEMENT - 131047"
   },
   "timestamp": "2025-10-11T22:15:00.000Z"
 }
@@ -294,6 +295,7 @@ Enviado quando ocorre um **erro ao processar ou enviar uma mensagem**.
       * **messages**: `string[]` - Array com as mensagens enviadas pelo lead.
   * **message**: `object` - Objeto com a descrição do erro.
       * **error**: `string` - Detalhes sobre o erro que ocorreu.
+      * **code**: `string` - Detalhes sobre o código do erro que ocorreu.
   * **timestamp**: `string` - Data e hora do evento (ISO 8601).
 
 -----
