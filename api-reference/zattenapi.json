@@ -901,8 +901,8 @@
               }
             }
           },
-          "400": {
-            "description": "Erro de validação ou o lead já está nesta coluna.",
+          "204": {
+            "description": "Lead já está nesta coluna.",
             "content": {
               "application/json": {
                 "schema": {
@@ -912,6 +912,16 @@
                       "example": "Lead is already in the specified kanban column"
                     }
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação nos dados da requisição.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
