@@ -23,6 +23,14 @@
     {
       "name": "Leads",
       "description": "Endpoints para gerenciamento de dados de leads."
+    },
+    {
+      "name": "Kanban",
+      "description": "Endpoints para consulta de estruturas de organização do CRM."
+    },
+    {
+      "name": "Tags",
+      "description": "Endpoints para consulta de etiquetas (tags) de organização."
     }
   ],
   "paths": {
@@ -176,6 +184,271 @@
         }
       }
     },
+    "/messages/audio": {
+      "post": {
+        "tags": [
+          "Mensagens"
+        ],
+        "summary": "Envia uma mensagem de áudio",
+        "description": "Envia um arquivo de áudio para o lead. O sistema converte automaticamente o arquivo para o formato OGG Opus (formato nativo de voz do WhatsApp). Requer que o lead exista e esteja dentro da janela de conversa de 24h.",
+        "requestBody": {
+          "description": "Arquivo de áudio e identificação do lead.",
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SendAudioMessageMultipart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendMediaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação, lead não encontrado, janela expirada ou falha na conversão do arquivo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Atendente ou configurações de conexão não encontradas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Arquivo enviado excede o limite permitido de 50MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/image": {
+      "post": {
+        "tags": [
+          "Mensagens"
+        ],
+        "summary": "Envia uma mensagem de imagem",
+        "description": "Envia uma imagem para o lead através de upload via multipart/form-data. Requer que o lead exista e esteja dentro da janela de conversa de 24h. Suporta legenda (caption) opcional.",
+        "requestBody": {
+          "description": "Arquivo de imagem, identificação do lead e legenda opcional.",
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SendImageMessageMultipart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendMediaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação, lead não encontrado, janela expirada ou erro no upload para a Meta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Atendente ou configurações de conexão não encontradas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Arquivo enviado excede o limite permitido de 50MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/file": {
+      "post": {
+        "tags": [
+          "Mensagens"
+        ],
+        "summary": "Envia uma mensagem de arquivo",
+        "description": "Envia um arquivo (PDF, DOCX, etc.) para o lead através de upload via multipart/form-data. Requer que o lead exista e esteja dentro da janela de conversa de 24h. Permite definir um nome de arquivo personalizado.",
+        "requestBody": {
+          "description": "Arquivo, identificação do lead e nome opcional do arquivo.",
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SendFileMessageMultipart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendMediaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação, lead não encontrado, janela expirada ou erro no upload para a Meta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Atendente ou configurações de conexão não encontradas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Arquivo enviado excede o limite permitido de 50MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/video": {
+      "post": {
+        "tags": ["Mensagens"],
+        "summary": "Envia uma mensagem de vídeo",
+        "description": "Envia um vídeo para o lead. Formatos suportados: video/mp4, video/3gpp.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": { "$ref": "#/components/schemas/SendVideoMessageMultipart" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Vídeo enviado.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SendMediaResponse" } } } },
+          "400": { "description": "Formato de vídeo não suportado." }
+        }
+      }
+    },
     "/messages/history": {
       "get": {
         "tags": [
@@ -268,46 +541,23 @@
         }
       }
     },
-    "/leads/{leadNumber}": {
+    "/kanban": {
       "get": {
         "tags": [
-          "Leads"
+          "Kanban"
         ],
-        "summary": "Obtém informações do lead",
-        "description": "Retorna os detalhes completos de um lead, incluindo tags, coluna do kanban e metadados.",
-        "parameters": [
-          {
-            "name": "leadNumber",
-            "in": "path",
-            "description": "O número de WhatsApp (WaId) do lead.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "summary": "Busca informações de todas as colunas",
+        "description": "Recupera uma lista com todas as colunas do Kanban configuradas para o atendente, incluindo ID, nome, descrição e cor de identificação.",
         "responses": {
           "200": {
-            "description": "Informações do lead retornadas com sucesso.",
+            "description": "Lista de colunas retornada com sucesso.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "lead": {
-                      "$ref": "#/components/schemas/LeadInformation"
-                    }
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KanbanColumnDetailed"
                   }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Erro de validação ou requisição inválida.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -323,7 +573,61 @@
             }
           },
           "404": {
-            "description": "Lead não encontrado.",
+            "description": "Nenhuma coluna encontrada para o atendente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Busca informações de todas as tags",
+        "description": "Recupera uma lista com todas as etiquetas (tags) configuradas para o atendente, incluindo ID, nome, descrição e cor.",
+        "responses": {
+          "200": {
+            "description": "Lista de tags retornada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TagDetailed"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma tag encontrada para o atendente.",
             "content": {
               "application/json": {
                 "schema": {
@@ -545,6 +849,109 @@
           },
           "404": {
             "description": "Lead com o `leadNumber` especificado não encontrado para este atendente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads/{leadNumber}/kanban": {
+      "patch": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Move um lead no Kanban",
+        "description": "Altera a coluna do lead no Kanban.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "O ID da coluna de destino.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKanbanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lead movido com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Update kanban successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Lead já está nesta coluna.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Lead is already in the specified kanban column"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação nos dados da requisição.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead ou Coluna não encontrados.",
             "content": {
               "application/json": {
                 "schema": {
@@ -856,13 +1263,13 @@
         }
       }
     },
-    "/leads/{leadNumber}/kanban": {
-      "patch": {
+    "/leads/{leadNumber}": {
+      "get": {
         "tags": [
           "Leads"
         ],
-        "summary": "Move um lead no Kanban",
-        "description": "Altera a coluna do lead no Kanban.",
+        "summary": "Obtém informações do lead",
+        "description": "Retorna os detalhes completos de um lead, incluindo tags, coluna do kanban e metadados.",
         "parameters": [
           {
             "name": "leadNumber",
@@ -874,42 +1281,16 @@
             }
           }
         ],
-        "requestBody": {
-          "description": "O ID da coluna de destino.",
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateKanbanRequest"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Lead movido com sucesso.",
+            "description": "Informações do lead retornadas com sucesso.",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "object",
                   "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Update kanban successfully"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "Lead já está nesta coluna.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Lead is already in the specified kanban column"
+                    "lead": {
+                      "$ref": "#/components/schemas/LeadInformation"
                     }
                   }
                 }
@@ -917,7 +1298,7 @@
             }
           },
           "400": {
-            "description": "Erro de validação nos dados da requisição.",
+            "description": "Erro de validação ou requisição inválida.",
             "content": {
               "application/json": {
                 "schema": {
@@ -937,7 +1318,7 @@
             }
           },
           "404": {
-            "description": "Lead ou Coluna não encontrados.",
+            "description": "Lead não encontrado.",
             "content": {
               "application/json": {
                 "schema": {
@@ -977,6 +1358,10 @@
             "type": "string",
             "description": "Nome do template a ser enviado."
           },
+          "campaign_id": {
+            "type": "string",
+            "description": "ID da campanha associada ao envio do template."
+          },
           "name": {
             "type": "string",
             "description": "Nome do lead, utilizado caso o lead precise ser criado."
@@ -1004,6 +1389,42 @@
           }
         }
       },
+      "SendAudioMessageMultipart": {
+        "type": "object",
+        "required": ["lead_number", "file"],
+        "properties": {
+          "lead_number": { "type": "string" },
+          "file": { "type": "string", "format": "binary", "description": "Arquivo de áudio." },
+          "filename": { "type": "string", "description": "Nome personalizado para o arquivo." }
+        }
+      },
+      "SendImageMessageMultipart": {
+        "type": "object",
+        "required": ["lead_number", "file"],
+        "properties": {
+          "lead_number": { "type": "string" },
+          "file": { "type": "string", "format": "binary", "description": "Arquivo de imagem." },
+          "caption": { "type": "string", "description": "Legenda da imagem." }
+        }
+      },
+      "SendFileMessageMultipart": {
+        "type": "object",
+        "required": ["lead_number", "file"],
+        "properties": {
+          "lead_number": { "type": "string" },
+          "file": { "type": "string", "format": "binary", "description": "Arquivo de documento." },
+          "filename": { "type": "string", "description": "Nome personalizado para o arquivo." }
+        }
+      },
+      "SendVideoMessageMultipart": {
+        "type": "object",
+        "required": ["lead_number", "file"],
+        "properties": {
+          "lead_number": { "type": "string" },
+          "file": { "type": "string", "format": "binary", "description": "Arquivo de vídeo (mp4/3gpp)." },
+          "caption": { "type": "string", "description": "Legenda do vídeo." }
+        }
+      },
       "SendMessageResponse": {
         "type": "object",
         "properties": {
@@ -1019,6 +1440,13 @@
             "type": "string",
             "description": "O ID da thread de conversa associada ao lead."
           }
+        }
+      },
+      "SendMediaResponse": {
+        "type": "object",
+        "properties": {
+          "wa_id": { "type": "string" },
+          "thread_id": { "type": "string" }
         }
       },
       "UpdateNoteRequest": {
@@ -1126,6 +1554,48 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "KanbanColumnDetailed": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador único da coluna."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nome da coluna."
+          },
+          "description": {
+            "type": "string",
+            "description": "Breve descrição do propósito da coluna."
+          },
+          "color": {
+            "type": "string",
+            "description": "Código hexadecimal da cor da coluna."
+          }
+        }
+      },
+      "TagDetailed": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador único da tag."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nome da tag."
+          },
+          "description": {
+            "type": "string",
+            "description": "Breve descrição do propósito da tag."
+          },
+          "color": {
+            "type": "string",
+            "description": "Código hexadecimal da cor da tag."
           }
         }
       },
