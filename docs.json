@@ -109,6 +109,22 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Lives",
+        "groups": [
+          {
+            "group": "Gravações das Lives",
+            "pages": [
+              "lives/live-2",
+              "lives/live-3",
+              "lives/live-4",
+              "lives/live-5",
+              "lives/live-6",
+              "lives/live-8"
+            ]
+          }
+        ]
       }
     ],
     "global": {

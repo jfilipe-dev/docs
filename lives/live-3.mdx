@@ -1,0 +1,39 @@
+---
+title: 'Live #3 - Base de Conhecimento (RAG)'
+---
+
+## **🎯 Objetivo da Aula**
+Entender como a técnica de RAG (Geração Aumentada de Recuperação) permite que a IA consulte documentos externos (PDFs, Manuais) para responder com precisão sem alucinar.
+
+---
+
+## **📺 Gravação da Live**
+
+<div style={{ position: 'relative', paddingBottom: '56.25%', height: '0' }}>
+  <iframe 
+    style={{ position: 'absolute', top: '0', left: '0', width: '100%', height: '100%', border: '0' }}
+    src="https://www.youtube.com/embed/6R7Shwwy7HA" 
+    allowFullScreen 
+    allowTransparency>
+  </iframe>
+</div>
+
+---
+
+## **📝 Tópicos Abordados**
+
+### **1. Processo ETL (Extração e Limpeza)**
+* **Extração:** Coleta de dados brutos.
+* **Transformação:** Limpeza de cabeçalhos e caracteres especiais.
+* **Carregamento:** Envio para a Vector Store.
+
+### **2. Hierarquia em Markdown**
+Organize seus documentos com `#` e `##` antes do upload. Isso ajuda a IA a entender a estrutura dos dados na hora da busca semântica.
+
+### **3. Apontamento no Prompt**
+Instrua o agente a usar o arquivo: *"Consulte obrigatoriamente a base [ID] para dúvidas técnicas"*.
+
+---
+
+## **🧰 Recursos**
+- [OpenAI Vector Store](https://platform.openai.com/storage)
