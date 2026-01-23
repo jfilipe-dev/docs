@@ -54,6 +54,59 @@
             "pages": [
               "tutorial/integracao/cal"
             ]
+          },
+           {
+            "group": "Configurações da Plataforma",
+            "pages": [
+              "tutorial/configuracoes/conta-projeto",
+              "tutorial/configuracoes/gerenciar-acessos",
+              "tutorial/configuracoes/minha-empresa"
+            ]
+          },
+          {
+            "group": "Configuração do Agente",
+            "pages": [
+              "tutorial/agente/openai-key",
+              "tutorial/agente/escolha-modelo",
+              "tutorial/agente/prompt-sistema",
+              "tutorial/agente/conhecimento",
+              "tutorial/agente/configuracoes-avancadas"
+            ]
+          },
+          {
+            "group": "Canais e Mensagens",
+            "pages": [
+              "tutorial/whatsapp/ativar-whatsapp",
+              "tutorial/whatsapp/templates"
+            ]
+          },
+          {
+            "group": "Ações do Agente",
+            "pages": [
+              "tutorial/agente/acoes/kanban",
+              "tutorial/agente/acoes/tags",
+              "tutorial/agente/acoes/agendamento",
+              "tutorial/agente/acoes/transferencia",
+              "tutorial/agente/acoes/captura-dados",
+              "tutorial/agente/acoes/controle-ia",
+              "tutorial/agente/acoes/webhooks",
+              "tutorial/agente/acoes/mcp"
+            ]
+          },
+          {
+            "group": "Automações Avançadas",
+            "pages": [
+              "tutorial/automacoes/webhooks-notificacoes",
+              "tutorial/automacoes/follow-up",
+              "tutorial/automacoes/api-conversao"
+            ]
+          },
+          {
+            "group": "Testes e Gestão",
+            "pages": [
+              "tutorial/agente/preview-chat",
+              "tutorial/crm/informacoes-lead"
+            ]
           }
         ]
       }

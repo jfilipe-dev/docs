@@ -1,0 +1,29 @@
+---
+title: 'Base de Conhecimento'
+---
+
+## **🎯 Objetivo do Tutorial**
+
+Aprenda a treinar seu agente com materiais extensos (manuais, catálogos, PDFs) sem poluir o seu prompt principal, utilizando a tecnologia de Vector Store.
+
+
+
+## **📝 Passo a Passo**
+
+### **1. Preparação na OpenAI**
+1. Acesse a **File Store** no dashboard da OpenAI.
+2. Crie um novo documento e faça o upload do seu arquivo (PDF, TXT ou Docx).
+3. **ID do Documento:** Após o upload, copie o identificador único (ID) gerado.
+
+### **2. Vinculação na Zatten**
+1. Na plataforma Zatten, vá em **Gestão de Documentos**.
+2. Localize seu arquivo na lista sincronizada da Vector Store e selecione-o.
+
+### **3. Instrução no Prompt**
+Para que a IA use o arquivo, você deve dar o comando no prompt:
+> **Exemplo:** "Para qualquer dúvida sobre preços e especificações técnicas, consulte a base de conhecimento sob o ID [SEU_ID_AQUI]."
+
+---
+
+## **💡 Dica Importante**
+Mantenha manuais técnicos na Base de Conhecimento e deixe as regras de comportamento (persona) no Prompt do Sistema. Isso torna a resposta da IA mais rápida e precisa.
