@@ -96,9 +96,7 @@
           {
             "group": "Automações Avançadas",
             "pages": [
-              "tutorial/automacoes/webhooks-notificacoes",
-              "tutorial/automacoes/follow-up",
-              "tutorial/automacoes/api-conversao"
+              "tutorial/automacoes/index"
             ]
           },
           {
@@ -121,6 +119,7 @@
               "lives/live-4",
               "lives/live-5",
               "lives/live-6",
+              "lives/live-7",
               "lives/live-8"
             ]
           }
