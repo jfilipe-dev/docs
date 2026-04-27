@@ -467,6 +467,15 @@
             }
           },
           {
+            "name": "thread_id",
+            "in": "query",
+            "description": "ID da thread cujas mensagens devem ser retornadas. Se omitido, busca as mensagens da thread atual do lead. A thread informada precisa pertencer ao lead do `leadNumber`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "llm_format",
             "in": "query",
             "description": "Se `true`, retorna um contexto formatado em texto para LLMs. Se `false`, retorna o histórico e os dados do lead em JSON.",
@@ -519,7 +528,7 @@
             }
           },
           "404": {
-            "description": "Lead com o telefone especificado não encontrado.",
+            "description": "Lead com o telefone especificado não encontrado, ou `threadId` informado não pertence ao lead.",
             "content": {
               "application/json": {
                 "schema": {
@@ -815,6 +824,68 @@
         }
       }
     },
+    "/leads/{leadNumber}/threads": {
+      "get": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Lista todas as threads de um lead",
+        "description": "Retorna o histórico de threads (atendimentos) do lead, ordenado da mais recente para a mais antiga. A thread atual é a única com `closed_at` nulo. As demais foram encerradas (via reinício de thread). Use o `thread_id` retornado para buscar mensagens dessa thread em `/messages/history`.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de threads do lead.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListLeadThreadsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead com o `leadNumber` especificado não encontrado para este atendente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/leads/{leadNumber}/thread": {
       "patch": {
         "tags": [
@@ -952,6 +1023,94 @@
           },
           "404": {
             "description": "Lead ou Coluna não encontrados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de requisições excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads/{leadNumber}/assignee": {
+      "patch": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Atualiza o responsável (usuário e departamento) de um lead",
+        "description": "Atribui um lead a um usuário e a um departamento (time) específicos. O usuário informado precisa pertencer ao departamento informado.",
+        "parameters": [
+          {
+            "name": "leadNumber",
+            "in": "path",
+            "description": "O número de WhatsApp (WaId) do lead.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "E-mail do usuário e ID do departamento a serem atribuídos ao lead.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAssigneeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Responsável do lead atualizado com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Update assignee successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação nos dados da requisição.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave de API (`x-api-key`) ausente ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead, usuário ou departamento não encontrados, ou usuário não pertence ao departamento informado.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1358,10 +1517,6 @@
             "type": "string",
             "description": "Nome do template a ser enviado."
           },
-          "campaign_id": {
-            "type": "string",
-            "description": "ID da campanha associada ao envio do template."
-          },
           "name": {
             "type": "string",
             "description": "Nome do lead, utilizado caso o lead precise ser criado."
@@ -1530,6 +1685,24 @@
           "column_id": {
             "type": "string",
             "description": "O ID da coluna de destino no Kanban."
+          }
+        }
+      },
+      "UpdateAssigneeRequest": {
+        "type": "object",
+        "required": [
+          "user_email",
+          "department_id"
+        ],
+        "properties": {
+          "user_email": {
+            "type": "string",
+            "format": "email",
+            "description": "E-mail do usuário que será definido como responsável pelo lead. O usuário deve pertencer ao departamento informado."
+          },
+          "department_id": {
+            "type": "string",
+            "description": "ID do departamento (time) ao qual o lead será atribuído."
           }
         }
       },
@@ -1713,6 +1886,37 @@
           },
           "lead": {
             "$ref": "#/components/schemas/LeadDetails"
+          }
+        }
+      },
+      "LeadThread": {
+        "type": "object",
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "description": "Identificador da thread (`zt-thread-...`). Use este valor no parâmetro `threadId` de `/messages/history`."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Data/hora em que a thread foi criada."
+          },
+          "closed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Data/hora em que a thread foi encerrada. `null` indica que é a thread atual."
+          }
+        }
+      },
+      "ListLeadThreadsResponse": {
+        "type": "object",
+        "properties": {
+          "threads": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeadThread"
+            }
           }
         }
       },
