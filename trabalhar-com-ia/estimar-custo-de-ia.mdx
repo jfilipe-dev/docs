@@ -1,0 +1,264 @@
+---
+title: "Estimar o custo de IA de um cliente"
+description: "Leia quando a agência perguntar quanto a IA de um cliente vai custar ou quer comparar modelos: o roteiro para medir tokens com conversas reais, buscar o preço do modelo, calcular o custo por atendimento, projetar por mês e apresentar ao cliente."
+---
+
+O custo de IA de um projeto é o que o provider (OpenAI ou OpenRouter) cobra pelos
+tokens que o agente usa. A Zatten não cobra nada sobre isso: a chave é da agência
+(BYOK) e a conta vai direto ao provider. A conta é simples:
+
+> **custo por atendimento = tokens de entrada × preço de entrada + tokens de saída × preço de saída**
+
+O trabalho está em medir os tokens com conversas reais e em lembrar o que pesa na
+entrada. Este roteiro leva a um número **por atendimento completo**, que é como o
+cliente final entende custo. Como ordem de grandeza, um agente de orçamentos real
+em produção custa cerca de **R$0,30 por atendimento completo**.
+
+<Warning>
+Preços mudam. Nunca copie preço desta página nem de memória: busque na fonte (passo 2)
+e escreva a data e o câmbio junto do resultado.
+</Warning>
+
+O custo da Meta por mensagem é **outra conta**, separada da IA. Ver o fim da página.
+
+## Passo 1: medir os tokens de um atendimento
+
+Use a fonte mais precisa que o projeto tiver, nesta ordem.
+
+### a) API de histórico (tokens reais por mensagem)
+
+O histórico de mensagens traz os tokens que cada resposta da IA consumiu. É o
+caminho principal: dado real, do próprio projeto, sem depender de nada ligado.
+
+1. Escolha 3 a 5 atendimentos completos e típicos (do primeiro "oi" ao
+   fechamento ou à transferência). Peça os números ou ids à pessoa, ou tire da
+   exportação de **Contatos**.
+2. Puxe o histórico pela API, com a chave do cliente
+   ([A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia)):
+
+   ```bash
+   curl -s "https://api.zatten.com/api/v1/messages/history?leadNumber=5511999998888&llm_format=false" \
+     -H "x-api-key: $ZATTEN_API_KEY"
+   ```
+
+   Cada mensagem vem com `from` (`LEAD`, `ATTENDANT`, `USER`), `type`, `message`,
+   `created_at` e os campos **`input_tokens`** e **`output_tokens`**. Para
+   conversas encerradas, pegue o `thread_id` em `GET /leads/{numero}/threads` e
+   passe `thread_id` na consulta.
+3. Some `input_tokens` e `output_tokens` de todas as mensagens do atendimento. O
+   total já inclui o que é reenviado a cada turno (prompt, tools, histórico).
+4. Tire a média dos atendimentos escolhidos.
+
+<Visibility for="agents">
+`input_tokens` e `output_tokens` vêm `null` (não zero) quando a mensagem não passou
+por um modelo (mensagem do lead, de um humano, template) ou é anterior à contagem.
+Ignore os `null` na soma; não os conte como zero na média de mensagens.
+
+```bash
+jq '[.message_history[] | {i: .input_tokens, o: .output_tokens}
+     | select(.i != null or .o != null)]
+    | {entrada: (map(.i // 0) | add), saida: (map(.o // 0) | add), respostas: length}'
+```
+</Visibility>
+
+### b) LangSmith (detalhe de cada chamada)
+
+Com o LangSmith ligado, cada conversa aparece com os tokens de cada chamada ao
+modelo, separando tools e raciocínio, e o custo calculado. Use quando quiser saber
+**onde** os tokens vão (prompt grande? tool que devolve demais?). Ver
+[Observabilidade com LangSmith](/engenharia-de-ia/langsmith).
+
+### c) Métricas do painel (média do projeto)
+
+Em **Métricas** (`/metrics`), a tabela diária mostra **Tokens Input**, **Tokens
+Output** e **Msgs IA** (respostas da IA). Para um período:
+
+- tokens de entrada por resposta = Tokens Input ÷ Msgs IA
+- tokens de saída por resposta = Tokens Output ÷ Msgs IA
+
+Multiplique pelo número de respostas da IA num atendimento típico. O card **Gastos
+com IA (aproximado)** é só ordem de grandeza. Ver [Métricas](/produto/metricas).
+
+### d) Estimar pelo texto (projeto novo, sem conversas ainda)
+
+Sem histórico para medir, estime:
+
+1. Escreva 2 ou 3 conversas típicas do nicho (ou use as de um cliente parecido,
+   citando de onde vieram).
+2. Converta texto em tokens: **cerca de 4 caracteres por token** em português.
+   Arredonde para cima.
+3. Some o que vai em **toda** chamada ao modelo:
+   - o prompt do agente (`langchain.config.instructions.system_prompt` no
+     `get_template`);
+   - as descrições e os schemas de todas as tools;
+   - o bloco de contexto do lead e o bloco "Agora" (algumas centenas de tokens).
+
+Depois que o projeto tiver conversas reais, refaça a conta pelo item a.
+
+### O que pesa na entrada
+
+A cada resposta, o modelo recebe de novo **tudo**: prompt, tools, contexto do lead e
+o histórico da conversa até ali. Por isso a entrada cresce a cada turno e costuma
+ser muitas vezes maior que a saída.
+
+- **Turno k:** entrada ≈ prompt + tools + contexto + histórico dos turnos anteriores
+  + mensagem nova.
+- **Cada tool chamada** é mais uma chamada ao modelo: reenviar tudo, mais o pedido
+  da tool e o resultado.
+- **Raciocínio** (reasoning) é cobrado como **saída**, mesmo sem aparecer para o lead.
+- **Cache de prompt:** o começo repetido (prompt e tools) pode sair mais barato no
+  provider. A conta sem cache é o teto.
+
+## Passo 2: buscar o preço do modelo
+
+**OpenRouter.** A lista pública de modelos, em JSON, sem chave:
+`https://openrouter.ai/api/v1/models`. Em cada modelo, `pricing.prompt` (entrada) e
+`pricing.completion` (saída) estão em **US$ por token**. Multiplique por 1.000.000
+para ter US$ por milhão. `pricing.input_cache_read` é a entrada lida do cache.
+
+```bash
+curl -s https://openrouter.ai/api/v1/models | jq -c '.data[]
+  | select(.id=="openai/gpt-5-mini")
+  | {id,
+     entrada_por_milhao: ((.pricing.prompt|tonumber)*1000000),
+     saida_por_milhao: ((.pricing.completion|tonumber)*1000000),
+     modalidades: .architecture.input_modalities}'
+```
+
+**OpenAI direta.** Página de preços: https://developers.openai.com/api/docs/pricing
+(em US$ por milhão de tokens, entrada e saída).
+
+Anote a data da consulta.
+
+## Passo 3: custo por atendimento
+
+```
+custo (US$) = (tokens de entrada ÷ 1.000.000) × preço de entrada por milhão
+            + (tokens de saída ÷ 1.000.000) × preço de saída por milhão
+```
+
+## Passo 4: projeção mensal
+
+```
+custo do mês = custo por atendimento × atendimentos por mês
+```
+
+Pergunte à pessoa quantos atendimentos o cliente tem por mês, ou use Métricas.
+Atendimentos completos são diferentes de contatos: um contato pode voltar várias
+vezes no mês.
+
+## Passo 5: comparar 2 ou 3 modelos
+
+Mesma conta de tokens, preços diferentes. Antes de recomendar o mais barato, confira:
+
+- **Modalidades:** o modelo entende áudio e imagem, se os leads mandam?
+  (`architecture.input_modalities` no OpenRouter)
+- **Tools:** o modelo precisa aceitar tools. No OpenRouter, o painel só lista
+  modelos que aceitam (`supported_parameters` com `tools`).
+- **Raciocínio:** modelos com raciocínio gastam mais saída.
+
+Ver [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo).
+
+## Passo 6: apresentar ao cliente
+
+Fale em **custo por atendimento** e por mês, nunca em tokens. Mostre a data dos
+preços e o câmbio usado. Exemplo de frase:
+
+> "Com o modelo X, cada atendimento completo custa cerca de R$0,30 de IA. Para 1.000
+> atendimentos por mês, cerca de R$300. Preços do provider em 06/10/2026, câmbio de
+> R$5,50 por US$."
+
+Diga também que é uma estimativa, que o valor real aparece no painel do provider e
+nas Métricas, e que dá para reduzir trocando de modelo ou encurtando o prompt.
+
+## Exemplo resolvido
+
+<Info>
+**Exemplo ilustrativo.** Os tokens são supostos, não medidos de um projeto real. Os
+preços foram lidos em https://openrouter.ai/api/v1/models em **06/10/2026**. O câmbio
+de **R$5,50 por US$** é ilustrativo. Refaça com dados reais e preços do dia.
+</Info>
+
+**O atendimento típico (suposto):**
+
+- prompt + tools: 4.000 tokens; contexto do lead + "Agora": 200 tokens;
+- 10 mensagens do lead (30 tokens cada) e 10 respostas da IA (80 tokens cada);
+- 2 tools chamadas no meio do atendimento (resultado de 300 tokens cada);
+- raciocínio: cerca de 150 tokens por chamada ao modelo (12 chamadas).
+
+**Tokens de entrada.** Turno k = 4.000 + 200 + 30 + 110 × (k − 1).
+
+- 10 turnos: 10 × 4.230 + 110 × (0 + 1 + … + 9) = 42.300 + 4.950 = **47.250**
+- 2 chamadas extras pelas tools: cerca de 5.000 cada = **10.000** (arredondado)
+- Total: cerca de **57.600 tokens de entrada**
+
+**Tokens de saída.** 10 × 80 (respostas) + 2 × 50 (pedidos de tool) = 900. Com
+raciocínio: 900 + 12 × 150 = **2.700**. Sem raciocínio: **900**.
+
+**Preços em 06/10/2026 (US$ por milhão de tokens, OpenRouter):**
+
+| Modelo | Entrada | Saída |
+|---|---|---|
+| `openai/gpt-5-mini` | 0,25 | 2,00 |
+| `openai/gpt-4.1-mini` | 0,40 | 1,60 |
+| `openai/gpt-5.4-mini` | 0,75 | 4,50 |
+
+**Custo por atendimento:**
+
+| Modelo | Entrada | Saída | Total (US$) | Total (R$, a 5,50) | 1.000 atendimentos/mês |
+|---|---|---|---|---|---|
+| `gpt-5-mini` (com raciocínio) | 57.600 × 0,25 / 1M = 0,0144 | 2.700 × 2,00 / 1M = 0,0054 | 0,0198 | ≈ R$0,11 | ≈ R$109 |
+| `gpt-4.1-mini` (sem raciocínio) | 57.600 × 0,40 / 1M = 0,0230 | 900 × 1,60 / 1M = 0,0014 | 0,0245 | ≈ R$0,13 | ≈ R$135 |
+| `gpt-5.4-mini` (com raciocínio) | 57.600 × 0,75 / 1M = 0,0432 | 2.700 × 4,50 / 1M = 0,0122 | 0,0554 | ≈ R$0,30 | ≈ R$304 |
+
+Repare: a **entrada** é a maior parte do custo nos três, porque o prompt e as tools
+são reenviados em toda chamada. Cortar 1.000 tokens do prompt economiza mais que
+encurtar as respostas.
+
+## E o custo da Meta?
+
+Na conexão oficial (Cloud API e coexistência), a Meta cobra **por mensagem
+entregue**, por categoria (marketing, utilidade, autenticação, serviço) e pelo país
+do lead. As mensagens de serviço (respostas dentro da janela de 24h) passaram a ser
+cobradas em **01/10/2026**. Essa conta é da Meta, separada da IA e do plano da
+Zatten. Na conexão por QR Code não há cobrança da Meta por mensagem.
+
+- Preços da Meta: https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing
+- Mensagens de serviço: https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages
+
+As três contas juntas (Zatten, IA e Meta) estão em
+[Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+## Armadilhas
+
+- **Contar só a última resposta.** Cada tool é uma chamada a mais ao modelo, com
+  tudo reenviado. Ignorar as tools subestima o custo.
+- **Esquecer o prompt e as tools.** Não estão no histórico, mas vão em toda chamada.
+- **Esquecer o raciocínio.** É cobrado como saída.
+- **Preço por token x por milhão.** A API do OpenRouter dá US$ **por token**
+  (ex.: `0.00000025`); a página da OpenAI dá US$ **por milhão**.
+- **Conversa atípica.** Um atendimento muito longo ou muito curto distorce a média.
+  Use 3 a 5 e tire a média.
+- **Histórico limitado.** A API devolve até o limite de histórico do projeto; uma
+  conversa muito longa pode vir cortada.
+- **Resumo e transcrição também custam.** Se o agente resume conversas longas ou
+  transcreve áudio, são chamadas a mais. Ver
+  [Conversas longas](/engenharia-de-ia/conversas-longas) e [Mídia](/engenharia-de-ia/midia).
+
+## Para saber mais
+
+- [Quanto custa operar um projeto](/comecar/custos-de-operacao) e
+  [Quanto cobrar do cliente final](/comecar/quanto-cobrar)
+- [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo),
+  [Providers: OpenAI e OpenRouter](/engenharia-de-ia/providers)
+- [Observabilidade com LangSmith](/engenharia-de-ia/langsmith), [Métricas](/produto/metricas)
+- Modelos do OpenRouter: https://openrouter.ai/models (JSON: https://openrouter.ai/api/v1/models)
+- Preços do OpenRouter: https://openrouter.ai/pricing
+- Cache de prompt no OpenRouter: https://openrouter.ai/docs/guides/best-practices/prompt-caching
+- Tokens de raciocínio no OpenRouter: https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+- Preços da OpenAI: https://developers.openai.com/api/docs/pricing
+- Cache de prompt na OpenAI: https://developers.openai.com/api/docs/guides/prompt-caching
+- Custos no LangSmith: https://docs.langchain.com/langsmith/cost-tracking
+- Câmbio oficial (Banco Central): https://www.bcb.gov.br/conversao
+- Termos para buscar: "custo por token", "price per million tokens", "prompt
+  caching", "reasoning tokens billing", "WhatsApp pricing per message".

@@ -1,0 +1,242 @@
+---
+title: "Cursos e infoprodutos"
+description: "Leia para montar ou revisar o projeto de um curso online, mentoria ou infoproduto: qualificação, oferta pela skill, link de pagamento, recuperação de quem não pagou, compra confirmada pela plataforma via fluxo, suporte ao aluno, funil, automações, configurações recomendadas, métricas e erros comuns."
+---
+
+O agente de um infoproduto **entende o objetivo** do lead, **indica a oferta
+certa**, responde às objeções e **envia o link de pagamento**. Quem não paga é
+retomado. A compra é confirmada pela plataforma de pagamento, nunca pela IA. Uma
+conversa termina bem quando o lead recebeu o link certo e, depois, quando a
+plataforma avisa que ele comprou.
+
+Serve também para mentorias, comunidades pagas, eventos e produtos digitais com
+checkout online.
+
+## O objetivo do atendimento
+
+| | |
+|---|---|
+| **Conversão** | Link de pagamento enviado. Depois, compra aprovada. |
+| **A IA faz** | Qualifica, apresenta a oferta, trata objeções, envia o link, retoma quem não pagou, tira dúvidas de acesso. |
+| **A equipe faz** | Negociação fora da oferta, reembolso, problema de acesso que a skill não resolve. |
+| **Nunca** | Confirmar pagamento, prometer renda ou resultado, inventar prazo ou bônus. |
+
+## Funil recomendado
+
+| Coluna | O que significa | Quem move | Desativar IA | Transbordo | Disparar automações |
+|---|---|---|---|---|---|
+| **Novo Contato** (entrada) | Chegou; a IA qualifica | Automático | Não | Não | Não |
+| **Interessado** | Objetivo e nível conhecidos; oferta apresentada | Agente | Não | Não | Não |
+| **Link enviado** | Recebeu o link de pagamento | Agente | Não | Não | Não |
+| **Comprou** | A plataforma confirmou o pagamento | Fluxo (webhook da plataforma) ou equipe | Não | Não | Não |
+| **Atendimento Humano** | A equipe assumiu | Agente, falha do modelo | Sim (junto) | **Sim** | Não |
+| **Perdido** | Desistiu | Agente | Não | Não | Não |
+
+- **"Comprou" só por confirmação externa.** Um [fluxo](/produto/trigger-flow/conceitos)
+  recebe o aviso da plataforma de pagamento e move o lead. O agente nunca move
+  para Comprou: "já paguei" não é pagamento.
+- **A IA fica ligada em Comprou**, para tirar dúvidas de acesso pela skill. Se o
+  suporte ao aluno tem muito volume, ele merece um projeto (e um número) próprio,
+  com o [playbook de SAC](/playbooks/nichos/sac).
+
+O modelo de nicho "Cursos & Infoprodutos" cria Novo Contato, Qualificação,
+Negociação, Ganho e Perdido, sem coluna de transbordo e sem propriedades.
+Renomeie pelo `slug` e crie o que falta.
+
+## Tags
+
+| Tag | Vínculo | Quem põe | Para quê |
+|---|---|---|---|
+| **Aluno** | Contato | Fluxo de compra aprovada | Marco. Fica fora das campanhas de venda do mesmo produto; entra nas de próximo produto. |
+| **Carrinho abandonado** | Conversa | Fluxo de carrinho abandonado | Segmenta a recuperação; some ao encerrar. |
+
+## Propriedades
+
+| Propriedade (slug) | Tipo | Valores | Vínculo | Enviar para a IA |
+|---|---|---|---|---|
+| Produto de interesse (`produto_de_interesse`) | Lista | Os produtos à venda | Conversa | Sim |
+| Nível (`nivel`) | Lista | Iniciante, Intermediário, Avançado | Contato | Sim |
+| Objetivo (`objetivo`) | Lista | Os objetivos que o produto atende, mais Outro | Contato | Sim |
+
+## Tools
+
+**Ações da Zatten:**
+
+| Tool | Quando usar |
+|---|---|
+| `@properties_update_produto_de_interesse`, `_nivel`, `_objetivo` | Assim que o lead informar. Valores aceitos no "Quando usar". |
+| `@kanban_move_interessado` | Depois de apresentar a oferta indicada. |
+| `@kanban_move_link_enviado` | Na mesma resposta em que manda o link de pagamento. |
+| `@kanban_move_perdido` | O lead disse que não vai comprar. |
+| `@transbordo_notify` | Pedido de desconto fora da oferta, reembolso, problema de acesso não resolvido, pedido de pessoa. |
+
+**Skills:** uma `oferta_<produto>` por produto (para quem é e para quem não é,
+preço e parcelamento, garantia, bônus, objeções com resposta, link de checkout) e
+`acesso_e_suporte` (como acessar, prazo de liberação, recuperar senha, política
+de reembolso).
+
+**Link de pagamento:** fixo, na skill da oferta. Se cada lead precisa de um link
+próprio (cupom, rastreio), uma [tool HTTP](/engenharia-de-ia/tools/http)
+`gerar_link_pagamento` na API da plataforma.
+
+São de 6 a 8 tools. Cabe sem filtro.
+
+## Fluxos com a plataforma de pagamento
+
+Dois [fluxos](/produto/trigger-flow/conceitos) com o gatilho **Webhook
+recebido** fecham o ciclo:
+
+| Fluxo | O que a plataforma avisa | Ações |
+|---|---|---|
+| **Compra aprovada** | Pagamento confirmado | Mover no Kanban para Comprou; Adicionar tag Aluno; Enviar template de boas-vindas com o acesso |
+| **Carrinho abandonado** | Checkout iniciado e não pago | Adicionar tag Carrinho abandonado; Enviar template de recuperação |
+
+A chamada precisa trazer o número do lead na URL (`lead_number`), e o lead
+precisa existir no projeto. Como as plataformas mandam o próprio formato, em
+geral um intermediário (n8n, Make ou um backend) recebe o aviso e chama a Zatten.
+Comprador que nunca falou com o WhatsApp do projeto não é encontrado. Veja
+[Trigger Flow: API e webhooks](/produto/trigger-flow/api).
+
+Mover pelo fluxo envia a conversão `Purchase` da coluna Comprou, se o lead veio de
+anúncio.
+
+## Esqueleto do prompt
+
+```markdown
+# Identidade
+Você é a Duda, do time do Curso Planilhas Pro, no WhatsApp.
+
+# Objetivo
+Indicar a oferta certa e enviar o link de pagamento. Quem já é aluno, ajudar com
+o acesso.
+
+# Tom
+Próximo e direto, sem pressão. Uma pergunta por vez. Texto simples.
+
+# Fluxo de atendimento
+1. Se a tag Aluno estiver no contexto, siga "Aluno".
+2. Pergunte o objetivo e o nível (@properties_update_objetivo,
+   @properties_update_nivel).
+3. Carregue a skill da oferta que combina e apresente em até 3 frases: para quem
+   é, o que a pessoa consegue fazer depois, preço e garantia.
+   @properties_update_produto_de_interesse e @kanban_move_interessado.
+4. Responda às objeções com o que está na skill.
+5. Quando ele quiser comprar, mande o link da skill e @kanban_move_link_enviado.
+
+# Aluno
+Dúvidas de acesso pela skill acesso_e_suporte. Não resolveu: @transbordo_notify.
+
+# O que nunca fazer
+- Confirmar pagamento. Se o lead disser que pagou, diga que a liberação chega
+  pelo e-mail e pelo WhatsApp assim que a plataforma confirmar.
+- Prometer renda, resultado ou prazo de resultado.
+- Criar urgência que não existe. Prazo e bônus, só os que estão na skill e dentro
+  da validade (compare com o bloco Agora).
+```
+
+## Automações
+
+| Automação | Configuração | Por quê |
+|---|---|---|
+| **Recuperação** (follow-up) | Coluna Link enviado; 1 hora e 24 horas | Quem recebeu o link e não pagou é o lead mais quente da base. |
+| **Retomada** (follow-up) | Colunas Novo Contato e Interessado; 2 horas e 24 horas | Quem parou antes do link. |
+| **Reengajamento** | Colunas Interessado e Link enviado; 60 minutos antes de a janela fechar | Texto livre antes do template. Só na conexão oficial. |
+| **Compra aprovada e carrinho abandonado** | Fluxos acima | O estado do funil segue o pagamento real. |
+| **Lançamentos e abertura de turma** ([campanhas](/playbooks/campanhas)) | Por produto de interesse, fora da tag Aluno | Base própria, sem custo de anúncio. |
+| **Conversões** (só com anúncios) | `InitiateCheckout` em Link enviado; `Purchase` em Comprou, com o preço do produto | O Meta Ads aprende a trazer quem compra. |
+
+O valor de `Purchase` é fixo por conversão. Com produtos de preços muito
+diferentes, use o ticket médio ou uma coluna de compra por produto. Veja
+[Conversões para o Meta Ads](/produto/automacoes/conversoes-meta).
+
+## Configurações recomendadas
+
+| Configuração | Valor | Por quê |
+|---|---|---|
+| [Buffer](/engenharia-de-ia/buffer) | 6 a 8 segundos | Lead de anúncio chega com mensagem pronta e segue picado. |
+| [Pausa humana](/engenharia-de-ia/pausa-humana) | 60 minutos | A equipe intervém pontualmente. |
+| [Modelo](/engenharia-de-ia/escolher-o-modelo) | Intermediário | Tratar objeção sem inventar exige seguir bem a skill. |
+| Temperatura | 0 a 0,3 | O modelo de nicho vem com 0,7. |
+| Raciocínio | Padrão ou Baixo | Baixo se há várias ofertas para escolher. |
+| [Segmentação](/engenharia-de-ia/segmentacao-e-voz) | Ligada, "até 3 frases" | Oferta em blocos curtos lê melhor no WhatsApp. |
+| [Mídia](/engenharia-de-ia/midia) | Áudio liberado; imagem para prints de erro de acesso | O modelo de nicho vem com imagem desligada. |
+| [Resiliência](/engenharia-de-ia/resiliencia) | Tentativas 2, fallback de outro fabricante, falha do agente movendo para Atendimento Humano | Lead de lançamento não espera. |
+| Horário de funcionamento do agente | 24h | Compra por impulso acontece à noite. |
+
+## Métricas
+
+| Métrica | Como medir |
+|---|---|
+| Taxa de link enviado | Leads que chegaram a Link enviado ÷ leads novos |
+| Conversão do link | Comprou ÷ Link enviado |
+| Receita de anúncio | [Métricas](/produto/metricas), aba Conversões, Valor Total (R$) |
+| Recuperação | Compras de leads com a tag Carrinho abandonado |
+| Custo de IA por venda | Custo real ([LangSmith](/engenharia-de-ia/langsmith) ou provider) ÷ vendas |
+| Suporte x vendas | Mensagens de leads com a tag Aluno, em amostras de conversas |
+
+## Pelo MCP
+
+<Visibility for="agents">
+O MCP cria os fluxos (inclusive o gatilho **Webhook recebido** e o `path`) e liga
+ou desliga; não os dispara. Esboço do funil e da recuperação:
+
+```json
+{
+  "columns": [
+    { "slug": "novo_contato", "name": "Novo Contato", "order": 0 },
+    { "name": "Interessado", "order": 1, "color": "#F59E0B" },
+    { "name": "Link enviado", "order": 2, "color": "#3B82F6" },
+    { "name": "Comprou", "order": 3, "color": "#22C55E" },
+    { "name": "Atendimento Humano", "order": 4, "color": "#A855F7", "transhipment": true, "shutdown_ai": true },
+    { "name": "Perdido", "order": 5, "color": "#EF4444" }
+  ],
+  "tags": [
+    { "name": "Aluno", "color": "#22C55E", "scope": "lead" },
+    { "name": "Carrinho abandonado", "color": "#EF4444", "scope": "conversation" }
+  ],
+  "follow_ups": [
+    { "name": "Recuperação 1h", "method": "FOLLOW_UP", "delay": 1, "delay_unit": "HOURS",
+      "order_follow_up": 1, "template_name": "recuperacao_link", "columns": ["Link enviado"], "tags": null },
+    { "name": "Recuperação 24h", "method": "FOLLOW_UP", "delay": 24, "delay_unit": "HOURS",
+      "order_follow_up": 2, "template_name": "recuperacao_link_24h", "columns": ["Link enviado"], "tags": null }
+  ],
+  "conversions": [
+    { "name": "Checkout", "event": "InitiateCheckout", "column_name": "Link enviado", "value": null },
+    { "name": "Venda", "event": "Purchase", "column_name": "Comprou", "value": 497 }
+  ]
+}
+```
+
+Estrutura dos fluxos no bloco `flows`: veja
+[Referência do template](/trabalhar-com-ia/referencia-do-template) e
+[Trigger Flow: blocos](/produto/trigger-flow/blocos). Depois de criar o fluxo de
+webhook, a URL e o `curl` de exemplo aparecem no editor.
+</Visibility>
+
+## Erros comuns
+
+- **"Gatilhos de urgência e escassez" sem prazo real.** O prompt do modelo de
+  nicho pede isso. Urgência falsa gera denúncia, queda de qualidade do número e
+  problema com o consumidor. Só prazos que existem.
+- **O agente confirmando pagamento.** "Já paguei" vira "Comprou" e o lead recebe
+  acesso que não pagou. Só o fluxo da plataforma move.
+- **Link no prompt.** Link trocado no checkout e esquecido no prompt manda o lead
+  para a oferta errada. Link na skill, revisado a cada lançamento.
+- **Promessa de renda.** "Você vai faturar 10 mil" fere as políticas de anúncio da
+  Meta e a lei do consumidor.
+- **Vendas e suporte no mesmo fluxo sem separar.** O aluno com problema de acesso
+  recebe oferta. A tag Aluno no contexto muda o caminho.
+- **Campanha para a base inteira.** Quem não pediu mensagem denuncia e o número
+  perde qualidade. Segmente. Veja [Campanhas](/playbooks/campanhas).
+- **Webhook da plataforma direto na Zatten.** Sem o número do lead na URL, a
+  chamada falha. Use um intermediário que monte a chamada.
+
+## Para saber mais
+
+- [Trigger Flow: conceitos](/produto/trigger-flow/conceitos) e [API e webhooks](/produto/trigger-flow/api)
+- [Skills do agente](/engenharia-de-ia/skills)
+- [Anúncios Click-to-WhatsApp com conversões](/playbooks/anuncios-ctwa), [Campanhas](/playbooks/campanhas)
+- [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- Meta, Conversions API para mensagens: https://developers.facebook.com/documentation/ads-commerce/conversions-api/business-messaging
+- Termos para buscar: "recuperação de carrinho WhatsApp", "webhook de compra
+  aprovada", "lançamento de infoproduto WhatsApp", "quality rating WhatsApp".

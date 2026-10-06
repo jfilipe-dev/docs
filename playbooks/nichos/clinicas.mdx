@@ -1,0 +1,275 @@
+---
+title: "Clínicas e saúde"
+description: "Leia para montar ou revisar o projeto de uma clínica, consultório ou serviço com hora marcada: funil, tags, propriedades, prompt, tools de agenda, lembrete de consulta, automações, configurações recomendadas, métricas e erros comuns."
+---
+
+O agente de uma clínica faz a **triagem** (motivo, especialidade, convênio),
+**agenda a consulta** e manda o **lembrete**. Casos urgentes e tudo o que exige
+decisão da equipe vão para a recepção. Uma conversa termina bem quando o
+paciente tem data e hora confirmadas.
+
+Serve também para estética, odontologia, fisioterapia, psicologia, pet e outros
+serviços com hora marcada.
+
+## O objetivo do atendimento
+
+| | |
+|---|---|
+| **Conversão** | Consulta agendada. Depois, consulta realizada (o paciente compareceu). |
+| **A IA faz** | Recebe, tria, informa convênios e preparo, oferece horários, agenda, lembra, remarca. |
+| **A recepção faz** | Casos urgentes, exceções de convênio, confirmação de comparecimento, quem pede uma pessoa. |
+| **Nunca** | Diagnóstico, indicação de remédio, promessa de resultado. |
+
+## Funil recomendado
+
+| Coluna | O que significa | Quem move | Desativar IA | Transbordo | Disparar automações |
+|---|---|---|---|---|---|
+| **Novo Contato** (entrada) | Chegou; a IA está na triagem | Automático | Não | Não | Não |
+| **Agendado** | Data e hora confirmadas | Agente (ou recepção) | Não | Não | Não |
+| **Faltou** | Não compareceu | Recepção | Não | Não | Sim |
+| **Compareceu** | Consulta realizada | Recepção | Não | Não | Sim |
+| **Atendimento Humano** | A recepção assumiu | Agente, transbordo por inatividade, falha do modelo | Sim (junto) | **Sim** | Não |
+| **Perdido** | Desistiu ou fora do perfil | Agente ou recepção | Não | Não | Não |
+
+Por que assim:
+
+- **"Faltou" é coluna, não tag.** É uma etapa exclusiva, com automação própria
+  (remarcação).
+- **A IA fica ligada em Agendado, Compareceu e Perdido.** O paciente que confirma
+  presença, remarca ou volta meses depois é atendido. O prompt diz o que fazer em
+  cada etapa (o agente vê a etapa no contexto).
+- **"Disparar automações" nas colunas que a recepção move**, para o follow-up
+  daquela etapa começar quando ela arrasta o card.
+
+O modelo de nicho "Clínicas & Saúde" cria Novo Contato, Triagem, Agendamento,
+Atendimento Humano, Ganho e Perdido. Renomeie "Agendamento" para "Agendado" e
+"Ganho" para "Compareceu" (pelo `slug`, para manter os leads), crie "Faltou" e
+desligue **Desativar IA** em Ganho e Perdido. "Triagem" pode ficar, se a equipe
+quiser ver quem está no meio da conversa; o agente não precisa movê-la.
+
+## Tags
+
+| Tag | Vínculo | Quem põe | Para quê |
+|---|---|---|---|
+| **Urgente** | Conversa | Agente | Sinal de alarme (dor forte, sangramento, febre alta). Vai junto com o transbordo. |
+| **Paciente** | Contato | Recepção, ao mover para Compareceu | Marco: já se consultou. Segmenta campanhas de retorno. |
+
+Tipo de paciente, convênio e especialidade são **propriedades**, não tags.
+
+## Propriedades
+
+| Propriedade (slug) | Tipo | Valores | Vínculo | Enviar para a IA |
+|---|---|---|---|---|
+| Motivo (`motivo`) | Lista | Primeira consulta, Retorno, Exame, Procedimento, Dúvida | Conversa | Sim |
+| Especialidade (`especialidade`) | Lista | As da clínica | Conversa | Sim |
+| Convênio (`convenio`) | Lista | Os aceitos, mais Particular e Outro | Contato | Sim |
+| Data da consulta (`data_da_consulta`) | Texto | `AAAA-MM-DD HH:MM` | Conversa | Sim |
+| Unidade (`unidade`) | Lista | As unidades (só se houver mais de uma) | Contato | Sim |
+
+"Enviar para a IA" só se liga pelo template. Sem ela, o agente pergunta de novo o
+convênio que o paciente já informou.
+
+## Tools
+
+**Ações da Zatten:**
+
+| Tool | Quando usar (vai no "Quando usar no seu atendimento") |
+|---|---|
+| `@properties_update_motivo`, `@properties_update_especialidade`, `@properties_update_convenio` | Assim que o paciente informar. Escreva os valores aceitos da lista. |
+| `@properties_update_data_da_consulta` | Só depois de o agendamento ser confirmado. |
+| `@tag_add_urgente` | Sinal de alarme descrito pelo paciente. Sempre seguida de transferir. |
+| `@kanban_move_agendado` | Só com data e hora confirmadas (e o agendamento criado, se houver agenda integrada). |
+| `@kanban_move_perdido` | O paciente desistiu ou a clínica não atende o caso. |
+| `@schedule_add_lembrete_consulta` | Modo **A IA decide**: 24 horas antes da consulta. Se a consulta for em menos de 24 horas, não agende. |
+| `@schedule_remove_lembrete_consulta` | O paciente remarcou ou cancelou. |
+| `@transbordo_notify` | Urgência, pedido de falar com uma pessoa, exceção de convênio, reclamação. |
+
+**Agenda**, se a clínica tiver uma com API ou integração:
+
+| Opção | Tools | Página |
+|---|---|---|
+| Google Agenda da clínica | `GOOGLECALENDAR_FIND_FREE_SLOTS` e `GOOGLECALENDAR_CREATE_EVENT` (confira o slug exato no app) | [Composio](/engenharia-de-ia/tools/composio) |
+| Sistema da clínica com API | `consultar_horarios` e `criar_agendamento` | [Tool HTTP](/engenharia-de-ia/tools/http), [Montar sua API](/engenharia-de-ia/tools/montar-sua-api) |
+| Outras agendas | — | [Agendamento](/playbooks/agendamento) |
+
+**Sem agenda integrada**, o agente coleta o período de preferência (manhã ou
+tarde, dias da semana), transfere para a recepção e a recepção move para
+Agendado depois de marcar.
+
+**Skill:** `convenios` (regras de cada convênio, o que fazer com um não aceito,
+valor da consulta particular). Se houver exames, uma skill `preparo_de_exames`.
+
+São de 10 a 13 tools, conforme a clínica. Passou de dez, ligue **Filtrar tools**.
+Veja [Limites e segurança](/engenharia-de-ia/limites-e-seguranca).
+
+## Esqueleto do prompt
+
+Adapte. Regras de cada tool vão no "Quando usar" dela, não aqui.
+
+```markdown
+# Identidade
+Você é a Ana, assistente virtual da Clínica Sorriso, no WhatsApp.
+
+# Objetivo
+Agendar a consulta. A conversa termina bem quando o paciente tem data e hora
+confirmadas.
+
+# Tom
+Cordial e direto, frases curtas, uma pergunta por vez. Texto simples, sem
+Markdown.
+
+# Fluxo de atendimento
+1. Cumprimente. Se o nome não estiver no "Contexto do lead atual", pergunte.
+2. Pergunte o motivo (@properties_update_motivo) e a especialidade
+   (@properties_update_especialidade).
+3. Pergunte o convênio (@properties_update_convenio). Regras na skill convenios.
+4. Consulte os horários (@GOOGLECALENDAR_FIND_FREE_SLOTS) e ofereça até 3 opções.
+5. Com a escolha confirmada: crie o evento, salve a data
+   (@properties_update_data_da_consulta), mova (@kanban_move_agendado) e agende o
+   lembrete (@schedule_add_lembrete_consulta).
+6. Se o paciente desistir: @kanban_move_perdido.
+
+# Por etapa
+- Agendado: confirme presença, remarque ou cancele. Ao remarcar, cancele o
+  lembrete antigo (@schedule_remove_lembrete_consulta) e agende o novo.
+- Faltou: ofereça remarcar.
+- Compareceu ou Perdido: se o paciente voltar, recomece pelo passo 2.
+
+# Quando transferir
+Use @transbordo_notify quando: houver sinal de alarme (antes, @tag_add_urgente);
+o paciente pedir uma pessoa; o convênio for exceção; houver reclamação. Avise que
+a recepção vai responder. Fora do horário da recepção (seg a sex, 8h às 18h,
+compare com o bloco "Agora"), diga que ela responde no próximo dia útil.
+
+# O que nunca fazer
+- Dar diagnóstico, interpretar exame ou indicar remédio.
+- Oferecer horário que não veio da agenda.
+- Prometer resultado de tratamento ou desconto.
+```
+
+## Automações
+
+| Automação | Configuração | Por quê |
+|---|---|---|
+| **Lembrete de consulta** | Ação **Agendar mensagem** do agente, template utilitário `lembrete_consulta`, 24 horas antes | O follow-up conta da última interação, não da data da consulta. O lembrete precisa da data. |
+| **Retomada** (follow-up) | Coluna Novo Contato; 2 horas e 24 horas; template de retomada | Quem parou na triagem. Os atrasos contam do mesmo instante. |
+| **Reengajamento** | Coluna Novo Contato; 60 minutos antes de a janela fechar | Última chance de texto livre, sem template. Só na conexão oficial. |
+| **Remarcação** (follow-up) | Coluna Faltou; 1 hora | A recepção move para Faltou e o template oferece novo horário. |
+| **Pós-consulta** (follow-up) | Coluna Compareceu; 24 horas | Agradece e lembra do retorno. Com IA ligada, o agente responde ao paciente. |
+| **Transbordo por inatividade** | Opcional: origem Novo Contato, 240 minutos, destino Atendimento Humano | Só se a recepção liga para quem parou na triagem. Senão, os follow-ups bastam. |
+| **Conversões** (só com anúncios) | `LeadSubmitted` em Agendado; `Purchase` em Compareceu, com o valor médio da consulta | O Meta Ads otimiza para quem agenda e comparece, não para quem só conversa. |
+
+A Meta decide a categoria de cada template. Lembrete de consulta costuma ser
+**Utilitário**; retomada e pós-consulta com convite costumam ser **Marketing**.
+Veja [Templates do WhatsApp](/produto/templates-whatsapp) e
+[Follow-up e reengajamento que não queimam o número](/playbooks/follow-up-e-reengajamento).
+
+O modelo de nicho traz a conversão "Consulta agendada" com o evento `Schedule`,
+que não está entre os eventos que a Meta lista para mensagens. Troque por um da
+lista. Veja [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta).
+{/* A CONFIRMAR: se a Conversions API de mensagens aceita o evento Schedule enviado pela Zatten. Não está na lista da Meta usada na página de conversões. */}
+
+## Configurações recomendadas
+
+| Configuração | Valor | Por quê |
+|---|---|---|
+| [Buffer](/engenharia-de-ia/buffer) | 8 segundos | Pacientes mandam 2 ou 3 mensagens e áudios seguidos. O modelo de nicho grava 1, curto demais. |
+| [Pausa humana](/engenharia-de-ia/pausa-humana) | 60 minutos | A recepção intervém e devolve para a IA. |
+| [Modelo](/engenharia-de-ia/escolher-o-modelo) | Pequeno ou intermediário, com **Imagem** | Pacientes mandam foto do pedido médico e da carteirinha. |
+| Temperatura | 0 a 0,3 | O modelo de nicho vem com 0,7: varia mais e inventa mais. |
+| Raciocínio | Padrão; Baixo se as regras de convênio e agenda se cruzam | Mais que isso deixa a resposta lenta. |
+| [Segmentação](/engenharia-de-ia/segmentacao-e-voz) | Ligada, com "responda em até 3 frases" no prompt | Conversa curta, de WhatsApp. |
+| [Mídia](/engenharia-de-ia/midia) | Áudio, imagem e PDF liberados | O modelo de nicho vem com PDF desligado. Na OpenAI direta, teste um áudio depois de criar. |
+| [Resiliência](/engenharia-de-ia/resiliencia) | Tentativas 2, fallback de outro fabricante, falha do agente movendo para Atendimento Humano | Paciente sem resposta procura outra clínica. |
+| Horário de funcionamento do agente | Sem restrição (24h) | A IA agenda à noite e no fim de semana; o prompt trata a ausência da recepção. |
+
+## Métricas
+
+| Métrica | Como medir |
+|---|---|
+| Leads novos (anúncio x orgânico) | [Métricas](/produto/metricas), card Contatos |
+| Taxa de agendamento | Leads que chegaram a Agendado ÷ leads novos |
+| Taxa de comparecimento | Compareceu ÷ (Compareceu + Faltou) |
+| Transbordos | Leads em Atendimento Humano; card IA x humano |
+| Custo de IA por agendamento | Custo real (provider ou [LangSmith](/engenharia-de-ia/langsmith)) ÷ agendamentos |
+| Conversões por campanha | Métricas, aba Conversões (só leads de anúncio) |
+
+O funil das Métricas é uma foto do momento. Para comparar meses, anote os números
+no fim de cada mês ou use a [exportação de Contatos](/produto/contatos).
+
+## Pelo MCP
+
+<Visibility for="agents">
+Blocos para um plano (adapte nomes e valores ao cliente; automações desligadas):
+
+```json
+{
+  "columns": [
+    { "slug": "novo_contato", "name": "Novo Contato", "order": 0 },
+    { "name": "Agendado", "order": 1, "color": "#3B82F6" },
+    { "name": "Faltou", "order": 2, "color": "#F59E0B", "should_trigger_automations": true },
+    { "name": "Compareceu", "order": 3, "color": "#22C55E", "should_trigger_automations": true },
+    { "name": "Atendimento Humano", "order": 4, "color": "#A855F7", "transhipment": true, "shutdown_ai": true },
+    { "name": "Perdido", "order": 5, "color": "#EF4444" }
+  ],
+  "tags": [
+    { "name": "Urgente", "color": "#EF4444", "scope": "conversation" },
+    { "name": "Paciente", "color": "#22C55E", "scope": "lead" }
+  ],
+  "properties": [
+    { "slug": "convenio", "name": "Convênio", "description": "Convênio do paciente", "scope": "lead",
+      "is_enum": true, "send_to_ai": true,
+      "values": [{ "value": "Bradesco Saúde" }, { "value": "Particular" }, { "value": "Outro" }] },
+    { "slug": "data_da_consulta", "name": "Data da consulta", "description": "AAAA-MM-DD HH:MM",
+      "scope": "conversation", "is_enum": false, "send_to_ai": true }
+  ],
+  "llm_attendant": { "message_buffer": 8, "pause_in_human_interaction": 60,
+    "image_interpretation": true, "pdf_interpretation": true, "audio_interpretation": true },
+  "follow_ups": [
+    { "name": "Retomada 2h", "method": "FOLLOW_UP", "delay": 2, "delay_unit": "HOURS",
+      "order_follow_up": 1, "template_name": "retomada_agendamento", "columns": ["Novo Contato"], "tags": null },
+    { "name": "Reengajamento 60 min", "method": "RE_ENGAGEMENT", "delay": 60, "delay_unit": "MINUTES",
+      "order_follow_up": 2, "reengagement_message": "Oi! Ainda posso te ajudar a marcar sua consulta?",
+      "columns": ["Novo Contato"], "tags": null }
+  ]
+}
+```
+
+- Ao renomear colunas do modelo de nicho, mande o `slug` lido em `get_template`.
+- Se o modelo criou ações "Definir tag única" (`tag.add_only`) para Novo
+  Paciente, Retorno, Urgente e Convênio, proponha trocá-las: tipo de paciente e
+  convênio viram propriedades.
+- `scheduled_for` da ação de agendar mensagem: ISO 8601 com `-03:00` (ou o fuso
+  da clínica). Escreva isso no "Quando usar".
+</Visibility>
+
+## Erros comuns
+
+- **Diagnóstico pelo WhatsApp.** "Isso parece sinusite" é o erro mais grave do
+  nicho. A regra vai em "O que nunca fazer", e o teste precisa tentar arrancar um
+  diagnóstico.
+- **Horário inventado.** Sem tool de agenda, o agente não oferece horário: coleta
+  a preferência e transfere.
+- **Lembrete feito com follow-up.** O follow-up conta da última interação, não da
+  data da consulta. Use **Agendar mensagem**.
+- **Tags exclusivas que se apagam.** O modelo de nicho usa **Definir tag única**
+  em Novo Paciente, Retorno, Urgente e Convênio: marcar Urgente apaga Convênio.
+  Troque por propriedades e **Adicionar tag**.
+- **Convênio em texto livre.** "Unimed", "unimed", "UNIMED" quebram filtros e
+  campanhas. Lista desde o início.
+- **Coluna final com a IA desligada.** O paciente que volta para remarcar fica sem
+  resposta.
+- **Agenda conectada com a conta da agência.** Conecte a agenda da clínica, no
+  projeto da clínica.
+- **Dados de saúde demais.** Peça só o necessário para agendar. Detalhes clínicos
+  ficam para a consulta. Veja [Limites e segurança](/engenharia-de-ia/limites-e-seguranca).
+
+## Para saber mais
+
+- [Agendamento](/playbooks/agendamento), [Transbordo para humano bem feito](/playbooks/transbordo), [Follow-up e reengajamento](/playbooks/follow-up-e-reengajamento)
+- [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten), [Tools da Composio](/engenharia-de-ia/tools/composio)
+- [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- Composio, Google Agenda: https://docs.composio.dev/toolkits/googlecalendar
+- Meta, categorias de template: https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-categorization
+- Termos para buscar: "lembrete de consulta WhatsApp", "no-show clínica",
+  "taxa de comparecimento", "LGPD dados de saúde".

@@ -1,0 +1,186 @@
+---
+title: "Mini-apps"
+description: "Leia para colocar um app próprio dentro do painel da Zatten (página no menu do CRM ou painel no chat, com o lead atual): cadastrar, quem vê em cada projeto, o token mostrado uma vez e como ler o contexto criptografado. Para desenvolvedores."
+---
+
+Um **mini-app** é um app seu (qualquer linguagem, hospedado onde quiser) que abre
+**dentro do painel** da Zatten, num iframe. A Zatten manda junto o contexto
+(conta, usuário, projeto e, no chat, o lead aberto) num **token criptografado** na
+URL. Use para levar ao painel o que o cliente final precisa ao lado das conversas:
+estoque, agenda, consulta de pedido, ficha do paciente.
+
+## Onde fica no painel
+
+- **Cadastro:** **Configurações → Apps** (admin e editor).
+- **Onde o app aparece**, conforme o posicionamento escolhido:
+
+| Posicionamento | Onde aparece | Layout esperado |
+|---|---|---|
+| **Menu lateral (CRM)** | Item no grupo **Apps** do menu; abre uma página inteira em `/apps/<id>` | Desktop: pode ter tabelas e grids |
+| **Painel do chat** | Ícone no painel do lead, nas conversas; abre sobre a conversa, com o lead atual | Estreito, cerca de 320 a 360 px, uma coluna só |
+
+## Como configurar
+
+Os mini-apps são da **conta** da agência: um cadastro vale para todos os projetos,
+e a visibilidade se ajusta por projeto.
+
+| Campo | O que faz |
+|---|---|
+| **Nome** | Nome no menu e no ícone. Obrigatório. |
+| **Descrição** | Opcional. |
+| **URL (https)** | Endereço do app. Só HTTPS. |
+| **Logo** | Ícone do app (upload ou URL). |
+| **Posicionamento** | **Menu lateral (CRM)** ou **Painel do chat**. |
+| **Ativo** | Desligado, o app some de todos os projetos que seguem o **Padrão**. Uma exceção ligada num projeto continua valendo. |
+| **Quem pode ver (padrão)** | **Todos**, **Gestores e editores** ou **Somente editores**. O admin sempre vê. |
+| **Dados enviados para o app** | Quais campos entram no token. Novo app nasce com todos marcados. Os de lead só valem no Painel do chat. |
+| **Parâmetros fixos** | Pares chave e valor que vão no token, em `custom` (ex.: `env = prod`). Chave só com letras, números, `_` e `-`. |
+| **Visibilidade por projeto** | Exceções por projeto: **Padrão** (segue o cadastro), **Desativado** ou outro nível de quem vê. |
+
+A ordem dos apps no menu se ajusta com as setas da lista.
+
+### O token do app
+
+Ao criar, a Zatten mostra o **token do app** (o segredo) **uma única vez**. Copie e
+guarde numa variável de ambiente do seu app. Ele não é exibido de novo. Se perder,
+use **Regenerar token**: o anterior deixa de funcionar na hora.
+
+## Como funciona por trás
+
+1. A Zatten abre `https://SEU-APP/?data=<token>` no iframe, ocupando 100% do
+   espaço.
+2. O `data` é um **JWE compacto** (`alg: dir`, `enc: A256GCM`), criptografado com o
+   token do app. A chave é o token decodificado de base64url (32 bytes).
+3. Seu app descriptografa, **valida o `exp`** (o token vale **24 horas**) e cria a
+   **sua própria sessão**. O `data` é só o aperto de mão inicial.
+4. No Painel do chat, trocar de conversa recarrega o app com o lead novo. Trocar o
+   tema do painel também recarrega.
+
+Quem não tem o token do app não lê nem forja o conteúdo.
+
+### Ler o contexto (Node, com a biblioteca `jose`)
+
+```ts
+import { jwtDecrypt } from 'jose' // npm i jose
+
+const key = Buffer.from(process.env.ZATTEN_MINIAPP_SECRET!, 'base64url')
+
+export async function readZattenData(data: string) {
+  const { payload } = await jwtDecrypt(data, key) // confere integridade e exp
+  return payload
+}
+```
+
+Sem biblioteca, com o `crypto` nativo do Node:
+
+```ts
+import { createDecipheriv } from 'crypto'
+
+export function readZattenData(data: string, secret: string) {
+  const key = Buffer.from(secret, 'base64url')
+  const [header, , iv, ct, tag] = data.split('.')
+  const d = createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64url'))
+  d.setAAD(Buffer.from(header))
+  d.setAuthTag(Buffer.from(tag, 'base64url'))
+  const json = Buffer.concat([
+    d.update(Buffer.from(ct, 'base64url')),
+    d.final() // lança se o token foi adulterado ou a chave está errada
+  ]).toString()
+  const claims = JSON.parse(json)
+  if (!claims.exp || claims.exp * 1000 < Date.now()) throw new Error('expirado')
+  return claims
+}
+```
+
+### O que vem no token
+
+Campos vazios ou desmarcados não vêm. `lead` só vem no Painel do chat.
+
+```json
+{
+  "tenant_id": "e6f3…",
+  "tenant_name": "Agência X",
+  "user_id": "4486…",
+  "user_email": "ana@agencia.com",
+  "user_role": "editor",
+  "attendant_id": "de5f…",
+  "theme": "light",
+  "lead": {
+    "id": "d4ab…",
+    "name": "João",
+    "wa_id": "5511999998888",
+    "thread_id": "zt-thread-…",
+    "tags": [{ "id": "d6f8…", "name": "VIP" }],
+    "kanban": { "id": "a1…", "name": "Novo Lead" },
+    "properties": [{ "label": "CPF", "value": "123" }]
+  },
+  "custom": { "env": "prod" },
+  "iat": 1782525769,
+  "exp": 1782612169
+}
+```
+
+<Visibility for="agents">
+| Claim | Tipo | Opção em "Dados enviados" |
+|---|---|---|
+| `tenant_id`, `tenant_name` | string | ID do tenant, Nome do tenant |
+| `user_id`, `user_email` | string | usuário logado |
+| `user_role` | `admin`, `editor`, `gestor`, `viewer` | |
+| `attendant_id` | string | o projeto aberto |
+| `theme` | `light`, `dark` | |
+| `lead.id`, `lead.name`, `lead.wa_id`, `lead.thread_id` | string | só Painel do chat |
+| `lead.tags` | `[{ id, name }]` | só Painel do chat |
+| `lead.kanban` | `{ id, name }` | só Painel do chat |
+| `lead.properties` | `[{ label, value }]` | só Painel do chat |
+| `custom` | objeto | Parâmetros fixos |
+| `iat`, `exp` | epoch em segundos | sempre; `exp` = `iat` + 24 h |
+
+`tenant_*` é a conta da agência (no código, *tenant*). Campos de configuração:
+`placement` = `crm_menu` ou `chat_panel`; `default_allowed_roles` é um piso
+(escolher `gestor` libera gestor, editor e admin).
+</Visibility>
+
+## Pelo MCP
+
+Os mini-apps **não viajam** no template do projeto e o MCP não os cria: são da
+conta, não do projeto, e o token é um segredo. Cadastro sempre pelo painel.
+
+## Armadilhas
+
+- **Não confie no `user_role` para autorizar.** Use como dica e faça a sua própria
+  autorização. Isole os dados por `tenant_id` e `attendant_id`.
+- **Login por cookie em outro domínio falha.** No iframe, o navegador trata o app
+  como terceiro. Hospede o app num subdomínio do domínio do white-label (ex.:
+  `estoque.cliente.com` ao lado de `cliente.com`).
+- **Token exposto.** Quem tem o token do app lê e forja o contexto. Nunca no
+  front-end nem no repositório.
+- **Regenerar derruba o app** até você atualizar a variável de ambiente.
+- **Painel do chat é estreito.** Sem menu lateral, sem tabela larga, sem duas
+  colunas. Nada de `position: fixed` contando com a janela inteira.
+- **O app recarrega** ao reabrir, trocar de lead ou de tema. Mantenha o carregamento
+  rápido.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="O mini-app consegue alterar o lead na Zatten?">
+Não pelo token, que só leva dados. Para alterar, o seu app chama a
+[API](/api/visao-geral) com a [chave de API do projeto](/produto/chaves-de-api),
+guardada no servidor do app.
+</Accordion>
+<Accordion title="Posso mostrar o app só em alguns projetos?">
+Sim. Em **Visibilidade por projeto**, deixe **Desativado** nos projetos em que o
+app não deve aparecer. Para poucos projetos, o contrário funciona melhor: desligue
+**Ativo** e, nos projetos desejados, escolha quem vê. A exceção por projeto
+prevalece sobre o cadastro.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [White-label](/comecar/white-label)
+- [Usuários, papéis e permissões](/produto/papeis-e-permissoes)
+- [A API: visão geral](/api/visao-geral)
+- JWE (RFC 7516): https://www.rfc-editor.org/rfc/rfc7516
+- Biblioteca `jose`: https://github.com/panva/jose
+- Termos para buscar: "JWE compact", "A256GCM", "iframe third-party cookies", "jwtDecrypt".

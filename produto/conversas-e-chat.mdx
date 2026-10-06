@@ -1,0 +1,179 @@
+---
+title: "Conversas e chat ao vivo"
+description: "Leia para entender a tela Conversas: filtros, o que acontece quando um humano responde (assume o lead e pausa a IA), ligar e desligar a IA por lead, anotações, histórico, conversas anteriores, mídia e templates."
+---
+
+**Conversas** é o chat ao vivo do projeto. Ali a equipe vê os leads em atendimento, lê o que o agente respondeu e entra na conversa quando precisa. Responder pelo chat **assume o lead** e **pausa a IA** pelo tempo da [pausa humana](/engenharia-de-ia/pausa-humana). Para tirar a IA de um lead de vez, use a chave **Agente IA** do lead.
+
+## Onde fica no painel
+
+Menu **Conversas**. A tela tem três partes: a lista de conversas à esquerda, o chat no centro e o painel do lead à direita. No topo da lista, a alternância **Lista / Kanban** mostra os mesmos leads no [funil](/produto/funil-kanban).
+
+Quem vê o quê depende do papel. O visualizador vê só as conversas atribuídas a ele. Veja [Usuários, papéis e permissões](/produto/papeis-e-permissoes).
+
+## Quais leads aparecem na lista?
+
+Só leads com **conversa aberta** e pelo menos uma interação. Um lead que nunca falou com o projeto (por exemplo, importado por CSV) ou cujo atendimento foi encerrado não aparece em Conversas; ele continua em **Contatos**. Quando o lead manda mensagem de novo, uma conversa nova começa e ele volta para a lista. Veja [Encerrar atendimento](/produto/encerrar-atendimento).
+
+## Filtros e ordenação
+
+| Filtro | O que faz |
+|---|---|
+| **Buscar por nome ou telefone** | Só números busca no telefone; texto busca no nome e no telefone. |
+| **Tags** | Leads com **todas** as tags marcadas. |
+| **Coluna** | Leads em qualquer uma das colunas marcadas. |
+| **Departamento** | Leads atribuídos ao departamento. |
+| **Usuário** | Leads cujo responsável é o usuário. |
+| **Status do agente** | Agente ligado, Agente pausado ou Agente desligado. |
+| **Não lidas** | Só conversas com mensagens não lidas. |
+
+**Ordenar contatos:** por interação (mais recente ou mais antiga) ou por data de criação (mais recente ou mais antiga). **Limpar filtros** volta tudo ao padrão.
+
+## O que acontece quando um humano responde?
+
+Ao enviar texto, mídia ou [mensagem rápida](/produto/mensagens-rapidas) pelo chat, três coisas acontecem antes da mensagem sair:
+
+1. **O humano assume o lead**, se puder:
+   - se o lead está num departamento, só assume quem é membro **desse** departamento;
+   - se o lead está sem responsável e sem departamento, quem responde assume e o lead entra no departamento dessa pessoa;
+   - se a pessoa não é membro do departamento do lead, a mensagem sai, mas o responsável não muda.
+2. **A mensagem pode levar o nome de quem atende.** Se o departamento do lead tem **Enviar nome do atendente** ligado, o texto sai com o nome em negrito na primeira linha. Veja [Departamentos](/produto/departamentos).
+3. **A IA pausa** por N minutos, o valor da [pausa humana](/engenharia-de-ia/pausa-humana). A pausa só estende: se a IA já estava pausada até mais tarde, ou desligada, nada muda. Sem valor configurado, o painel usa 5 minutos.
+
+Enviar um **template** pelo chat atribui o lead a quem enviou (se ele estava sem responsável), mas não pausa a IA.
+
+<Note>
+Responder pelo celular, no app WhatsApp Business (coexistência) ou pela conexão não oficial, também pausa a IA, mas só quando a pausa humana tem um valor configurado. Com o campo vazio, o chat da Zatten pausa 5 minutos e o celular não pausa. Veja [Pausa humana](/engenharia-de-ia/pausa-humana).
+</Note>
+
+## Ligar, pausar e desligar a IA por lead
+
+Cada lead tem um estado do agente, que aparece no painel do lead (**Agente IA**) e no filtro da lista:
+
+| Estado | O que significa | Como chega nele |
+|---|---|---|
+| **Ligado** | A IA responde. | Padrão; ou alguém religa; ou o atendimento é encerrado. |
+| **Pausado até…** | A IA não responde até a data e hora mostradas. Depois volta sozinha. | Um humano respondeu (pausa humana); a API ou um fluxo pausou por X minutos. |
+| **Desligado** | A IA não responde mais a esse lead. Não volta sozinha. | Alguém desligou a chave; o lead entrou numa coluna com **Desativar IA** ou **Transbordo**; o agente usou **Transferir para humano** ou desligou a IA; a API ou um fluxo desligou. |
+
+A chave **Agente IA** tem só dois movimentos, sempre com confirmação:
+
+- **Desligar:** a IA fica desligada para esse lead até alguém religar ou encerrar o atendimento.
+- **Ligar** (ou **Retomar**, se estava pausada): a IA volta a responder já na próxima mensagem do lead.
+
+Não há opção de pausar por X minutos na tela. Para isso, use a API (`pause_minutes`) ou um fluxo do Trigger Flow.
+
+<Visibility for="agents">
+O estado vem do campo `ai_response_block_until` do lead (UTC):
+
+- nulo ou no passado = **ligado**;
+- no futuro, a menos de 50 anos = **pausado** até essa data;
+- 50 anos ou mais à frente = **desligado** (desligar grava agora + 100 anos).
+
+Pela API: `POST /api/v1/leads/{numero}/toggle-attendant-response`.
+
+- `{ "enabled": false }` desliga; `{ "enabled": true }` religa.
+- `{ "enabled": false, "pause_minutes": 30 }` pausa por 30 minutos (inteiro de 1 a 10080, ou seja, até 7 dias). `pause_minutes` só vale com `enabled: false`; vazio ou `null` dá 400. A pausa só estende (não encurta a vigente) e não religa uma IA desligada.
+- Resposta 200 com `status` (`on`, `paused` ou `off`) e `ai_response_block_until` quando mudou; 204 sem corpo quando já estava assim.
+
+A ação `lead.toggle_ai` do Trigger Flow usa a mesma rota e aceita o mesmo `pause_minutes`. Veja [Controle da IA por lead](/api/controle-da-ia).
+</Visibility>
+
+## O painel do lead
+
+À direita do chat, em seções que abrem e fecham:
+
+| Seção | O que tem |
+|---|---|
+| **Agente IA** | A chave e o estado atual (ligado, pausado até, desligado). |
+| **Kanban** | A coluna do lead. Mudar aqui é mover pelo CRM (pode disparar automações da coluna). |
+| **Tags** | Adicionar e remover tags. Tags de vínculo **conversa** saem ao encerrar. |
+| **Responsável** | Departamento e usuário. Escolher só o departamento aplica o rodízio. |
+| **Propriedades** | Valores das propriedades do lead. |
+| **Anotações** | Texto livre sobre o lead, visível para a equipe. |
+| **Ações** | **Encerrar atendimento**, **Agendar Mensagem** (template em data e hora) e os botões de [ações personalizadas](/produto/automacoes/acoes-personalizadas). |
+| **Mensagens Agendadas** | Os templates agendados para o lead, com opção de cancelar. |
+| **Conversões** | Eventos enviados ao Meta Ads. |
+| **Conversas** | As conversas anteriores do lead (abertas e encerradas), com as tags e propriedades que cada uma tinha ao encerrar. |
+| **Histórico** | Linha do tempo: lead criado, coluna alterada, tag adicionada, atribuição alterada, IA ligada ou desligada, atendimento encerrado, template agendado. |
+| **Origem** | De onde o lead veio (por exemplo, anúncio Click-to-WhatsApp). |
+
+Mini-apps do tipo painel do chat abrem por cima dessa área. Veja [Mini-apps](/produto/mini-apps).
+
+## Mídia, áudio e templates
+
+- **Anexar:** imagem (JPEG, PNG) e vídeo (MP4), até 20 arquivos por envio, cada um com legenda; documento (PDF, TXT) e áudio (OGG, OPUS, MP3). Dá para arrastar e soltar na conversa.
+- **Gravar áudio:** pelo microfone, direto no chat.
+- **Responder citando:** escolha uma mensagem para responder em cima dela.
+- **Limites de tamanho:** o chat aceita até 50 MB, mas a API do WhatsApp aceita menos para alguns tipos: imagem até 5 MB, áudio e vídeo até 16 MB, arquivo até 50 MB. Acima disso, o envio falha.
+
+**Janela fechada.** Na conexão oficial, quando a [janela de 24h](/comecar/janela-de-24h) do lead fecha, o campo de mensagem dá lugar ao aviso **Janela expirada**. Sobram dois caminhos: **Enviar Template** ou abrir o WhatsApp. Na conexão não oficial, a janela não existe.
+
+**Variáveis do template.** Ao enviar um template pelo chat, cada `{{variável}}` é preenchida com os dados do lead: `nome`, `telefone`, `data`, `hora` ou o valor da propriedade com aquele slug. Se o template pede uma propriedade que não existe no projeto, o envio é bloqueado. Veja [Templates do WhatsApp](/produto/templates-whatsapp).
+
+## Pela API
+
+O chat não viaja no template do projeto. As mesmas operações existem na API do dia a dia, com a chave de API do projeto:
+
+| O que | Endpoint |
+|---|---|
+| Enviar texto ou template | `POST /api/v1/messages/text`, `POST /api/v1/messages/template` |
+| Enviar mídia | `POST /api/v1/messages/image`, `/audio`, `/video`, `/file` |
+| Ler o histórico | `GET /api/v1/messages/history` |
+| Ligar, pausar ou desligar a IA | `POST /api/v1/leads/{numero}/toggle-attendant-response` |
+| Anotações | `PATCH /api/v1/leads/{numero}/notes` |
+| Responsável | `PATCH /api/v1/leads/{numero}/assignee` |
+
+Mensagem enviada pela API **não** assume o lead nem pausa a IA, como o chat faz. Se a integração for um humano respondendo, desligue ou pause a IA na mesma rotina. Veja [Mensagens](/api/mensagens) e [Controle da IA por lead](/api/controle-da-ia).
+
+## Armadilhas
+
+- **Pausada não é desligada.** A pausa humana acaba sozinha e a IA volta a responder. Se o humano vai conduzir o atendimento até o fim, desligue a IA do lead ou mova para uma coluna com **Desativar IA** ou **Transbordo**.
+- **Pausa humana 0 = sem pausa.** Com o valor 0, a IA responde logo em seguida ao humano, por cima da conversa.
+- **Responder não "rouba" lead de outro departamento.** A mensagem sai, mas o lead continua com o responsável anterior. Transfira em **Responsável** antes.
+- **Template enviado pelo chat não pausa a IA.** Se o lead responder ao template, quem responde é o agente.
+- **Lead encerrado some da lista.** Procure em **Contatos** ou pela busca. Ele volta para Conversas quando mandar mensagem.
+- **Arquivo grande demais** passa pelo chat e falha no envio. Respeite os limites por tipo acima.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Respondi o lead e a IA respondeu por cima. Por quê?">
+A pausa humana está em 0 ou baixa demais, ou a resposta foi um template (que não pausa). Aumente a [pausa humana](/engenharia-de-ia/pausa-humana) ou desligue a IA do lead.
+</Accordion>
+<Accordion title="Como devolvo o lead para a IA?">
+Ligue a chave **Agente IA** do lead. Se o atendimento acabou, **Encerrar atendimento** também religa a IA e devolve o lead para a primeira coluna.
+</Accordion>
+<Accordion title="Por que não consigo digitar no chat?">
+A janela de 24h desse lead fechou. Mande um template. Veja [Janela de 24h](/comecar/janela-de-24h).
+</Accordion>
+<Accordion title="Onde vejo as conversas antigas de um lead?">
+Na seção **Conversas** do painel do lead. Cada conversa encerrada guarda as mensagens e as tags e propriedades que tinha ao encerrar.
+</Accordion>
+</AccordionGroup>
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://youtube.com/embed/Y7ydIVempg4"
+  title="Vídeo: conversas e chat"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Encerrar atendimento](/produto/encerrar-atendimento)
+- [Pausa humana](/engenharia-de-ia/pausa-humana)
+- [Departamentos e distribuição](/produto/departamentos)
+- [Mensagens rápidas](/produto/mensagens-rapidas)
+- [Funil (Kanban)](/produto/funil-kanban)
+- [Janela de 24h](/comecar/janela-de-24h)
+- [Controle da IA por lead (API)](/api/controle-da-ia)
+- Meta: [mídia suportada e limites](https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/media#supported-media-types), [janela de atendimento](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages#customer-service-windows).
+- Termos para buscar: "pausa humana", "human takeover", "customer service window", "WhatsApp supported media types".

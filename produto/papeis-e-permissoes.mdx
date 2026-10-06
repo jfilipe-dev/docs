@@ -1,0 +1,139 @@
+---
+title: "Usuários, papéis e permissões (referência)"
+description: "Consulte para saber exatamente o que Admin, Editor, Gestor e Visualizador veem e podem fazer em cada tela do painel, e quais ações têm trava por papel."
+---
+
+Esta é a matriz completa dos quatro papéis, tela a tela e ação a ação. Para criar
+acessos, escolher o papel certo e dar acesso ao cliente final, leia antes
+[Montar a equipe: usuários e permissões](/comecar/equipe-e-permissoes).
+
+Legenda: **Sim** pode; **Não** não vê ou não pode; **Ver** só consulta; **Próprios**
+só os leads atribuídos à pessoa.
+
+## Conta e configurações
+
+| Ação | Admin | Editor | Gestor | Visualizador |
+|---|---|---|---|---|
+| Aba **Conta** (perfil e senha próprios) | Sim | Sim | Sim | Sim |
+| Aba **Gerenciar Acessos**: criar acesso | Editor, Gestor, Visualizador | Só Visualizador | Só Visualizador | Não |
+| Remover acesso de Editor ou Gestor | Sim | Não | Não | Não |
+| Aba **Apps** (mini-apps) | Sim | Sim | Não | Não |
+| Abas **Projetos**, **Minha Empresa**, **Domínios Customizados** | Sim | Não | Não | Não |
+| Aba **Conectar ferramentas de IA** (token do MCP) | Sim | Não | Não | Não |
+| Botão de acesso white-label (link mágico) | Sim, no endereço principal | Não | Não | Não |
+| **Assinatura** | Sim, no endereço principal | Não | Não | Não |
+
+## Organizações e projetos
+
+| Ação | Admin | Editor | Gestor | Visualizador |
+|---|---|---|---|---|
+| Ver projetos | Todos | Os liberados no acesso | Os liberados no acesso | Os liberados no acesso |
+| Criar organização | Sim | Sim | Sim | Não |
+| Renomear e excluir organização | Sim | Não | Não | Não |
+| Renomear projeto e mover de organização | Sim | Não | Não | Não |
+| Excluir projeto | Sim | Não | Não | Não |
+| Trocar a conexão de projeto | Sim | Não | Não | Não |
+| Setup Inicial | Sim | Sim | Não (abre Métricas) | Não (abre Métricas) |
+
+{/* A CONFIRMAR: "Novo Projeto" aparece no seletor de projetos para qualquer papel no endereço principal, e a criação não confere o papel. Definir se Gestor e Visualizador podem criar projeto antes de documentar na matriz. */}
+
+## Agente
+
+| Ação | Admin | Editor | Gestor | Visualizador |
+|---|---|---|---|---|
+| Configurar prompt, modelo, tools e skills | Sim | Sim | Não | Não |
+| Publicar versão, restaurar versão | Sim | Sim | Não | Não |
+| Migrar para o LangChain Agent | Sim | Sim | Não | Não |
+| Exportar o template (motor antigo) | Sim | Sim | Não | Não |
+| Ligar e desligar o agente | Sim | Sim | Sim | Não |
+| Horário de funcionamento do agente | Sim | Sim | Sim no LangChain Agent; não no motor antigo | Não |
+| Chat de teste | Sim | Sim | Sim | Sim |
+
+## WhatsApp
+
+| Ação | Admin | Editor | Gestor | Visualizador |
+|---|---|---|---|---|
+| Conectar e remover a conexão | Sim | Sim | Sim | Não |
+| Escolher plano quando o projeto está pendente | Sim | Não ("Configuração Pendente") | Não ("Configuração Pendente") | Não |
+| Templates: criar, editar, excluir, sincronizar | Sim | Sim | Sim | Não |
+
+## Automações e integrações
+
+| Ação | Admin | Editor | Gestor | Visualizador |
+|---|---|---|---|---|
+| Automações nativas (follow-up, reengajamento, webhooks, conversões, transbordo por inatividade, mensagens não visíveis) | Sim | Sim | Não | Não |
+| Trigger Flow | Sim | Sim | Não | Não |
+| Ações personalizadas | Sim | Sim | Não | Não |
+| Mensagens rápidas | Sim | Sim | Sim | Não |
+| Integrações: conectar, listar, desconectar | Sim | Sim | Não (vê o menu) | Não |
+
+## CRM
+
+| Ação | Admin | Editor | Gestor | Visualizador |
+|---|---|---|---|---|
+| Conversas | Todas | Todas | Todas | Próprios |
+| Filtrar conversas e contatos por departamento e por usuário | Sim | Sim | Sim | Não |
+| Contatos: lista e Kanban | Todos | Todos | Todos | Próprios |
+| Editar dados do lead (propriedades, notas) | Sim | Sim | Sim | Próprios |
+| Ações em massa nos contatos | Sim | Sim | Sim | Nos próprios |
+| Funil (colunas), tags e propriedades: criar, editar, excluir | Sim | Sim | Sim | Sim |
+| Importar e exportar contatos | Sim | Sim | Sim | Sim |
+| Departamentos: criar, editar, membros, rodízio | Sim | Sim | Sim | Não |
+| Campanhas | Sim | Sim | Sim | Não |
+| Métricas | Sim | Sim | Sim | Sim |
+
+## Operação e desenvolvimento
+
+| Ação | Admin | Editor | Gestor | Visualizador |
+|---|---|---|---|---|
+| Logs | Sim | Sim | Não | Não |
+| Chaves de API do projeto | Sim | Sim | Não | Não |
+| Usar um mini-app | Conforme o app | Conforme o app | Conforme o app | Conforme o app |
+
+Cada mini-app define quais papéis podem abri-lo, na conta toda ou por projeto. Veja
+[Mini-apps](/produto/mini-apps).
+
+## Como o acesso a projetos funciona
+
+- **Admin vê tudo**, sempre, incluindo projetos criados depois.
+- **Os outros papéis veem uma lista**: as organizações e, dentro de cada uma, os
+  projetos marcados no acesso. Projeto novo não entra sozinho na lista, mesmo numa
+  organização que a pessoa já vê.
+- **Departamento é outra coisa.** Ver o projeto não faz a pessoa receber leads; para
+  isso ela precisa estar num departamento. E só quem está em departamento conta no
+  limite de usuários do plano. Veja [Departamentos](/produto/departamentos).
+- **O Visualizador só vê leads atribuídos a ele**, em Conversas e em Contatos. Sem
+  departamento e sem leads atribuídos, a tela fica vazia.
+
+## Pelo MCP
+
+Papéis não viajam no template, e o MCP não cria nem altera acessos. O que vale para o
+MCP:
+
+- só o **Admin** cria a conexão de IA (o token do MCP), em **Configurações → Conectar
+  ferramentas de IA**;
+- o token escolhe os projetos e se pode escrever, independentemente de papel. Veja
+  [Instalar a skill e o MCP](/trabalhar-com-ia/instalar).
+
+## Armadilhas
+
+- **Funil, tags e propriedades não têm trava por papel.** Qualquer pessoa que abre
+  **Contatos** consegue criar, editar e excluir colunas, tags e propriedades, inclusive
+  o Visualizador. Se o cliente final não pode mexer na estrutura, combine isso com a
+  equipe dele.
+- **Gestor vê o menu Integrações, mas não usa.** Conectar e listar integrações exige
+  Admin ou Editor.
+- **Gestor só vê Mensagens rápidas em Automações.** Se o cliente final precisa ajustar
+  follow-ups, o papel é Editor.
+- **Mover um projeto de organização pode tirar o acesso** de quem o via pela
+  organização antiga. Confira em **Gerenciar Acessos**.
+- **Editor e Gestor podem não enxergar outros Editores e Gestores** na lista de
+  acessos. Peça ao Admin para revisar a equipe inteira.
+
+## Para saber mais
+
+- [Montar a equipe: usuários e permissões](/comecar/equipe-e-permissoes)
+- [Organizações e projetos](/produto/organizacoes-e-projetos)
+- [Departamentos e distribuição](/produto/departamentos)
+- [Entregar e operar para o cliente final](/playbooks/entregar-ao-cliente)
+- Termos para buscar: "controle de acesso por papel (RBAC)", "princípio do menor privilégio".

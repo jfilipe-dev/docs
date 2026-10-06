@@ -1,0 +1,113 @@
+---
+title: "Reengajamento"
+description: "Leia para configurar o reengajamento: um texto livre enviado alguns minutos antes de a janela de 24h fechar, uma vez por janela, só na conexão oficial."
+---
+
+O reengajamento manda um **texto livre** ao lead **alguns minutos antes de a janela de 24h fechar**. É a última chance de falar sem template: se o lead responder, a janela abre de novo por mais 24h. Só existe na conexão oficial (e na coexistência), porque só ali há janela.
+
+## Onde fica no painel
+
+**Automações → Automações nativas → criar → Reengajamento.** Na conexão não oficial, o tipo não aparece. Os reengajamentos ficam na mesma lista dos follow-ups.
+
+## Como configurar
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Nome do Reengajamento** | Nome na lista. Obrigatório. | — |
+| **Tempo antes de encerrar a janela oficial** | Quantos **minutos antes** do fim da janela a mensagem sai. A unidade é sempre minutos (o seletor fica travado). Mínimo 1. | 1 minuto |
+| **Mensagem de reengajamento** | O texto enviado. Obrigatório. Texto fixo, sem variáveis. | — |
+| **Tags (opcional)** | Só leads com pelo menos uma das tags. Vazio vale para todos. | Todos |
+| **Colunas (opcional)** | Só leads em uma das colunas. Vazio vale para todos. | Todos |
+
+Exemplo: 60 minutos com a janela fechando às 15h00 manda a mensagem às 14h00.
+
+## Como funciona por trás
+
+### Quando é agendado
+
+- **Toda vez que a janela de 24h é renovada**, ou seja, quando o lead manda mensagem. A Zatten apaga os reengajamentos pendentes do lead e agenda de novo, contando a partir do novo fim da janela.
+- Também na chamada `POST /automations/trigger` e quando o lead é movido pelo CRM para uma coluna com "Disparar automações". Veja [Quando as automações disparam](/produto/automacoes/quando-disparam).
+
+Os filtros de tag e coluna são avaliados no agendamento e de novo no envio.
+
+### Quando não é agendado
+
+- O lead não tem janela aberta (nunca escreveu, ou a janela já fechou).
+- O horário calculado já passou. Com um tempo maior ou igual ao que falta para a janela fechar, não sai nada. Um tempo de 1.440 minutos (24h) ou mais nunca dispara.
+- Esse reengajamento **já foi enviado nesta janela**. Cada reengajamento sai no máximo uma vez por janela, mesmo que algo reagende.
+
+### O que é conferido no envio
+
+Ligado, tags e colunas do filtro, e conversa não encerrada. Se o lead respondeu antes, a janela foi renovada e o envio foi reagendado para o fim da nova janela.
+
+### O que acontece no envio
+
+Sai como texto comum, pela conexão do projeto, e aparece na conversa do lead. Desde 01/10/2026, a Meta cobra mensagens de serviço; veja [Quanto custa operar um projeto](/comecar/custos-de-operacao). O envio não agenda follow-ups nem outras automações. Se o envio falhar, não há nova tentativa.
+
+## Reengajamento x follow-up
+
+| | Reengajamento | Follow-up |
+|---|---|---|
+| Mensagem | Texto livre | Template |
+| Momento | X minutos antes de a janela fechar | X tempo depois do fim da interação |
+| Conexão | Só oficial | Todas |
+| Janela fechada | Não sai | Sai |
+| Repete | Uma vez por janela | A cada interação concluída |
+
+Os dois combinam bem: reengajamento antes de a janela fechar e follow-up com template depois. Veja o [playbook](/playbooks/follow-up-e-reengajamento).
+
+## Pelo MCP
+
+Bloco `follow_ups`, com `method: "RE_ENGAGEMENT"`.
+
+- `delay` são os minutos **antes** de a janela fechar. `delay_unit` é sempre `MINUTES` (outro valor é forçado para minutos).
+- `reengagement_message` é o texto. Sem ele, o reengajamento não envia.
+- `template_name` não se aplica.
+- `columns` e `tags` vão por nome. Sem `status`, nasce desligado.
+
+<Visibility for="agents">
+```json
+{
+  "follow_ups": [
+    {
+      "name": "Reengajamento 1h antes",
+      "method": "RE_ENGAGEMENT",
+      "delay": 60,
+      "delay_unit": "MINUTES",
+      "order_follow_up": 2,
+      "reengagement_message": "Oi! Ainda posso te ajudar com o orçamento?",
+      "template_name": null,
+      "columns": null,
+      "tags": null,
+      "status": "ACTIVE"
+    }
+  ]
+}
+```
+</Visibility>
+
+## Armadilhas
+
+- **O reengajamento sai mesmo com a IA pausada ou desligada.** Com um humano atendendo, o lead também recebe. Tire a coluna de atendimento humano do filtro.
+- **Trocar para a conexão não oficial não desliga o reengajamento.** O tipo some da tela de criação, mas o que já existe continua ligado e passa a mandar o texto. Desligue antes de trocar.
+- **Só a mensagem do lead renova a janela.** Respostas do agente ou do humano não empurram o reengajamento para frente.
+- **Tempo grande demais não dispara.** Com 1.440 minutos ou mais, a hora calculada já passou quando a janela abre.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Posso ter vários reengajamentos?">
+Sim. Cada um é agendado e enviado de forma independente, uma vez por janela. Por exemplo, um 3 horas antes e outro 30 minutos antes.
+</Accordion>
+<Accordion title="Dá para usar variável como o nome do lead?">
+Não. O texto é fixo. Para personalizar, use um follow-up com template ou um fluxo do Trigger Flow.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Janela de 24h](/comecar/janela-de-24h)
+- [Follow-up](/produto/automacoes/follow-up)
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- Meta: [janela de atendimento](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages#customer-service-windows), [mensagens de serviço](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages).
+- Termos para buscar: "customer service window", "24-hour window", "service messages pricing".

@@ -1,0 +1,107 @@
+---
+title: "Visão geral: a Zatten AI-first"
+description: "Leia para entender como a agência opera a Zatten por um assistente de IA (skill, MCP, doc, navegador e API) e o que cada caminho faz e não faz."
+---
+
+A agência pode operar a Zatten inteira conversando com um assistente de IA, como
+o Claude Code ou o Codex. O assistente faz o papel de um desenvolvedor sênior da
+Zatten: lê o projeto, propõe um plano, aplica depois do "sim" e diz o que ficou
+para uma pessoa fazer no painel.
+
+## As peças
+
+| Peça | Para que serve | Como chega ao assistente |
+|---|---|---|
+| **Skill `zatten`** | As regras que protegem o cliente final, o fluxo de trabalho e o mapa desta doc | [Instalar a skill e o MCP](/trabalhar-com-ia/instalar) |
+| **MCP da Zatten** | Ler e alterar a configuração dos projetos: funil, tags, propriedades, automações, fluxos e agente | Prompt do painel, em **Configurações → Conectar ferramentas de IA** |
+| **MCP da doc** | Buscar e ler esta documentação | `https://docs.zatten.com/mcp` |
+| **Navegador** | Fazer no painel o que o MCP não faz, com um "sim" por ação | Claude in Chrome ou similar ([Usar o painel pelo navegador](/trabalhar-com-ia/navegador)) |
+| **API do dia a dia** | Ler leads e conversas, ligar ou desligar a IA de um lead, disparar automação | Chave de API do projeto ([A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia)) |
+
+A skill é enxuta e muda pouco. O conhecimento de produto, engenharia de IA,
+playbooks e API mora nesta doc, que o assistente consulta quando precisa.
+
+## O que dá para fazer por cada caminho
+
+| Tarefa | MCP | Navegador | API | Só uma pessoa |
+|---|---|---|---|---|
+| Criar e ajustar colunas, tags, propriedades, departamentos | Sim | — | — | — |
+| Montar follow-ups, webhooks, transbordo por inatividade, conversões, ações personalizadas, mensagens rápidas | Sim | — | — | — |
+| Criar fluxos do Trigger Flow | Sim (só criar e ligar ou desligar) | — | — | Redesenhar um fluxo existente: no editor |
+| Alterar o agente (prompt, modelo, tools, skills) | Sim, cria uma versão não publicada | — | — | — |
+| Publicar a versão do agente | Não | Sim, com "sim" | — | Decide |
+| Migrar para o LangChain Agent | Não | Sim, com "sim" | — | Decide |
+| Criar e enviar template à Meta | Não | Sim, com "sim" | — | Decide |
+| Membros de departamento, campanhas | Não | Sim, com "sim" | — | — |
+| Conexão do WhatsApp | Não | Só guia | — | Faz |
+| Apagar qualquer coisa | Não | Só guia | — | Faz |
+| Ler leads, histórico, kanban; analisar conversas | — | — | Sim | — |
+| Ligar ou desligar a IA de um lead, disparar automação | — | — | Sim, com "sim" | — |
+| Mandar mensagem para vários leads | — | — | Nunca | Campanha, no painel |
+
+Detalhes e rotas do painel em [O que só se faz pelo painel](/trabalhar-com-ia/so-pelo-painel).
+
+## Como o assistente trabalha
+
+<Steps>
+  <Step title="Abre um cliente">
+    A agência trabalha num diretório com uma pasta por cliente final. O
+    assistente atende um cliente por vez. Veja
+    [Organizar sua agência no computador](/trabalhar-com-ia/organizar-a-agencia).
+  </Step>
+  <Step title="Lê o projeto">
+    Na primeira vez, faz um [diagnóstico](/trabalhar-com-ia/diagnostico) sem
+    aplicar nada. Nas seguintes, compara a revision com a última conhecida para
+    perceber [mudanças feitas pelo painel](/trabalhar-com-ia/mudancas-pelo-painel).
+  </Step>
+  <Step title="Mostra o plano e espera o “sim”">
+    O cliente, o que muda e o que liga ou desliga. Várias mudanças pedidas juntas
+    viram um plano só.
+  </Step>
+  <Step title="Aplica e lê as notes">
+    Pelo MCP, com só os blocos que mudam. Veja
+    [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona).
+  </Step>
+  <Step title="Reporta e registra">
+    Feito / Não feito (e por quê) / Ficou de fora sem ser apagado / Para você
+    fazer no painel. A mesma entrada vai para a memória do cliente, com um
+    snapshot do projeto.
+  </Step>
+</Steps>
+
+Pedidos complexos podem começar com rodadas de perguntas antes do plano. No fim
+de cada pedido, o assistente pode listar até 3 recomendações da doc, sem
+aplicá-las.
+
+## O que o MCP garante no servidor
+
+Estas travas não dependem do assistente seguir regras. O servidor recusa:
+
+- **Projeto fora da conexão.** Cada conexão alcança todos os projetos da conta ou
+  só os marcados, e só lê ou também escreve.
+- **Projeto errado.** Toda operação exige o id e o nome exatos. Se não casarem,
+  nada acontece.
+- **Escrita sobre estado velho.** A escrita exige a revision da leitura. Se alguém
+  mexeu no projeto no meio, a escrita é recusada.
+- **Apagar, publicar o agente, enviar template à Meta.** O MCP não faz nenhum dos
+  três.
+
+## Armadilhas
+
+- **A versão do agente não entra no ar sozinha.** Alterar o agente pelo MCP cria
+  uma versão nova, não publicada. Até alguém publicar, os leads conversam com a
+  versão anterior.
+- **Uma resposta "ok" pode conter uma recusa.** O que não foi feito aparece nas
+  `notes`.
+- **O ChatGPT e o Claude Desktop ainda não se conectam ao MCP da Zatten.** Eles
+  exigem login por OAuth, que está em construção. Use Claude Code, Codex, Cursor
+  ou outro assistente que aceite servidor MCP por HTTP com cabeçalho.
+
+## Para saber mais
+
+- [Instalar a skill e o MCP](/trabalhar-com-ia/instalar)
+- [As regras que o assistente segue](/trabalhar-com-ia/regras)
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- Model Context Protocol: [introdução](https://modelcontextprotocol.io/docs/getting-started/intro).
+  Termos para buscar: "MCP server", "MCP HTTP transport".

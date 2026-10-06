@@ -1,0 +1,169 @@
+---
+title: "Assinatura e limites (referência)"
+description: "Consulte para saber o que a tela de Assinatura mostra, o que cada estado da assinatura bloqueia, onde os limites de usuários, contatos e histórico são aplicados, as regras de troca de plano e a confirmação do checkout."
+---
+
+Referência de como a assinatura de um projeto funciona no painel: estados, travas,
+limites e troca de plano. A visão geral (cobrança por projeto, o que muda entre os
+planos, paywall) está em [Planos, limites e cobrança](/comecar/planos-e-limites).
+
+<Info>
+Preços e os números de cada plano (usuários, contatos, histórico) estão em
+[zatten.com/planos](https://www.zatten.com/planos). Esta página não os copia.
+</Info>
+
+## Onde fica no painel
+
+**Assinatura**, no menu do projeto. Aparece só para o **Admin** e só no endereço
+principal (app.zatten.com); no domínio white-label ela some, para o cliente final não
+ver a cobrança.
+
+A tela mostra:
+
+| Bloco | O que tem |
+|---|---|
+| Detalhes da Assinatura | Plano Atual, Frequência (mensal ou anual), Próxima cobrança, Status, ID da Assinatura |
+| Trocar Plano | Os planos, com a escolha **Mensal** ou **Anual** |
+| Forma de Pagamento | O cartão da assinatura |
+| Histórico de Faturas | As faturas do projeto |
+| Gerenciar Assinatura | **Cancelar Assinatura** e, se cancelada, **Reativar Assinatura** |
+
+## Estados da assinatura
+
+| Status na tela | O que significa |
+|---|---|
+| Ativa | Paga e em dia |
+| Período de testes | Em teste, antes da primeira cobrança |
+| Cancelada (fim do período) | Cancelada, mas vale até o fim do período pago |
+| Vencida | A cobrança falhou e está sendo tentada de novo |
+| Não paga | As tentativas de cobrança acabaram |
+| Incompleta / Incompleta (expirada) | O primeiro pagamento não foi concluído |
+| Pausada | Pausada |
+| Cancelada | Encerrada |
+
+## O que cada situação bloqueia
+
+| Situação do projeto | Ligar o agente | Conectar WhatsApp | Importar contatos | Excluir o projeto |
+|---|---|---|---|---|
+| **Pendente** (criado, nunca assinado) | Não: "Ative a assinatura deste agente antes de colocá-lo para atender." | Não: o Admin vê os planos; os outros veem "Configuração Pendente" | Não: "Disponível após ativar um plano" | Sim |
+| **Ativa** | Sim | Sim | Sim | Não: "Não é possível excluir projetos com assinatura vinculada" |
+| **Vencida ou não paga** | Sim | Não: "Notamos que a sua assinatura não foi renovada" (dá só para remover o número) | Sim | Sim |
+| **Cancelada** | Não: "Este atendente está com problema no pagamento, verifique a sua assinatura." | Não, como acima | Sim | Sim |
+| **Contrato ou cortesia** (Enterprise, acordos) | Sim | Sim | Sim | Pelo suporte |
+
+E, para a conta inteira: **o painel só abre se pelo menos um projeto não estiver
+pendente**. Sem isso, toda página mostra a tela de assinatura, e não dá para criar
+outro projeto ("Ative a assinatura do seu agente atual antes de criar um novo.").
+Uma fatura vencida num projeto não fecha o painel para quem já pagou.
+
+## Limites do plano
+
+Os limites valem **por projeto**. Cada um é aplicado num lugar específico; fora dele,
+nada é barrado.
+
+### Usuários
+
+- **O que conta:** pessoas **distintas** nos departamentos do projeto. A mesma pessoa
+  em dois departamentos conta uma vez. Quem só vê o projeto, sem departamento, não
+  conta.
+- **Onde é aplicado:** ao colocar alguém num departamento. Passando do limite, aparece
+  "Limite de N usuários do plano atingido. Para aumentar o limite, entre em contato com
+  o suporte."
+- **Também na troca de plano** (veja abaixo).
+
+### Contatos
+
+- **O que conta:** todos os leads do projeto.
+- **Onde é aplicado:** **só na importação por CSV** e na troca de plano.
+- **Na importação, é tudo ou nada.** Se os contatos novos do arquivo passam do que
+  falta para o limite, o arquivo inteiro é recusado: "Limite do plano excedido. Você tem
+  X de N contatos e pode importar no máximo mais Y. O arquivo possui Z novos contatos."
+  Corte o arquivo e importe de novo.
+- **Leads que chegam pelo WhatsApp, pela API ou por automação não são barrados.** O
+  atendimento nunca para por causa do limite de contatos. A conta passa a pesar na
+  hora de trocar de plano.
+
+### Histórico
+
+- **O que é:** por quantos dias as mensagens e os arquivos ficam disponíveis no painel.
+- **Onde aparece:** a conversa avisa "Mensagens são armazenadas por apenas N dias", e
+  mídia antiga mostra "Arquivos expiram após N dias".
+
+## Trocar de plano
+
+Em **Assinatura → Trocar Plano**.
+
+- **Toda troca confere o uso atual** contra os limites do plano escolhido, inclusive a
+  troca entre mensal e anual. Se não cabe, a troca é recusada:
+  - "Você tem X usuários e este plano permite N. Remova usuários ou contate o suporte
+    antes de mudar de plano."
+  - "Você tem X contatos e este plano permite N. Reduza os contatos ou contate o
+    suporte antes de mudar de plano."
+- **A diferença é cobrada ou creditada de forma proporcional** ao tempo que falta no
+  ciclo.
+
+## Assinar: a confirmação do checkout
+
+1. O Admin escolhe o plano e vai para o checkout.
+2. Ao voltar, a tela mostra **"Confirmando seu pagamento"** e consulta a confirmação a
+   cada **3 segundos**, por até **90 segundos**. Normalmente libera em poucos segundos.
+3. Se passar de 90 segundos, a tela mostra "Ainda não recebemos a confirmação do
+   pagamento", com **Verificar novamente** e **Falar com o suporte**. Ela **não** volta à
+   grade de planos, de propósito, para ninguém assinar duas vezes.
+
+## Cancelar e reativar
+
+- **Cancelar:** **Gerenciar Assinatura → Cancelar Assinatura**. O status passa a
+  "Cancelada (fim do período)" e o projeto funciona até o fim do período pago.
+- **Desistir do cancelamento** antes do fim do período: **Reativar Assinatura**, no
+  mesmo lugar. Nada é cobrado a mais.
+- **Reativar uma assinatura cancelada por falta de pagamento:** pague as faturas
+  pendentes no **Histórico de Faturas**, clique em **Reativar Assinatura** e conclua o
+  pagamento. A reativação é automática depois disso.
+
+## Contas com contrato
+
+Contas com contrato (Enterprise e acordos diretos) têm os projetos liberados sem
+checkout e podem ter um número máximo de projetos. Ao atingir, a criação mostra "Você
+atingiu o limite de agentes." Fale com o suporte para ampliar.
+
+## Armadilhas
+
+- **Não pague de novo se a confirmação demorar.** Use **Verificar novamente** e, se
+  continuar, o suporte.
+- **Excluir o projeto não cancela a assinatura.** Projetos com assinatura ativa nem
+  podem ser excluídos; com pagamento vencido podem, e a cobrança continua. Cancele
+  antes.
+- **O limite de contatos é conferido na troca de plano.** Um projeto que cresceu pelo
+  WhatsApp além do limite do plano menor não consegue descer de plano até reduzir os
+  contatos.
+- **Tirar alguém do departamento libera vaga; tirar o acesso à conta, não**, se a
+  pessoa continuar no departamento.
+- **Trocar a conexão de projeto leva a assinatura junto.** O projeto de origem fica sem
+  assinatura. Veja [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia).
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="O limite de contatos derruba o atendimento?">
+Não. Leads novos pelo WhatsApp continuam entrando e sendo atendidos. O limite só barra
+a importação por CSV e a troca para um plano menor.
+</Accordion>
+<Accordion title="Quem pode assinar ou trocar o plano?">
+Só o Admin, no endereço principal. Editor e Gestor veem "Configuração Pendente" num
+projeto não assinado.
+</Accordion>
+<Accordion title="O assistente de IA pode mexer na assinatura?">
+Não. Assinatura envolve pagamento: o assistente só explica o caminho. Veja
+[O que só se faz pelo painel](/trabalhar-com-ia/so-pelo-painel).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- Preços e limites atuais: [zatten.com/planos](https://www.zatten.com/planos).
+- [Planos, limites e cobrança](/comecar/planos-e-limites)
+- [Usuários, papéis e permissões](/produto/papeis-e-permissoes)
+- [Contatos](/produto/contatos): importação e limite de contatos.
+- [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- Termos para buscar: "proration" (cobrança proporcional), "dunning" (cobrança de inadimplência), "paywall".

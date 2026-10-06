@@ -1,0 +1,180 @@
+---
+title: "Testar o agente"
+description: "Leia antes de publicar uma mudança no agente: como usar o chat de teste do painel (que roda o rascunho na tela com o contato de teste), o que ele não testa, como testar uma tool HTTP sozinha e o roteiro do que conferir antes de publicar."
+---
+
+O painel tem dois jeitos de testar o LangChain Agent sem afetar leads reais:
+
+- **Chat de teste:** conversa com o agente como se fosse um lead, usando a
+  configuração que está na tela, inclusive alterações ainda não salvas.
+- **Testar** (no editor de uma tool HTTP): roda uma tool sozinha e mostra o que a
+  API respondeu e o que o agente leria.
+
+Teste sempre antes de **Publicar**. Publicar põe a mudança no ar para todos os leads
+([Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)).
+
+## O chat de teste
+
+**Onde fica:** menu **Agente** (`/project`), à direita do editor. Só aparece em tela
+larga (computador); no celular, a coluna do chat some.
+
+No topo do chat, um selo diz o que está rodando:
+
+| Selo | O que roda |
+|---|---|
+| **Rascunho** (amarelo) | As alterações na tela, ainda não salvas. Os leads continuam na versão publicada. |
+| **vN · no ar** (verde) | A versão publicada. O agente responde como responderia a um lead. |
+| **vN · não publicada** | Uma versão aberta no seletor de versões, que ninguém recebe ainda. |
+
+Botões no topo: **Nova conversa** (`+`) começa do zero; **Conversas anteriores**
+(ícone de relógio) reabre um teste anterior.
+
+### O contato de teste
+
+O agente responde como se falasse com o **contato de teste** do projeto (WhatsApp
+`5511999999999`, nome "Contato Teste"). Os dados dele aparecem no painel
+**Informações do Contato**, ao lado do chat: nome, coluna do funil, tags,
+departamento, responsável, status da IA e propriedades.
+
+São esses dados que entram no [contexto injetado](/engenharia-de-ia/contexto-injetado)
+e nas variáveis das tools (`{{lead_name}}`, `{{lead_properties.x}}`). Para testar um
+caso específico (um lead numa coluna, com uma tag), coloque o contato de teste nesse
+estado antes de conversar.
+
+**Resetar dados do contato** volta o contato ao início: nome "Contato Teste",
+primeira coluna, sem tags, sem responsável, sem departamento, sem pausa e sem
+propriedades.
+
+<Warning>
+**As tools rodam de verdade.** Mover no funil, aplicar tag ou preencher propriedade
+age sobre o contato de teste. Uma tool HTTP chama a API real do cliente (cria o
+pedido, reserva o horário). Uma tool da Composio envia o e-mail de verdade. Antes de
+testar uma tool que mexe em sistema externo, combine com o cliente final um ambiente
+ou um dado de teste.
+</Warning>
+
+### O que o chat de teste mostra
+
+- A resposta do agente, como o lead leria (sem a divisão em várias mensagens).
+- Cada chamada de tool, num cartão: os argumentos e o retorno. Erro de tool aparece
+  marcado.
+- Chamadas a `load_skill` (qual skill foi carregada) e a `write_todos` (a
+  [lista de tarefas](/engenharia-de-ia/lista-de-tarefas)).
+
+Com o [monitoramento](/engenharia-de-ia/langsmith) ligado na versão testada, o teste
+também vai para o LangSmith, com o passo a passo completo.
+
+### O que o chat de teste **não** testa
+
+O chat de teste chama o agente direto. O que acontece **fora** do agente, no
+caminho do WhatsApp, não passa por ele:
+
+| Não passa | Como testar |
+|---|---|
+| [Buffer](/engenharia-de-ia/buffer) (juntar mensagens seguidas) | Num número de WhatsApp real |
+| [Segmentação e voz](/engenharia-de-ia/segmentacao-e-voz) | Num número real |
+| [Pausa humana](/engenharia-de-ia/pausa-humana) e IA desligada | Num número real, respondendo pelo app ou pelo CRM |
+| Áudio, imagem e PDF (o chat só aceita texto) | Num número real ([Mídia](/engenharia-de-ia/midia)) |
+| Colunas que desativam a IA, automações, follow-up | Num número real, com um lead de teste |
+| Janela de 24h e templates da Meta | Num número real |
+
+Para esses testes, use um número de WhatsApp da equipe como lead e encerre o
+atendimento depois.
+
+## Testar uma tool HTTP
+
+No editor de uma tool HTTP (seção **Tools** → a tool → **Testar**), a tool roda uma
+vez, pelo mesmo código que roda no atendimento.
+
+- Usa os dados do **contato de teste** para as variáveis do lead. Os campos de texto
+  podem ser editados no painel de teste. Sem contato de teste, usa valores de exemplo.
+- Os argumentos que o modelo preencheria (`{{args.x}}`) você digita.
+- O resultado tem três abas:
+
+| Aba | O que mostra |
+|---|---|
+| **Retorno para a IA** | O texto **exato** que o modelo receberia, inclusive mensagens de erro. É o que importa. |
+| **Resposta** | Status HTTP, tempo, cabeçalhos e corpo que a API devolveu. |
+| **Requisição** | O que foi enviado: método, URL, cabeçalhos (credenciais mascaradas) e corpo. |
+
+Se uma variável do lead estiver vazia, aparece **Variável não disponível** e a
+chamada **não é feita**, como aconteceria com um lead real sem aquele dado.
+
+Endereços internos (rede privada) são bloqueados no teste.
+
+As **ações da Zatten** (mover no funil, tag, departamento etc.) não têm o botão
+**Testar**: teste pelo chat de teste e confira o efeito no contato de teste. Detalhes
+dos campos em [Tool HTTP: referência](/engenharia-de-ia/tools/http).
+
+## O que testar antes de publicar
+
+Escreva os casos antes de mexer, e repita os mesmos casos depois de cada mudança.
+
+<Steps>
+<Step title="O caminho feliz">
+O atendimento mais comum do cliente final, do "oi" ao fechamento (agendou, pediu
+orçamento, foi qualificado). Confira cada tool chamada e o efeito no contato de
+teste.
+</Step>
+<Step title="O que mudou">
+O caso que motivou a mudança. Se foi correção de um erro real, use a mensagem do
+lead que deu errado (do chat do painel ou do [LangSmith](/engenharia-de-ia/langsmith)).
+</Step>
+<Step title="Transferência para humano">
+Peça para falar com uma pessoa e confira que o agente transfere.
+</Step>
+<Step title="Fora do escopo">
+Uma pergunta que o agente não deve responder (preço que não está nas regras, assunto
+fora do negócio). Ele não pode inventar.
+</Step>
+<Step title="As skills">
+Uma pergunta que exige cada skill. Confira no cartão que `load_skill` foi chamada com
+a skill certa.
+</Step>
+<Step title="Erros de tool">
+Se possível, um caso em que a API do cliente devolve erro. O agente deve avisar o lead
+sem inventar que a ação foi feita.
+</Step>
+<Step title="Os estados do lead">
+Repita um caso com o contato de teste noutra coluna ou com outra tag, se o prompt
+depender disso.
+</Step>
+</Steps>
+
+Depois de publicar, acompanhe as primeiras conversas reais no chat do painel e no
+LangSmith.
+
+## Pelo MCP
+
+O MCP da Zatten não conversa com o agente nem roda tools. Depois de uma escrita no
+bloco `langchain` (que cria uma versão não publicada), o teste é feito no painel:
+
+- pela própria pessoa, no chat de teste, com a versão nova aberta no seletor; ou
+- pelo assistente, com [navegador](/trabalhar-com-ia/navegador), confirmando o nome do
+  projeto na tela antes.
+
+Em **Para você fazer no painel**, inclua "testar no chat de teste" antes de
+"publicar".
+
+## Armadilhas
+
+- **Testar a versão errada.** Confira o selo no topo do chat: **Rascunho**, **no ar**
+  ou **não publicada**.
+- **Teste passou, produção falhou.** Buffer, pausa, mídia, segmentação e automações
+  não passam pelo chat de teste.
+- **Contato de teste num estado esquecido.** Uma tag ou etapa deixada por um teste
+  anterior muda o contexto. Use **Resetar dados do contato**.
+- **Efeito real fora da Zatten.** Tools HTTP e da Composio agem em sistemas reais.
+- **A aprovação aparece no teste, mas não existe no WhatsApp.** Um cartão de aprovação
+  no chat de teste indica uma tool com aprovação ligada; no atendimento real, isso
+  trava a conversa. Desligue ([Limites e segurança](/engenharia-de-ia/limites-e-seguranca)).
+- **Salvar não é publicar.** Testou e gostou: salve **e** publique.
+
+## Para saber mais
+
+- [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)
+- [Observabilidade com LangSmith](/engenharia-de-ia/langsmith)
+- [Tool HTTP: referência](/engenharia-de-ia/tools/http)
+- [Logs](/produto/logs)
+- LangSmith: [avaliação](https://docs.langchain.com/langsmith/evaluation)
+- Termos para buscar: "playground do agente", "agent evaluation", "regression testing LLM", "test cases chatbot".

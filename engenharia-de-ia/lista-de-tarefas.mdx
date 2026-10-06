@@ -1,0 +1,113 @@
+---
+title: "Lista de tarefas"
+description: "Leia para decidir se o agente deve planejar um atendimento longo em etapas (lista de tarefas), como ligar, o que cada campo muda e o cuidado para o lead não ficar sem resposta."
+---
+
+A **lista de tarefas** deixa o agente organizar sozinho as etapas de um atendimento
+longo: ele escreve uma lista de passos, marca cada um como pendente, em andamento ou
+concluído, e segue a lista nas mensagens seguintes. Serve para atendimentos com
+muitas etapas que não podem ser esquecidas, como um orçamento com vários itens ou uma
+triagem com várias perguntas obrigatórias.
+
+Para a maioria dos agentes de WhatsApp, **não ligue**. Um atendimento comum (tirar
+dúvida, agendar, qualificar) é curto, e a lista só acrescenta chamadas e tokens.
+
+## Quando usar
+
+| Use | Não use |
+|---|---|
+| Orçamento montado item a item ao longo de vários dias | Atendimento de FAQ e agendamento simples |
+| Triagem com 8+ perguntas obrigatórias, em ordem | Qualificação com 3 ou 4 perguntas (cabe no prompt) |
+| Processo com várias tools em sequência (consultar, calcular, reservar, confirmar) | Agente com uma ou duas tools |
+
+Se as etapas são sempre as mesmas, prefira escrevê-las no
+[prompt](/engenharia-de-ia/prompt) ou numa [skill](/engenharia-de-ia/skills). A lista
+de tarefas vale quando as etapas **mudam conforme o pedido** do lead.
+
+## Onde fica no painel
+
+Menu **Agente** (`/project`), seção **Tools** → **Adicionar** → grupo
+**Utilidades** → **Lista de tarefas**. Só pode existir uma por agente. Como toda
+mudança no agente, vale depois de **Publicar**.
+
+## Como configurar
+
+Os dois campos são opcionais. Em branco, valem os textos padrão do sistema, que já
+são longos e calibrados.
+
+| Campo | Onde entra | Para que mexer |
+|---|---|---|
+| **Quando usar a lista** | Na descrição da tool, lida quando o modelo decide se abre uma lista. | Fazer o agente recorrer mais ou menos à lista, ou explicar o que cada estado (pendente, em andamento, concluída) significa no seu atendimento. |
+| **Regras permanentes** | Nas instruções do agente, o tempo todo, mesmo quando ele não mexe na lista. | Regras que valem sempre, como "nunca mostre a lista ao cliente". |
+
+<Warning>
+O texto padrão de **Regras permanentes** inclui a regra que manda o agente escrever a
+resposta ao lead **logo depois** de atualizar a lista. Se você preencher esse campo,
+o padrão é substituído inteiro. Repita a regra no seu texto, por exemplo: "Depois de
+atualizar a lista, responda ao cliente na mensagem seguinte. Nunca termine a vez só
+com a atualização da lista." Sem ela, o lead pode ficar sem resposta enquanto o
+agente planeja.
+</Warning>
+
+## Como funciona por trás
+
+- Ligar a lista acrescenta ao agente a tool `write_todos`. O modelo a chama com a
+  lista inteira de itens, cada um com um texto e um estado (`pending`,
+  `in_progress`, `completed`).
+- A lista fica guardada na conversa. Na mensagem seguinte do lead, o agente ainda
+  sabe o que falta. Encerrar o atendimento começa uma conversa nova, sem lista.
+- Cada atualização da lista é uma chamada de tool. Ela aparece no chat do lead, para
+  a equipe, como as outras tools. Em conversas longas, isso acrescenta linhas ao
+  histórico que o humano lê.
+- Cada atualização também conta no [limite de chamadas](/engenharia-de-ia/limites-e-seguranca)
+  e custa tokens.
+
+## Pelo MCP
+
+A lista de tarefas é uma tool `type: "builtin"` no bloco `langchain`. Escrever o
+bloco cria uma versão não publicada do agente.
+
+<Visibility for="agents">
+```json
+{
+  "type": "builtin",
+  "name": "todo_list",
+  "config": {
+    "enabled": true,
+    "tool_description": null,
+    "system_prompt": null
+  }
+}
+```
+
+| Campo | Tipo | Padrão | Notas |
+|---|---|---|---|
+| `name` | string | obrigatório | Só `todo_list` tem efeito. Outro nome é aceito e ignorado |
+| `config.enabled` | boolean | `true` | Declarar a entrada já liga. `false` desliga sem apagar os textos |
+| `config.tool_description` | string ou null | `null` | "Quando usar a lista". `null` = padrão |
+| `config.system_prompt` | string ou null | `null` | "Regras permanentes". `null` = padrão. Substitui o padrão inteiro |
+
+No máximo uma entrada `todo_list` por config. A tool que o modelo vê se chama
+`write_todos`; é esse o nome a usar em `tool_selector.always_include` ou em
+`context_editing.edits[].exclude_tools`, se for o caso.
+</Visibility>
+
+## Armadilhas
+
+- **Lead sem resposta.** Sobrescrever **Regras permanentes** sem repetir a regra de
+  responder logo após atualizar a lista.
+- **Ligada sem necessidade.** Num atendimento curto, o agente gasta chamadas
+  planejando o que caberia numa resposta.
+- **Histórico poluído.** Cada atualização aparece no chat do lead como chamada de
+  tool.
+- **Filtro de tools esconde a lista.** Com **Filtrar tools** ligado, inclua
+  `write_todos` em `always_include` se a lista for essencial.
+
+## Para saber mais
+
+- [Tools: visão geral](/engenharia-de-ia/tools/visao-geral)
+- [Limites e segurança](/engenharia-de-ia/limites-e-seguranca)
+- [Testar o agente](/engenharia-de-ia/testar)
+- LangChain: [middlewares prontos](https://docs.langchain.com/oss/python/langchain/middleware/built-in)
+- Anthropic: [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)
+- Termos para buscar: "TodoListMiddleware", "write_todos", "agent planning".

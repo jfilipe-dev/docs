@@ -1,0 +1,232 @@
+---
+title: "SAC e suporte"
+description: "Leia para montar ou revisar o projeto de atendimento ao cliente (SAC, suporte, pós-venda): resolver na primeira conversa, consultar pedido, escalar por categoria para o departamento certo, pesquisa de satisfação, funil, propriedades, automações, configurações recomendadas, métricas e erros comuns."
+---
+
+O agente de SAC **entende o problema**, **resolve o que dá para resolver** com as
+políticas e os sistemas do cliente final (status de pedido, segunda via,
+passo a passo) e **escala o resto** para o departamento certo, com o caso já
+descrito. Uma conversa termina bem quando o cliente confirma que resolveu, ou
+quando a pessoa certa recebeu o caso completo.
+
+Serve também para pós-venda de e-commerce, suporte de software e atendimento ao
+aluno de cursos.
+
+## O objetivo do atendimento
+
+| | |
+|---|---|
+| **Conversão** | Problema resolvido na primeira conversa, sem humano. |
+| **A IA faz** | Identifica a categoria, consulta pedido, aplica a política, dá o passo a passo, abre o caso e escala, pede a avaliação. |
+| **A equipe faz** | Exceções, reembolso, reclamação formal, problema técnico que a skill não cobre. |
+| **Nunca** | Prometer prazo, reembolso ou compensação que a política não prevê; discutir com o cliente. |
+
+## Funil recomendado
+
+| Coluna | O que significa | Quem move | Desativar IA | Transbordo | Disparar automações |
+|---|---|---|---|---|---|
+| **Novo Contato** (entrada) | A IA está atendendo | Automático | Não | Não | Não |
+| **Atendimento Humano** | Escalado para a equipe | Agente, falha do modelo | Sim (junto) | **Sim** | Não |
+| **Resolvido** | O cliente confirmou que resolveu | Agente ou equipe | Não | Não | Sim |
+| **Sem retorno** | O cliente parou de responder no meio | Transbordo por inatividade | Não | Não | Não |
+
+- **SAC tem funil curto.** O que diferencia os casos é a **categoria**
+  (propriedade) e o **departamento**, não a etapa.
+- **A IA fica ligada em Resolvido.** O cliente que volta com outro problema é
+  atendido na hora.
+- **"Sem retorno" separa abandono de resolução** e evita inflar a taxa de
+  resolvidos.
+
+O modelo de nicho "SAC & Suporte" cria Novo Contato, Em Atendimento, Atendimento
+Humano, Resolvido e Perdido, com **Desativar IA** em Resolvido. Desligue essa
+chave, renomeie "Perdido" para "Sem retorno" pelo `slug` e mantenha "Em
+Atendimento" só se a equipe quiser vê-la (o agente não precisa movê-la).
+
+## Departamentos
+
+Um departamento por equipe que recebe casos: **Suporte técnico**, **Financeiro**,
+**Logística**. O agente direciona pela categoria **antes** de transferir, e o
+responsável escolhido pelo rodízio recebe o aviso. Veja
+[Departamentos](/produto/departamentos).
+
+## Tags
+
+| Tag | Vínculo | Quem põe | Para quê |
+|---|---|---|---|
+| **Reclamação** | Conversa | Agente | Insatisfação clara, menção a órgão de defesa do consumidor ou a site de reclamação. Vai junto com o transbordo. |
+| **Risco de cancelamento** | Conversa | Agente | O cliente fala em cancelar. A equipe de retenção prioriza. |
+| **VIP** | Contato | Equipe ou importação | Cliente prioritário. O prompt manda escalar mais cedo. |
+
+O modelo de nicho usa tags para o tipo de contato (Dúvida, Problema, Sugestão) e
+para o estado (Resolvido, Escalado). Tipo é **propriedade**; estado é **coluna**.
+
+## Propriedades
+
+| Propriedade (slug) | Tipo | Valores | Vínculo | Enviar para a IA |
+|---|---|---|---|---|
+| Categoria (`categoria`) | Lista | Dúvida, Problema técnico, Financeiro, Pedido e entrega, Cancelamento, Sugestão | Conversa | Sim |
+| Número do pedido (`numero_do_pedido`) | Texto | Como o sistema do cliente usa | Conversa | Sim |
+| Satisfação (`satisfacao`) | Lista | 1, 2, 3, 4, 5 | Conversa | Não |
+
+A categoria em lista é o que permite medir volume e transbordo por assunto.
+
+## Tools
+
+**Ações da Zatten:**
+
+| Tool | Quando usar |
+|---|---|
+| `@properties_update_categoria` | Assim que o assunto ficar claro. Valores aceitos no "Quando usar". |
+| `@properties_update_numero_do_pedido` | Quando o cliente informar o pedido. |
+| `@properties_update_satisfacao` | Quando o cliente responder à avaliação com uma nota. |
+| `@department_select_suporte_tecnico`, `_financeiro`, `_logistica` | Antes de transferir, pela categoria. |
+| `@tag_add_reclamacao`, `@tag_add_risco_de_cancelamento` | Pelos sinais descritos na tabela de tags. |
+| `@kanban_move_resolvido` | Só depois de o cliente confirmar que resolveu. |
+| `@transbordo_notify` | O caso exige a equipe. No motivo, um resumo do caso em uma frase. |
+
+**Sistemas do cliente** ([tool HTTP](/engenharia-de-ia/tools/http)):
+`consultar_pedido` (status, rastreio, previsão) e, se houver helpdesk com API,
+`abrir_chamado`. Veja [Montar sua API](/engenharia-de-ia/tools/montar-sua-api)
+para o contrato.
+
+**Skills:** `politicas` (troca, devolução, prazos, reembolso, garantia) e uma por
+produto ou tema com passo a passo (`configurar_produto`, `segunda_via`).
+
+São de 11 a 13 tools. Ligue **Filtrar tools**.
+
+## Esqueleto do prompt
+
+```markdown
+# Identidade
+Você é a assistente de atendimento da Loja Exemplo, no WhatsApp.
+
+# Objetivo
+Resolver o problema do cliente nesta conversa. Se não der, passar para a equipe
+certa com o caso descrito.
+
+# Tom
+Calmo, cordial e objetivo, mesmo com cliente irritado. Reconheça o problema antes
+de pedir dados. Uma pergunta por vez.
+
+# Fluxo de atendimento
+1. Entenda o problema e salve a categoria (@properties_update_categoria).
+2. Pedido e entrega: peça o número (@properties_update_numero_do_pedido) e
+   consulte (@consultar_pedido). Responda com o que a consulta trouxe.
+3. Dúvida ou problema técnico: carregue a skill do tema e dê o passo a passo.
+4. Pergunte se resolveu. Se sim, @kanban_move_resolvido e agradeça. A avaliação
+   chega depois, por template.
+5. Se o cliente responder à avaliação com uma nota, @properties_update_satisfacao.
+
+# Quando transferir
+Reembolso, exceção à política, problema que a skill não cobre, cliente com a tag
+VIP insatisfeito, pedido de pessoa. Antes, direcione ao departamento da categoria
+e espere a resposta; depois transfira.
+Em reclamação formal ou ameaça de cancelar, marque a tag e transfira na hora.
+Fora do horário da equipe (seg a sex, 9h às 18h; compare com o bloco "Agora"),
+diga quando ela responde.
+
+# O que nunca fazer
+- Prometer prazo, reembolso ou compensação fora da skill politicas.
+- Inventar status de pedido: só o que @consultar_pedido devolveu.
+- Discutir ou culpar o cliente.
+```
+
+## Automações
+
+| Automação | Configuração | Por quê |
+|---|---|---|
+| **Avaliação** (follow-up) | Coluna Resolvido; 2 horas | Pede a nota com o atendimento fresco. A resposta chega ao agente, que grava a satisfação. |
+| **Sem retorno** (transbordo por inatividade) | Origem Novo Contato; 720 minutos; destino Sem retorno; mensagem "Vou encerrar por aqui. Se precisar, é só chamar." | Fecha o caso de quem sumiu, dentro da janela de 24h. |
+| **Abrir caso no helpdesk** ([webhooks de eventos](/produto/automacoes/webhooks)) | Notificações de Kanban (`LEAD_KANBAN_UPDATED`); o sistema que recebe abre o caso quando a coluna é Atendimento Humano | Quando a equipe trabalha num helpdesk fora da Zatten. |
+
+Sem conversões: SAC não costuma vir de anúncio. Reengajamento também não faz
+sentido aqui: o "Sem retorno" age antes de a janela fechar.
+
+Não encerre o atendimento logo depois de resolver: o follow-up de avaliação é
+descartado se a conversa foi encerrada ou se o lead saiu da coluna Resolvido.
+
+## Configurações recomendadas
+
+| Configuração | Valor | Por quê |
+|---|---|---|
+| [Buffer](/engenharia-de-ia/buffer) | 5 segundos; 8 se os clientes descrevem o problema em várias mensagens | O cliente de SAC quer rapidez. |
+| [Pausa humana](/engenharia-de-ia/pausa-humana) | 60 a 120 minutos | A equipe resolve e devolve; caso escalado já fica com a IA desligada pela coluna. |
+| [Modelo](/engenharia-de-ia/escolher-o-modelo) | Pequeno ou intermediário, com **Imagem** e **Arquivo** | Prints de erro, foto de produto com defeito, nota fiscal em PDF. |
+| Temperatura | 0 a 0,2 | O modelo de nicho vem com 0,5. Política se aplica igual para todos. |
+| Raciocínio | Padrão; Baixo se as políticas têm exceções que se cruzam | |
+| [Segmentação](/engenharia-de-ia/segmentacao-e-voz) | Desligada se o agente dá passo a passo; ligada se as respostas são curtas | Passo a passo picado em muitas mensagens confunde. |
+| [Mídia](/engenharia-de-ia/midia) | Áudio, imagem e PDF liberados | Confira o filtro de mídia do projeto. |
+| [Resiliência](/engenharia-de-ia/resiliencia) | Tentativas 2, fallback de outro fabricante, falha do agente movendo para Atendimento Humano | Cliente irritado sem resposta vira reclamação pública. |
+
+## Métricas
+
+| Métrica | Como medir |
+|---|---|
+| Resolução pela IA | Mensagens do Agente x Humano em [Métricas](/produto/metricas); leads em Resolvido que não passaram por Atendimento Humano (amostras) |
+| Taxa de transbordo por categoria | Filtro por categoria e coluna em [Contatos](/produto/contatos) |
+| Satisfação | Contagem de cada nota da propriedade Satisfação |
+| Abandono | Sem retorno ÷ conversas |
+| Volume por categoria | Filtro por categoria em Contatos |
+| Custo de IA por atendimento | Custo real ([LangSmith](/engenharia-de-ia/langsmith) ou provider) ÷ conversas |
+
+Volume alto numa categoria que sempre escala é sinal de skill faltando ou de
+sistema sem tool.
+
+## Pelo MCP
+
+<Visibility for="agents">
+```json
+{
+  "columns": [
+    { "slug": "novo_contato", "name": "Novo Contato", "order": 0 },
+    { "name": "Atendimento Humano", "order": 1, "color": "#A855F7", "transhipment": true, "shutdown_ai": true },
+    { "name": "Resolvido", "order": 2, "color": "#22C55E", "shutdown_ai": false, "should_trigger_automations": true },
+    { "name": "Sem retorno", "order": 3, "color": "#6B7280" }
+  ],
+  "properties": [
+    { "slug": "categoria", "name": "Categoria", "description": "Assunto do contato", "scope": "conversation",
+      "is_enum": true, "send_to_ai": true,
+      "values": [{ "value": "Dúvida" }, { "value": "Problema técnico" }, { "value": "Financeiro" },
+                 { "value": "Pedido e entrega" }, { "value": "Cancelamento" }, { "value": "Sugestão" }] }
+  ],
+  "inactivity_handovers": [
+    { "name": "Sem retorno 12h", "delay": 720, "target_column_name": "Sem retorno",
+      "source_column_names": ["Novo Contato"], "source_tag_names": [],
+      "within_hours_message": "Vou encerrar por aqui. Se precisar, é só chamar.",
+      "business_hours_enabled": false }
+  ],
+  "llm_attendant": { "message_buffer": 5, "pause_in_human_interaction": 90 }
+}
+```
+
+- Ao reaproveitar as colunas do modelo de nicho, mande o `slug` lido em
+  `get_template` para renomear "Perdido" e desligar `shutdown_ai` em Resolvido.
+- `send_to_ai` de Satisfação pode ficar falso: o agente só grava.
+- Sem horário comercial, a mensagem enviada é `within_hours_message`.
+</Visibility>
+
+## Erros comuns
+
+- **Coluna Resolvido com a IA desligada.** É como vem no modelo de nicho: o
+  cliente que volta com outro problema fica sem resposta.
+- **Status de pedido inventado.** Sem tool de consulta, o agente "acha" uma
+  previsão. Ou consulta, ou transfere.
+- **Prometer reembolso ou prazo.** Só o que está na política, e decisão de
+  exceção é da equipe.
+- **Transferir sem direcionar.** O aviso vai para o responsável atual, que pode
+  não ser da equipe certa.
+- **Estado em tag.** "Resolvido" e "Escalado" como tags se acumulam e não
+  disparam nada. São colunas.
+- **Encerrar logo depois de resolver.** A avaliação não sai.
+- **FAQ inteiro no prompt.** Cada mensagem paga por ele. Políticas e passo a passo
+  vão para skills.
+
+## Para saber mais
+
+- [Transbordo para humano bem feito](/playbooks/transbordo)
+- [Tool HTTP](/engenharia-de-ia/tools/http), [Montar sua API](/engenharia-de-ia/tools/montar-sua-api), [Skills do agente](/engenharia-de-ia/skills)
+- [Transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade)
+- [Webhooks de eventos](/produto/automacoes/webhooks)
+- [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- Termos para buscar: "first contact resolution", "CSAT WhatsApp", "escalonamento
+  de atendimento", "base de conhecimento SAC".

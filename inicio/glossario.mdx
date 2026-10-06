@@ -1,0 +1,120 @@
+---
+title: "Glossário"
+description: "Consulte para saber o que um termo significa na Zatten e qual palavra usar (e qual evitar) ao falar de agência, projeto, lead, agente, template e outros conceitos."
+---
+
+Cada conceito da Zatten tem um termo só, o do painel. Esta página define cada um
+e diz quais palavras evitar, para que a doc, o assistente e a agência falem a
+mesma língua.
+
+<Tip>
+A confusão mais comum: **agente** é a IA do projeto que conversa com os leads no
+WhatsApp. **Assistente** é o Claude Code, o Codex ou outro que a agência usa para
+configurar a Zatten. O título "Para agentes de IA" é a exceção: ali, "agente" é o
+assistente.
+</Tip>
+
+## Negócio e conta
+
+| Termo | Definição | Evitar |
+|---|---|---|
+| **agência** | O cliente da Zatten: vende atendimento com IA para os clientes dela e opera vários projetos. | cliente, usuário |
+| **cliente final** | O cliente da agência (a clínica, a imobiliária). Cada um vira um ou mais projetos. | cliente (sozinho) |
+| **conta** | O espaço da agência na Zatten: usuários, marca (white-label), organizações e projetos. No código e na API aparece como *tenant*. | tenant, empresa |
+| **organização** | Grupo de projetos dentro da conta, para separar clientes ou equipes. | time, pasta |
+| **projeto** | Um número de WhatsApp com um agente, mais o funil, as tags, as propriedades e as automações dele. É a unidade de cobrança. | atendente, agente, bot, instância |
+| **plano** | O nível de assinatura de um projeto (limites de usuários, contatos e histórico). Preços em [zatten.com/planos](https://www.zatten.com/planos). | pacote |
+| **white-label** | A marca da agência aplicada ao painel: nome, logo, cores, favicon e domínio. É da conta, não de cada projeto. | marca branca |
+| **usuário** | Pessoa com acesso ao painel, com um papel: admin, editor, gestor ou visualizador. | membro (fora de departamento), convidado |
+
+## CRM e atendimento
+
+| Termo | Definição | Evitar |
+|---|---|---|
+| **lead** | Uma pessoa que conversa com o projeto pelo WhatsApp. No menu, os leads ficam em **Contatos**. | cliente, contato (como conceito), usuário |
+| **conversa** | O atendimento de um lead, do início até alguém encerrá-lo. Encerrar começa uma conversa nova. Na API, chama-se *thread*. | ticket, chamado |
+| **thread** | O nome técnico da conversa na API e no agente. Use só ao falar de API. | (em texto para gente, use conversa) |
+| **encerrar atendimento** | Fechar a conversa: o lead volta para a primeira coluna, sem responsável, com a IA religada. | finalizar, arquivar |
+| **funil** | O Kanban do projeto, formado por colunas. | pipeline |
+| **coluna** | Uma etapa do funil. Pode desligar a IA, fazer transbordo e disparar automações. | etapa, estágio, fase |
+| **tag** | Etiqueta colorida no lead. Pode ficar no contato ou só na conversa. | etiqueta, label |
+| **propriedade** | Campo personalizado do lead (texto livre ou lista de valores). | campo customizado, atributo |
+| **vínculo** | Onde a tag ou propriedade fica: no **contato** (para sempre) ou na **conversa** (some ao encerrar). No JSON, `scope`. | escopo |
+| **departamento** | Equipe que recebe leads, com membros e distribuição por rodízio. | time, setor, fila |
+| **responsável** | O usuário atribuído a um lead. | dono, atendente |
+| **transbordo** | Passar o lead da IA para um humano: a IA daquele lead é **desligada** (não pausada) até alguém religar ou encerrar o atendimento, e o responsável é avisado. | handoff, transferência (sozinho) |
+| **mensagem rápida** | Texto ou mídia pronta que o humano envia com `/comando`. | atalho, resposta pronta |
+| **campanha** | Envio de um template da Meta para muitos leads filtrados, pela tela de Campanhas. | disparo em massa, broadcast |
+
+## WhatsApp e Meta
+
+| Termo | Definição | Evitar |
+|---|---|---|
+| **conexão** | O vínculo do projeto com um número de WhatsApp. Três tipos: oficial, coexistência e não oficial. | integração, instância |
+| **conexão oficial** | Pela API oficial da Meta (Cloud API). Libera campanhas, reengajamento e conversões. | API oficial (como nome de conexão) |
+| **coexistência** | Conexão oficial que mantém o app WhatsApp Business funcionando no mesmo número. | — |
+| **conexão não oficial** | Conexão por QR Code. Não tem campanhas nem templates da Meta. | QR (sozinho) |
+| **template da Meta** | Modelo de mensagem aprovado pela Meta, obrigatório fora da janela de 24h. Na tela: **Templates**. | modelo, HSM, template (sozinho) |
+| **janela de 24h** | Período, contado da última mensagem do lead, em que se pode enviar texto livre pela conexão oficial. Fora dela, só template da Meta. | janela de atendimento (pode, mas prefira esta) |
+
+## Agente de IA
+
+| Termo | Definição | Evitar |
+|---|---|---|
+| **agente** | A IA do projeto que conversa com os leads no WhatsApp. | atendente, bot, assistente |
+| **motor** | A implementação que roda o agente. O **LangChain Agent** é o motor da Zatten; o **motor antigo** é legado e deve ser migrado. | versão (para motor) |
+| **LangChain Agent** | O motor atual: fallback de modelo, retry, LangSmith, versões, skills, MCP e editor de tools HTTP. Projetos novos nascem nele. | agente novo, V3 |
+| **motor antigo** | O motor anterior (OpenAI e OpenRouter diretos). Legado. | agente legado, OpenAI (como nome de motor) |
+| **versão do agente** | Cada alteração da configuração do agente no LangChain Agent cria uma versão. Salvar cria um **rascunho**; **publicar** põe no ar. | release |
+| **publicar** | Colocar uma versão do agente no ar. Só uma pessoa, no painel. | salvar, aplicar, deploy |
+| **provider** | Quem fornece o modelo: OpenAI ou OpenRouter. | provedor de IA, vendor |
+| **BYOK** | *Bring your own key*: a agência usa a própria chave do provider e paga a IA direto a ele, por token. | chave da Zatten |
+| **tool** | Ação que o agente pode chamar (mover no funil, consultar uma API, buscar numa integração). | função (no motor novo), ferramenta (pode, mas prefira tool) |
+| **ação da Zatten** | Tool nativa: mover no funil, tag, departamento, propriedade, agendar, transferir, desligar a IA. | função nativa |
+| **skill do agente** | Conhecimento que o agente carrega só quando precisa. Diferente da skill da Zatten. | base de conhecimento, documento |
+| **buffer** | Espera, em segundos, para juntar mensagens seguidas do lead numa resposta só. | delay |
+| **pausa humana** | Tempo, em minutos, em que a IA fica parada depois que um humano responde. | — |
+| **IA desligada** | A IA não responde mais àquele lead até alguém religar ou encerrar o atendimento. Diferente de pausada. | pausada (são coisas diferentes) |
+
+## Automações
+
+| Termo | Definição | Evitar |
+|---|---|---|
+| **automação** | Regra que age sozinha sobre o lead: follow-up, reengajamento, webhooks, transbordo por inatividade, conversões, mensagens não visíveis, fluxos. | gatilho (sozinho), robô |
+| **follow-up** | Template da Meta enviado depois de um tempo sem resposta. | cadência, lembrete |
+| **reengajamento** | Texto livre enviado alguns minutos antes de a janela de 24h fechar. | follow-up |
+| **fluxo** | Automação desenhada no **Trigger Flow**: gatilho, condição e ações. | workflow, automação (sozinho) |
+| **ação personalizada** | Botão no lead que faz uma chamada HTTP quando um humano clica. | botão, webhook |
+| **ligada / desligada** | O estado de uma automação. No JSON, `status` `ACTIVE` ou `INACTIVE`. | ativa/inativa (pode, mas prefira esta) |
+
+## Trabalhar com IA
+
+| Termo | Definição | Evitar |
+|---|---|---|
+| **assistente** | O Claude Code, Codex, Cursor ou outro que a agência usa com a skill e o MCP. | agente, bot |
+| **skill da Zatten** | O pacote `zatten` instalado no assistente: regras, fluxo de trabalho e mapa da doc. | skill (sozinho, quando houver dúvida), manual |
+| **MCP da Zatten** | O servidor que dá ao assistente acesso aos projetos da conta. Instalado pelo prompt do painel. | API (são coisas diferentes) |
+| **MCP da doc** | O servidor público desta documentação (`https://docs.zatten.com/mcp`). | — |
+| **conexão de IA** | O token criado em **Configurações → Conectar ferramentas de IA**: diz quais projetos o assistente alcança e se pode escrever. | chave de API |
+| **chave de API do projeto** | A chave de um projeto para a API do dia a dia. Diferente do token do MCP. | token |
+| **doc** | Esta documentação. A fonte da verdade sobre produto, API e estratégia. | manual, wiki |
+| **template do projeto** | O JSON com o projeto inteiro: funil, tags, propriedades, automações, fluxos e agente. É o que o MCP lê e escreve. | template (sozinho), backup, export |
+| **bloco** | Uma chave de primeiro nível do template do projeto (`tags`, `columns`, `langchain`…). | seção |
+| **escrita** | Uma chamada a `update_template`, ou uma ação de escrita pela API. | salvar, publicar |
+| **plano (de escrita)** | O resumo, antes de uma escrita, do que vai mudar e em qual projeto. Vem antes do "sim". | diff, preview |
+| **revision** | A marca do estado atual do projeto, devolvida por `get_template`. Muda quando qualquer coisa muda. Toda escrita exige a revision da leitura. | versão |
+| **órfão** | Item que existe no projeto mas não veio no bloco enviado. Não é apagado: volta em `orphans`, intacto. Para o cliente, diga "ficou de fora sem ser apagado". | apagado, removido |
+| **ambíguo** | Dois itens com o mesmo nome no projeto, sem `slug` que diga qual é qual. Nenhum é tocado. | duplicado |
+| **slug** | O identificador fixo de coluna, tag, departamento, propriedade e skill. É por ele que se renomeia. | id, apelido |
+| **notes** | As mensagens da resposta de uma escrita sobre o que não foi feito e por quê. | avisos, logs |
+| **pasta do cliente** | `clientes/<cliente>/` no computador da agência: contexto, memória e snapshots de um cliente final. | projeto |
+| **snapshot** | Cópia do template do projeto, gravada depois de cada escrita. | backup |
+| **diagnóstico** | A leitura completa de um projeto na primeira vez que o assistente o abre, com uma lista priorizada de melhorias. | auditoria |
+| **mudança externa** | Alteração feita fora do assistente (pelo painel, por outra pessoa), percebida pela revision diferente. | conflito |
+
+## Para saber mais
+
+- [Agência, cliente final e projeto](/comecar/agencia-cliente-e-projeto)
+- [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona)
+- [LangChain Agent x motor antigo](/engenharia-de-ia/langchain-x-motor-antigo)
+- [Janela de 24h](/comecar/janela-de-24h)

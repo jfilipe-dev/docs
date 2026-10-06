@@ -1,0 +1,146 @@
+---
+title: "Versões e publicação"
+description: "Leia para entender o ciclo de uma mudança no agente: salvar cria um rascunho (versão nova), publicar põe no ar, como voltar a uma versão anterior, em quanto tempo as conversas pegam a mudança e por que o MCP nunca publica."
+---
+
+No LangChain Agent, cada alteração do agente vira uma **versão** numerada (v1, v2,
+v3…). Duas ações diferentes:
+
+- **Salvar** cria uma versão nova, que fica como **rascunho**. Nenhum lead recebe.
+- **Publicar** escolhe a versão que está **no ar**. É a que responde aos leads.
+
+Isso deixa mexer, testar e só então trocar o que o lead recebe. Também deixa voltar
+atrás: a versão anterior continua guardada.
+
+## O que é versionado
+
+Tudo o que fica no **config do agente**: modelo e parâmetros, prompt, **Enviar
+dados**, tools (ações da Zatten, HTTP, Composio, MCP), skills, lista de tarefas,
+resumo do histórico, retry e fallback, falha do agente, monitoramento (LangSmith),
+limite de chamadas, filtro de tools e descarte de resultados.
+
+**Não** é versionado e vale na hora em que muda, sem publicar: os ajustes de
+**Configurações avançadas** que ficam no projeto, como
+[Tempo de espera (buffer)](/engenharia-de-ia/buffer), [Pausa humana](/engenharia-de-ia/pausa-humana)
+e [Segmentação](/engenharia-de-ia/segmentacao-e-voz). (**Falha do agente**, na mesma
+seção, é do config e é versionada.) Também não são do config: o
+funil, as tags, as propriedades e as automações do projeto.
+
+## Onde fica no painel
+
+Menu **Agente** (`/project`), no topo da página:
+
+- **Seletor de versões** (ícone de relógio com `vN`): lista as versões, da mais nova
+  para a mais antiga, com o tempo desde a criação. A publicada tem ponto verde e o selo
+  **publicada**. Clicar numa versão abre a configuração dela no editor.
+- **Botão de ação**, que muda conforme o estado:
+
+| Botão | Quando aparece | O que faz |
+|---|---|---|
+| **Salvar** | Há alterações na tela | Cria uma versão nova (rascunho). Aviso: "vN criada. Use 'Publicar' para ativá-la." |
+| **Publicar** | A versão aberta não é a publicada e não há alterações por salvar | Põe a versão aberta no ar. Aviso: "vN está ativa em produção." |
+| **Publicada** (desativado) | A versão aberta é a que está no ar | Nada a fazer |
+
+## Como funciona
+
+<Steps>
+<Step title="Editar">
+Mude o que precisar. O [chat de teste](/engenharia-de-ia/testar) já roda o que está
+na tela (selo **Rascunho**).
+</Step>
+<Step title="Salvar">
+Cria a versão nova. A versão no ar não muda. O painel valida antes: erros (ex.: modelo
+sem nome, tool com lista sem tipo de item) impedem o salvamento; avisos (ex.:
+monitoramento sem chave) deixam salvar.
+</Step>
+<Step title="Testar a versão salva">
+Com a versão nova aberta no seletor, o selo do chat mostra **vN · não publicada**.
+</Step>
+<Step title="Publicar">
+Só uma pessoa, no painel. A versão aberta passa a ser a do ar.
+</Step>
+</Steps>
+
+**Quando a mudança chega aos leads.** Conversas novas e conversas em andamento passam
+a usar a versão publicada **em até 2 minutos**. Uma mensagem que chegou logo depois de
+publicar ainda pode ser respondida pela versão anterior.
+
+## Voltar a uma versão anterior
+
+1. Abra o seletor de versões e clique na versão que estava boa.
+2. Confira a configuração no editor (e no chat de teste, se quiser).
+3. Clique em **Publicar**.
+
+As versões mais novas continuam guardadas; dá para voltar a elas do mesmo jeito.
+
+Para **partir** de uma versão antiga e mudar algo nela: abra a versão, edite e
+**Salve**. A versão nova nasce do conteúdo da antiga.
+
+Restaurar uma versão restaura tudo o que estava no config dela, inclusive o texto das
+skills e a chave do modelo daquela época.
+
+## Pelo MCP
+
+O MCP **nunca publica**. Uma escrita no bloco `langchain` (ou no bloco `skills`, quando
+acrescenta skill ao agente) cria uma **versão nova, não publicada**, e a versão no ar
+continua a mesma.
+
+- Se o config enviado é igual ao atual, nenhuma versão é criada.
+- Se já havia uma versão por publicar, a escrita é gravada por cima dela, e uma nota
+  avisa. Quem deixou aquele rascunho pode ter mudanças que não estão no seu config:
+  confira antes de pedir para publicar.
+- `get_template` devolve o config da **versão mais nova**, publicada ou não. Assim
+  uma escrita não apaga o rascunho que alguém deixou no painel.
+- A resposta de `update_template` traz a versão criada em `agent.version` e
+  `agent.published: false`.
+
+Depois da escrita, diga à pessoa, em **Para você fazer no painel**: testar no chat de
+teste e **publicar** a versão N. Com [navegador](/trabalhar-com-ia/navegador), o
+assistente pode clicar em **Publicar**, com um "sim" da pessoa e o nome do projeto
+conferido na tela.
+
+<Visibility for="agents">
+- A API de template (REST) aceita `publish_agent: true` para publicar na mesma
+  chamada. Não use sem uma pessoa decidir: publicar é decisão dela
+  ([Regras](/trabalhar-com-ia/regras)).
+- A [migração](/engenharia-de-ia/migrar) para o LangChain Agent publica a versão
+  criada na hora.
+- Cada salvamento muda a `revision` do projeto, mesmo sem publicar
+  ([Mudanças feitas pelo painel](/trabalhar-com-ia/mudancas-pelo-painel)).
+</Visibility>
+
+## Armadilhas
+
+- **Salvar não é publicar.** O aviso verde de "Versão salva" não põe nada no ar.
+- **Rascunho de outra pessoa.** Duas pessoas (ou a pessoa e o assistente) editando ao
+  mesmo tempo: cada um salva uma versão a partir do que tinha na tela, e publicar uma
+  deixa de fora a mudança da outra. Combine quem edita e quem publica.
+- **Esperar efeito imediato.** Até 2 minutos para as conversas pegarem a versão nova.
+- **Achar que buffer e pausa voltam com a versão.** Esses ajustes não são versionados;
+  restaurar uma versão não muda o valor atual deles.
+- **Restaurar traz a chave antiga.** Se a chave do modelo foi trocada depois daquela
+  versão, a versão restaurada usa a chave antiga. Confira no editor antes de publicar.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Existe limite de versões?">
+O painel não mostra limite. Cada salvamento com alteração cria uma.
+</Accordion>
+<Accordion title="Dá para apagar uma versão?">
+Não. Versões ficam no histórico; para deixar de usar uma, publique outra.
+</Accordion>
+<Accordion title="Por que publiquei e o lead ainda recebeu a resposta antiga?">
+A conversa pega a versão nova em até 2 minutos. Se passou disso, confira no seletor se
+a versão certa está com o selo **publicada**.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Testar o agente](/engenharia-de-ia/testar)
+- [O que só se faz pelo painel](/trabalhar-com-ia/so-pelo-painel)
+- [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona)
+- [Referência do config do agente](/engenharia-de-ia/referencia-do-config)
+- LangGraph: [visão geral](https://docs.langchain.com/oss/python/langgraph/overview)
+- Termos para buscar: "assistant versions LangGraph", "set latest version", "publicar agente".

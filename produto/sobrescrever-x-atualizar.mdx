@@ -1,0 +1,154 @@
+---
+title: "Sobrescrever x atualizar um projeto por template"
+description: "Leia antes de aplicar um template num projeto que já existe: a diferença entre atualizar (aditivo, nunca apaga) e sobrescrever (apaga e recria), o que existe hoje em cada caminho e como recomeçar um projeto sem perder o número."
+---
+
+Há duas formas de aplicar um template de projeto (o JSON com funil, tags,
+propriedades, automações, fluxos e agente) sobre um projeto que já existe:
+
+- **Atualizar** (modo aditivo): cria o que falta, atualiza o que existe e **nunca
+  apaga**. É o que o MCP e a API de template fazem.
+- **Sobrescrever** (modo destrutivo): apaga a configuração do projeto e recria a
+  partir do template. **Hoje o painel não oferece essa opção.**
+
+Para quase tudo, atualizar é o caminho. Quando a ideia é "trocar tudo", o caminho
+seguro é criar um projeto novo e passar o número para ele (veja abaixo).
+
+## Qual caminho usar
+
+| Quero… | Caminho | Apaga algo? |
+|---|---|---|
+| Mudar parte da configuração (uma automação, o funil, o agente) | Atualizar pelo MCP (`update_template`) ou pela [API de template](/api/template) | Não |
+| Criar um projeto a partir de um JSON ou de outro projeto | **Novo Projeto → Importar JSON** ou **Duplicar projeto** | Não (o projeto é novo) |
+| Trocar a configuração inteira de um projeto em produção | Criar um projeto novo e **Trocar projeto** no WhatsApp | Não, até você excluir o antigo |
+| Remover itens que sobraram | Painel, item a item | Sim, com as travas de cada tela |
+
+## Atualizar (aditivo)
+
+A regra é uma só: **cria o que falta, atualiza o que existe e nunca apaga**.
+
+- Só os blocos enviados são considerados. Mandar `tags` mexe só nas tags.
+- O bloco enviado é a lista completa daquele tipo. O que existe no projeto e não veio
+  vira **órfão**: fica intacto e volta na resposta para alguém decidir no painel.
+- Cada item é reconhecido pela chave do bloco (`slug` em colunas, tags,
+  departamentos, propriedades e skills; nome nos demais). Com o `slug`, dá para
+  renomear sem perder o vínculo com os leads.
+- Endereço ou credencial vazio não grava por cima. **Exceção:** dentro de
+  `langchain.config`, a chave do modelo e a do LangSmith só são preservadas quando o
+  campo está ausente; `""` grava vazio e o agente para de responder.
+- Automação nova nasce desligada.
+- O agente (bloco `langchain`) vira uma **versão não publicada**. Uma pessoa publica no
+  painel.
+- Aplicar o mesmo template duas vezes não muda nada na segunda.
+
+As regras completas estão em
+[Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona).
+
+**Criar um projeto** a partir de um template (**Importar JSON**, **Duplicar projeto** ou
+modelo de nicho) usa o mesmo motor: é aplicar o template num projeto vazio. Por isso
+um JSON exportado e reimportado gera o mesmo projeto, com os mesmos slugs.
+
+## Sobrescrever (destrutivo)
+
+O modo de sobrescrever apaga a configuração do projeto e grava a do template no lugar.
+Ele já existiu no painel (**Agente → Importar → Sobrescrever atual**) e **não está mais
+disponível**: o botão de importar saiu da página do agente em 07/04/2026. Vídeos e textos
+antigos ainda podem citá-lo.
+
+Se um dia alguém pedir para "sobrescrever o projeto", é isto que esse modo fazia, e
+por que ele foi trocado pelo aditivo:
+
+| O que acontecia | Consequência |
+|---|---|
+| Colunas apagadas e recriadas | Todos os leads ficavam **sem coluna** e sumiam do funil |
+| Tags apagadas e recriadas | As tags dos leads deixavam de existir; as novas tinham outro identificador |
+| Propriedades apagadas e recriadas | Os valores preenchidos nos leads perdiam o vínculo |
+| Departamentos apagados e recriados | **Membros removidos**; só quem aplicou voltava, em todos os departamentos |
+| Automações, MCPs, skills, conversões, webhooks apagados e recriados | Endereços configurados pelo cliente trocados pelos do arquivo |
+| Chave do modelo | Preservada, se o arquivo não trouxesse outra |
+
+## Como recomeçar um projeto sem perder o número
+
+Quando o projeto em produção precisa de uma configuração inteiramente nova:
+
+<Steps>
+<Step title="Crie o projeto novo">
+**Novo Projeto**, com o modelo, em branco ou **Importar JSON**. Se a conta já tem outro
+projeto pago, use **Deixar para depois** no passo da assinatura.
+</Step>
+<Step title="Configure e teste">
+Monte o agente, o funil e as automações no projeto novo. Teste no chat de teste do
+agente. O projeto novo já nasce no LangChain Agent.
+</Step>
+<Step title="Passe o número">
+No projeto antigo, **WhatsApp → Trocar projeto** e escolha o novo. A conexão oficial e
+a assinatura vão para o projeto novo; o antigo fica desligado. Só o admin faz.
+</Step>
+<Step title="Confira e limpe">
+No projeto novo, sincronize os templates do WhatsApp, ligue as automações e o agente.
+Depois, guarde o que precisar do antigo (o template pelo MCP ou pela
+[API de template](/api/template)) e exclua-o.
+</Step>
+</Steps>
+
+Os leads e as conversas **não** passam para o projeto novo. Para levar ao menos a lista
+de contatos, exporte do antigo (**Contatos → Exportar**) e importe no novo: entram nome
+e telefone; tags, coluna, propriedades e conversas ficam para trás. Veja
+[Contatos](/produto/contatos).
+
+## Pelo MCP
+
+`update_template` é sempre aditivo. Não há opção de sobrescrever, nem pelo MCP nem pela
+API de template.
+
+<Visibility for="agents">
+- MCP: `update_template` com `project_id`, `project_name`, a `revision` da última
+  leitura e o template parcial. Resposta com `changes`, `orphans`, `ambiguous`,
+  `agent` e `notes`.
+- API REST de template: `GET` e `POST` em
+  `https://app.zatten.com/api/v1/projects/{project_id}/template`, com
+  `Authorization: Bearer <chave do projeto>`. O `POST` é o mesmo motor aditivo, mas não
+  confere `revision` nem nome do projeto. Ele aceita também
+  `publish_agent` e `submit_meta_templates`, que o MCP não tem; pela regra do
+  assistente, nenhum dos dois é usado sem uma pessoa. Detalhes em
+  [API de template](/api/template).
+- Não existe parâmetro `mode`, `overwrite` ou equivalente em nenhum dos dois.
+</Visibility>
+
+## Armadilhas
+
+- **"Atualizar" não remove.** Um item que saiu do template continua no projeto e
+  continua agindo (uma automação ligada segue ligada). Desligue ou exclua no painel.
+- **Mandar um bloco com um item só** deixa os outros como órfãos. Eles não são
+  apagados, mas o relatório fica cheio de "ficou de fora".
+- **Renomear sem `slug`** cria um item novo e deixa o antigo como órfão.
+- **Importar JSON sempre cria um projeto novo.** Não existe "importar por cima" no
+  painel.
+- **Trocar projeto leva a assinatura junto.** O projeto antigo fica sem assinatura;
+  o novo passa a ser o cobrado.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Como apago os órfãos?">
+No painel, na tela de cada item. As travas continuam valendo: coluna com leads não
+pode ser excluída, por exemplo. O assistente só guia; quem apaga é uma pessoa.
+</Accordion>
+<Accordion title="Atualizar mexe nos leads?">
+Não diretamente. Renomear uma coluna pelo `slug` mantém os leads nela. Mudar uma
+propriedade de texto livre já preenchida para lista é recusado, com nota.
+</Accordion>
+<Accordion title="E se eu quiser zerar só o funil?">
+Crie as colunas novas pelo template, mova os leads no painel e exclua as colunas
+antigas vazias. Coluna com leads não pode ser excluída.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona)
+- [Referência do template (JSON)](/trabalhar-com-ia/referencia-do-template)
+- [Organizações e projetos](/produto/organizacoes-e-projetos)
+- [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia): trocar a conexão de projeto.
+- [API de template (REST)](/api/template)
+- Termos para buscar: "operação idempotente", "upsert", "aplicação aditiva".

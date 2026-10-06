@@ -1,0 +1,91 @@
+---
+title: "Criar a conta e o primeiro projeto"
+description: "Leia para criar a conta da agência, passar pelo /setup, escolher entre as quatro formas de criar um projeto e seguir o checklist de setup inicial."
+---
+
+A conta é criada em [app.zatten.com/cadastro](https://app.zatten.com/cadastro) com nome, e-mail e senha, **sem confirmação de e-mail**: você entra na hora e cai no `/setup`. Ali define a sua marca, cria o primeiro projeto e assina o plano dele. Depois, o **Setup Inicial** do painel guia a configuração do agente e do WhatsApp.
+
+## 1. Cadastro
+
+Preencha **Nome completo**, **E-mail** e **Senha** (mínimo de 6 caracteres). A conta nasce confirmada, e a sessão já abre. No cadastro a Zatten cria, sozinha:
+
+- a conta da agência (com um subdomínio provisório, que você pode trocar depois);
+- uma organização chamada **Principal**;
+- o seu usuário como **admin** da conta.
+
+## 2. O `/setup`
+
+O `/setup` tem uma tela de boas-vindas e três passos.
+
+<Steps>
+<Step title="Passo 1 de 3: a sua marca">
+Nome da agência, logo (PNG, JPG ou SVG) e cor. É o que os seus clientes finais vão ver no painel. Tudo pode ser mudado depois em **Configurações → Minha Empresa**. Veja [White-label](/comecar/white-label).
+</Step>
+<Step title="Passo 2 de 3: o modelo do projeto">
+Escolha como criar o projeto (as quatro formas abaixo). Ao clicar em **Continuar**, o projeto é criado na organização Principal, com o nome do modelo (ou "Novo projeto", se for em branco ou JSON). Dá para renomear depois.
+</Step>
+<Step title="Passo 3 de 3: a assinatura">
+Escolha o plano e pague no checkout. O painel só abre depois que a conta tem um projeto pago. Veja [Planos, limites e cobrança](/comecar/planos-e-limites).
+</Step>
+</Steps>
+
+Se você fechar o checkout e voltar ao `/setup`, ele leva direto ao passo da assinatura, com o projeto que já foi criado.
+
+## As quatro formas de criar um projeto
+
+As mesmas opções aparecem no `/setup` e em **Novo projeto** (`/novo-agente`), que é onde se criam os projetos seguintes. Em `/novo-agente` a tela também pede o nome, a organização e as variáveis do prompt.
+
+| Forma | O que vem pronto | Quando usar |
+|---|---|---|
+| **Modelo de nicho** | Funil, tags, propriedades, prompt e automações de um nicho: Clínicas e Saúde, Imobiliárias, Advocacia, Academias, Cursos e Infoprodutos, SAC. | O cliente final é de um desses nichos. É o caminho mais rápido. |
+| **Começar em branco** | 4 colunas ("Novo Contato", "Atendimento Humano" com transbordo, "Ganho" e "Perdido" com a IA desligada) e o departamento "Atendimento" como padrão. | Nicho sem modelo, ou quando você quer montar do zero. |
+| **Importar JSON** | Tudo o que estiver no arquivo de template (lido de outro projeto pelo MCP ou pela API de template, ou montado pelo seu assistente de IA). | Reaproveitar um projeto de outra conta ou um template seu. |
+| **Duplicar projeto** | Uma cópia de um projeto da mesma conta, incluindo os templates do WhatsApp (que voltam a ficar pendentes de aprovação). | Um cliente novo parecido com um que já roda. |
+
+O prompt dos modelos pode ter variáveis no formato `{{VAR}}` (por exemplo, o nome da empresa). Em `/novo-agente`, a tela pede o valor de cada uma antes de criar. No `/setup`, ajuste o prompt depois, em **Agente**.
+
+### Qual motor o projeto usa?
+
+Todo projeto novo nasce no **LangChain Agent**, o motor da Zatten. Se você abrir um projeto antigo que ainda está no motor anterior (legado), migre: veja [Migrar para o LangChain Agent](/engenharia-de-ia/migrar).
+
+## 3. O Setup Inicial
+
+Com o painel liberado, o item **Setup Inicial** (para admin e editor) mostra um checklist em cinco etapas, cada uma com um vídeo curto:
+
+1. **Configurando seu Projeto**: nome, prompt e personalidade do agente, em **Agente**. Veja [Escrever um bom prompt](/engenharia-de-ia/prompt).
+2. **Conectando com a OpenAI**: a chave do provedor de IA, também em **Agente**. Veja [Providers](/engenharia-de-ia/providers).
+3. **Conectando ao WhatsApp**: em **WhatsApp**. Veja [Qual conexão escolher](/comecar/conexoes-whatsapp).
+4. **Onboarding do seu cliente**: o fluxo de atendimento, mensagens automáticas, follow-up e reengajamento.
+5. **Explorando a plataforma**: CRM, métricas, automações, campanhas e departamentos.
+
+Depois do checklist, ligue o agente na página **Agente**. Ele só liga com a assinatura ativa e o WhatsApp conectado.
+
+## Armadilhas
+
+- **Projeto criado não é projeto pago.** Todo projeto nasce pendente. Sem assinatura, o agente não liga.
+- **Com a conta bloqueada, não dá para criar outro projeto.** Se o primeiro checkout não foi concluído, termine a assinatura do projeto que já existe em vez de tentar criar outro.
+- **Importar JSON ou duplicar não traz a conexão do WhatsApp nem o histórico.** As chaves vêm junto: a chave do modelo, a do LangSmith, os headers das tools e os endereços de webhook do arquivo (ou do projeto duplicado) entram preenchidos no projeto novo. Confira se a chave da IA é mesmo a que esse cliente final deve usar.
+- **O arquivo de template leva credenciais.** Guarde e compartilhe com cuidado, e nunca o coloque num repositório.
+- **Templates do WhatsApp copiados nascem pendentes.** Eles precisam ser enviados à Meta e aprovados de novo no projeto novo. Veja [Templates do WhatsApp](/produto/templates-whatsapp).
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://youtube.com/embed/QesOWM_mzSQ"
+  title="Vídeo: criar conta e projeto"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Agência, cliente final e projeto](/comecar/agencia-cliente-e-projeto).
+- [Sobrescrever x atualizar um projeto por template](/produto/sobrescrever-x-atualizar).
+- [Referência do template (JSON)](/trabalhar-com-ia/referencia-do-template).
+- [Playbooks por nicho](/playbooks/como-usar): como adaptar cada modelo.
+- Termos para buscar: "template de projeto Zatten", "JSON do template", "onboarding".

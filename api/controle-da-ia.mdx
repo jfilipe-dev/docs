@@ -1,0 +1,165 @@
+---
+title: "Controle da IA por lead e encerrar atendimento"
+description: "Leia para ligar, pausar por N minutos ou desligar a IA de um lead pela API (POST /leads/{numero}/toggle-attendant-response, com pause_minutes de 1 a 10080) e para encerrar o atendimento (PATCH /leads/{numero}/thread), com respostas 200 e 204, erros e o que muda no lead."
+---
+
+Duas rotas controlam o agente num lead:
+
+| Rota | O que faz |
+|---|---|
+| `POST /leads/{numero}/toggle-attendant-response` | Liga, pausa por um tempo ou desliga a IA **daquele lead**. |
+| `PATCH /leads/{numero}/thread` | **Encerra o atendimento**: fecha a conversa, religa a IA e devolve o lead à primeira coluna. |
+
+As duas valem só para o lead da URL. Para desligar o agente do projeto inteiro, use o
+painel.
+
+## Os três estados da IA num lead
+
+| Estado | O agente | Volta sozinho? |
+|---|---|---|
+| **Ligada** | Responde. | — |
+| **Pausada** | Não responde até a data e hora marcadas. | Sim, no horário. |
+| **Desligada** | Não responde mais a esse lead. | Não. Alguém precisa religar ou encerrar o atendimento. |
+
+As mensagens que o lead manda com a IA pausada ou desligada aparecem no chat, mas o
+agente **não responde depois** a elas: responde só à próxima mensagem depois de
+religado. Ver [Pausa quando um humano assume](/engenharia-de-ia/pausa-humana).
+
+## `POST /leads/{numero}/toggle-attendant-response`
+
+### Corpo
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `enabled` | boolean | Sim | `true` liga. `false` pausa (com `pause_minutes`) ou desliga (sem). Aceita também `"true"`/`"false"`. |
+| `pause_minutes` | inteiro | Não | De **1 a 10080** minutos (7 dias). Só com `enabled: false`. Aceita número ou texto numérico (`"30"`). |
+
+| Você manda | O que acontece |
+|---|---|
+| `{"enabled": true}` | Liga a IA, esteja ela pausada ou desligada. |
+| `{"enabled": false, "pause_minutes": 60}` | Pausa por 60 minutos. A IA volta sozinha. |
+| `{"enabled": false}` | **Desliga** até alguém religar. |
+
+Regras sobre o estado atual:
+
+- **Pausar uma IA já pausada só estende.** Se a pausa atual termina depois do novo prazo,
+  nada muda.
+- **Pausar uma IA desligada não muda nada.** Ela continua desligada; a pausa não a
+  "religa no fim".
+- **Ligar quem já está ligada, ou desligar quem já está desligada,** não muda nada.
+
+### Resposta
+
+**200**, quando algo mudou:
+
+```json
+{
+  "message": "Attendant response toggled from on to paused",
+  "status": "paused",
+  "ai_response_block_until": "2026-10-06T15:30:00.000-03:00"
+}
+```
+
+| Campo | O que é |
+|---|---|
+| `status` | O estado depois da chamada: `on`, `paused` ou `off`. Use este campo, não o `message`. |
+| `ai_response_block_until` | Até quando a IA fica parada. `null` quando ligada. No desligamento, uma data cerca de 100 anos à frente. |
+
+**204**, sem corpo, quando nada mudou (veja as regras acima). Não leia corpo no 204.
+
+### Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Invalid boolean value` | `enabled` não é booleano. |
+| 400 | `pause_minutes only allowed when enabled is false` | `pause_minutes` com `enabled: true`. |
+| 400 | `pause_minutes must not be empty; omit the field to turn the AI off` | `pause_minutes` veio vazio (`""` ou `null`). Para desligar de vez, **tire** o campo. |
+| 400 | `pause_minutes must be an integer` / `must be at least 1` / `must be at most 10080` | Fora da regra. |
+| 404 | `Lead with number … not found` | Lead inexistente no projeto. |
+
+### Exemplos
+
+```bash
+# Pausar 30 minutos (um humano vai responder agora)
+curl -X POST "https://api.zatten.com/api/v1/leads/5511999998888/toggle-attendant-response" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "enabled": false, "pause_minutes": 30 }'
+
+# Religar
+curl -X POST "https://api.zatten.com/api/v1/leads/5511999998888/toggle-attendant-response" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "enabled": true }'
+```
+
+## `PATCH /leads/{numero}/thread`
+
+Encerra o atendimento do lead, igual ao botão **Encerrar atendimento** do painel. Não
+tem corpo.
+
+```bash
+curl -X PATCH "https://api.zatten.com/api/v1/leads/5511999998888/thread" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+**204**, sem corpo. Também quando o lead já não tinha conversa aberta: encerrar duas vezes
+não faz nada na segunda.
+
+### O que muda no lead
+
+| O que | Depois de encerrar |
+|---|---|
+| Conversa | Fechada. O lead sai de Conversas e do Kanban; continua em Contatos. |
+| Coluna | Volta para a primeira coluna do funil. |
+| Responsável e departamento | Ficam vazios. |
+| IA | **Religada**, mesmo se estava desligada. |
+| Tags e propriedades de vínculo **conversa** | Saem do lead e ficam guardadas na conversa encerrada. |
+| Tags e propriedades de vínculo **contato**, nome, anotação | Continuam. |
+| Memória do agente | A próxima conversa começa sem o histórico desta. |
+| Trigger Flow | Dispara o gatilho **Conversa encerrada**. |
+
+A conversa nova nasce na próxima mensagem do lead (ou num envio para ele). Detalhes em
+[Encerrar atendimento](/produto/encerrar-atendimento).
+
+### Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 404 | `Lead with number … not found` | Lead inexistente no projeto. |
+| 400 | `Attendant has no kanban column configured to receive the lead` | O projeto não tem nenhuma coluna no funil. |
+
+<Visibility for="agents">
+- toggle: o estado é derivado de `lead.ai_response_block_until`: `null` ou passado = `on`; futuro a menos de 50 anos = `paused`; 50 anos ou mais = `off` (desligar grava agora + 100 anos).
+- toggle 200: `{message, status: "on"|"paused"|"off", ai_response_block_until: string|null}`. 204 sem corpo quando `changed=false`.
+- `pause_minutes` ausente ≠ vazio: ausente com `enabled:false` = `off`; `""`/`null` = 400.
+- Mudar a IA pela API não dispara fluxos de "IA ligada ou desligada".
+- thread: 204 sempre no sucesso (inclusive no-op). Grava atividade "Atendimento finalizado" e dispara `lead.conversation_closed` com `trigger_event = {lead_id, lead_number, zatten_thread_id, source: "api"}`.
+</Visibility>
+
+## Armadilhas
+
+- **`{"enabled": false}` sem `pause_minutes` desliga de vez.** Se a intenção é "um humano
+  vai responder rapidinho", mande `pause_minutes`.
+- **`pause_minutes` vazio dá 400.** Uma variável que resolveu para vazio não vira
+  desligamento: tire o campo se quiser desligar.
+- **Pausa não religa uma IA desligada.** Para garantir que a IA volte, ligue
+  (`enabled: true`) e depois pause.
+- **Pausa só estende.** Não dá para encurtar uma pausa com outra menor: ligue e pause de
+  novo.
+- **As mensagens da pausa ficam sem resposta.** Ao religar, o agente não responde ao que
+  ficou para trás; espera a próxima mensagem do lead. Se precisar, mande uma mensagem
+  pela [API](/api/mensagens).
+- **Encerrar apaga a memória da conversa para o agente** e tira as tags e propriedades de
+  vínculo conversa. O que precisa sobreviver vai numa propriedade de vínculo contato ou
+  na anotação.
+- **Encerrar religa a IA**, mesmo de um lead que um humano tinha desligado de propósito.
+- **Encerrar não dispara automações de coluna**, embora o lead volte para a primeira
+  coluna.
+
+## Para saber mais
+
+- [Pausa quando um humano assume](/engenharia-de-ia/pausa-humana)
+- [Encerrar atendimento](/produto/encerrar-atendimento)
+- [Leads](/api/leads), [Fluxos e webhook de entrada](/api/fluxos-e-webhook-de-entrada)
+- Termos para buscar: "human handoff", "pause AI agent", "conversation reset".

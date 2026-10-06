@@ -1,0 +1,126 @@
+---
+title: "Departamentos e distribuição de leads"
+description: "Leia para configurar departamentos: o departamento padrão, o rodízio que escolhe o responsável de cada lead, quem recebe leads, enviar o nome de quem atende, o autoatendimento do membro e como excluir sem perder leads."
+---
+
+Um **departamento** é uma equipe do projeto (Comercial, Suporte, Financeiro) com membros que recebem leads. Todo lead tem um departamento e um **responsável**, escolhido por **rodízio** entre os membros que estão recebendo. O **departamento padrão** recebe os leads novos.
+
+Use departamentos para separar quem atende o quê e para o agente direcionar o lead para a equipe certa.
+
+## Onde fica no painel
+
+Menu **Departamentos** (admin, editor e gestor). A tela lista cada departamento com os membros, a chave **Receber Leads** de cada um, o selo **Padrão** e as ações (configurações, copiar ID, excluir).
+
+## Como configurar
+
+### Criar um departamento
+
+**Adicionar Departamento** pede só o nome. Depois, adicione os membros na linha do departamento, buscando por nome ou e-mail. Só usuários que já existem na conta aparecem; para criar um usuário, veja [Equipe e permissões](/comecar/equipe-e-permissoes).
+
+### Campos e chaves
+
+| Campo | O que faz de verdade | Padrão |
+|---|---|---|
+| **Padrão** | O departamento que recebe os leads novos. Há um por projeto. Clique em **Tornar padrão** em outro para trocar. | Vem do modelo usado para criar o projeto |
+| **Receber Leads** (por membro) | Liga ou desliga o membro no rodízio. Desligado, ele continua vendo e respondendo os leads dele, mas não recebe novos. | Ligado |
+| **Enviar nome do atendente** | Cada mensagem de texto que um humano manda pelo chat sai com o nome dele em negrito na primeira linha (`*Maria*`). Vale para leads deste departamento. | Desligado |
+| **Permitir que o usuário se desligue de receber leads** | Mostra para cada membro a chave **Receber leads** no menu lateral, para ele mesmo entrar e sair do rodízio sem pedir a um admin, editor ou gestor. | Desligado |
+
+As duas últimas ficam em **Configurações do Departamento** (ícone de engrenagem na linha).
+
+O nome que vai na mensagem é o nome completo do perfil do usuário. Sem nome no perfil, a mensagem sai sem prefixo.
+
+## Como funciona por trás
+
+### Quem recebe o lead novo?
+
+Quando um lead manda a primeira mensagem, ele entra na primeira coluna do funil e no **departamento padrão**. O responsável sai do rodízio:
+
+1. Entram só os membros com **Receber Leads** ligado.
+2. Quem nunca recebeu lead fura a fila.
+3. Depois, recebe quem está há mais tempo sem receber.
+
+Cada membro tem um "relógio" por departamento: receber um lead no Comercial não atrasa a mesma pessoa no Suporte.
+
+O mesmo vale para um lead que volta depois de [encerrar o atendimento](/produto/encerrar-atendimento): ele volta sem departamento e sem responsável e é distribuído de novo na próxima mensagem.
+
+### Transferir para um departamento
+
+O lead muda de departamento quando:
+
+- alguém escolhe outro departamento em **Responsável**, no painel do lead (só o departamento: o rodízio escolhe a pessoa; departamento e pessoa: vai para ela);
+- o agente usa a ação **Direcionar para departamento** (veja [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten)). Ela só troca o departamento: **não pausa nem desliga a IA**. Para o humano assumir, o agente usa também **Transferir para humano**, que desliga a IA do lead;
+- um fluxo usa a ação **Definir responsável**;
+- a API chama `PATCH /api/v1/leads/{numero}/assignee` com `department_id` (e `user_email` opcional; sem ele, rodízio).
+
+Em todos esses casos, quem já é o responsável fica fora do sorteio, e o gatilho **Responsável alterado** do Trigger Flow dispara. A atribuição **não** manda notificação ao responsável; para avisar, use a ação **Notificar responsável** num fluxo ou `POST /api/v1/leads/{numero}/notification`.
+
+<Note>
+Um humano que responde um lead **solto** (sem departamento e sem responsável) pelo chat assume o lead e o coloca no departamento dele. Essa forma de assumir não dispara o gatilho **Responsável alterado**. Veja [Conversas e chat ao vivo](/produto/conversas-e-chat).
+</Note>
+
+### Remover um membro
+
+Se o membro tem leads, o painel pede para **Remanejar leads** para outro membro do mesmo departamento antes de remover. Não dá para desligar **Receber Leads** do último membro ativo: o departamento precisa de pelo menos um recebendo.
+
+### Excluir um departamento
+
+- O **departamento padrão** não tem botão de excluir. Torne outro padrão antes.
+- Se o departamento tem leads, escolha um departamento de destino com pelo menos um membro recebendo. Os leads vão para ele, cada um para o membro com **menos leads** naquele destino (não pelo rodízio).
+- Se o agente tem tools que apontam para esse departamento, o painel avisa e pede confirmação. Confirmando, essas tools deixam de funcionar.
+
+## Pelo MCP
+
+O bloco `attendant_teams` do template do projeto traz os departamentos. A chave de cada um é o `slug`; sem `slug`, o nome. Renomear com o mesmo `slug` renomeia.
+
+O que **não** viaja:
+
+- **Membros.** Departamento criado pelo MCP nasce vazio; alguém adiciona as pessoas no painel. Sem membros, o rodízio não tem para quem distribuir.
+- **Permitir que o usuário se desligue de receber leads.** Liga no painel.
+- **Receber Leads** de cada membro.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Nome exibido |
+| `slug` | string ou null | Chave de identidade. Renomeia quando presente |
+| `icon` | string ou null | |
+| `default` | boolean | Departamento padrão. Mantenha exatamente um `true` |
+| `should_send_name` | boolean | Enviar nome do atendente |
+
+Renomear um departamento usado por tools do agente: mande também o bloco `langchain` na mesma escrita, para as tools passarem a apontar para o nome novo. Veja [Referência do template](/trabalhar-com-ia/referencia-do-template).
+</Visibility>
+
+## Armadilhas
+
+- **Departamento sem ninguém recebendo não distribui.** Se todos os membros estão com **Receber Leads** desligado (ou o departamento está vazio), o lead fica sem responsável. Confira depois de criar departamentos pelo MCP.
+- **Autoatendimento esvazia o rodízio em horário de pico.** Com a chave do menu lateral liberada, os membros saem e entram sozinhos. O painel só impede que o último saia.
+- **Atribuir não avisa.** O responsável só fica sabendo se houver um fluxo ou integração que avise, ou se a coluna tiver **Transbordo** (que notifica o responsável).
+- **Nome do atendente só no texto.** Mídia, áudio, template e mensagens enviadas pela API saem sem o nome.
+- **Excluir departamento usado pelo agente** quebra a tool **Direcionar para departamento**. Ajuste o agente antes.
+- **Para tirar alguém da distribuição fora do expediente**, desligue **Receber Leads** (ou libere o autoatendimento para cada um fazer isso).
+
+{/* A CONFIRMAR: a ordem do rodízio na criação do lead roda numa função do banco que não está nos repositórios; a doc interna diz "quem não recebeu hoje, depois quem está há mais tempo sem receber". A página descreve a regra do servidor (quem nunca recebeu primeiro, depois o mais antigo), que dá o mesmo resultado na prática. Também não confirmei se essa função considera o horário de trabalho do usuário (o servidor não considera). */}
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Por que todos os leads caem na mesma pessoa?">
+Provavelmente só ela está com **Receber Leads** ligado no departamento padrão. Ligue para os outros membros.
+</Accordion>
+<Accordion title="Lead novo ficou sem responsável. Por quê?">
+O departamento padrão não tem nenhum membro recebendo, ou está vazio.
+</Accordion>
+<Accordion title="Como o agente passa o lead para um departamento?">
+Com a ação da Zatten **Direcionar para departamento**, configurada com o departamento de destino. Ela não tira a IA da conversa: para isso, combine com **Transferir para humano** (desliga a IA e avisa só o responsável) ou mova para uma coluna com **Transbordo**. Veja [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten) e o playbook [Transbordo para humano](/playbooks/transbordo).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Conversas e chat ao vivo](/produto/conversas-e-chat)
+- [Equipe e permissões](/comecar/equipe-e-permissoes) e [Usuários, papéis e permissões](/produto/papeis-e-permissoes)
+- [Mensagens rápidas](/produto/mensagens-rapidas) (filtro por departamento)
+- [Leads (API): responsável e notificação](/api/leads), [Notificar responsável](/api/notificar-responsavel)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- Termos para buscar: "round robin", "rodízio de atendimento", "distribuição de leads".

@@ -1,0 +1,90 @@
+---
+title: "Disparar automações"
+description: "Leia para agendar pela API as automações nativas de um lead (POST /automations/trigger com lead_id): o que agenda (follow-up, reengajamento, webhook por inatividade), o que não agenda (transbordo), a exigência da conexão oficial, a resposta e os erros."
+---
+
+`POST /automations/trigger` faz para um lead o mesmo que uma **interação concluída**:
+agenda os follow-ups, o reengajamento e os webhooks por inatividade que casam com ele. É a
+mesma rota que o CRM usa quando você move um lead para uma coluna com **Disparar
+automações**.
+
+Use depois de mudar o lead pela API (mover de coluna, pôr tag), já que essas mudanças não
+agendam automações sozinhas.
+
+Para os fluxos do Trigger Flow, a rota é outra: [Fluxos e webhook de entrada](/api/fluxos-e-webhook-de-entrada).
+
+## Corpo
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `lead_id` | string | Sim | O **id** do lead (não o número). Vem de `GET /leads/{numero}`, campo `id`. |
+
+## O que é agendado
+
+| Automação | Agenda? | Condição |
+|---|---|---|
+| [Follow-up](/produto/automacoes/follow-up) | Sim | O lead casa com o filtro de tags e colunas. |
+| [Reengajamento](/produto/automacoes/reengajamento) | Sim | Só com a janela de 24h aberta. |
+| [Webhook por inatividade](/produto/automacoes/webhook-por-inatividade) | Sim | O lead casa com o filtro. |
+| [Transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade) | **Não** | — |
+
+Os agendamentos anteriores do lead são refeitos do zero, como em qualquer interação
+concluída. Na hora marcada, cada automação confere tudo de novo antes de agir. Detalhes em
+[Quando as automações disparam](/produto/automacoes/quando-disparam).
+
+## Resposta: 200
+
+```json
+{ "message": "Automations triggered successfully" }
+```
+
+Quer dizer que o agendamento foi pedido. **Não** diz se alguma automação casou com o lead.
+
+## Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Missing lead_id in request body` | Faltou `lead_id`. |
+| 404 | `Lead … not found` | Id inexistente. |
+| 400 | `Could not resolve meta access token or meta number ID` | O projeto não tem a conexão oficial. Hoje a rota só funciona com ela. |
+| 500 | (descrição) | Erro interno. |
+
+## Exemplo
+
+```bash
+# 1. Pegue o id do lead
+LEAD_ID=$(curl -s "https://api.zatten.com/api/v1/leads/5511999998888" \
+  -H "x-api-key: $ZATTEN_API_KEY" | jq -r '.lead.id')
+
+# 2. Dispare as automações
+curl -X POST "https://api.zatten.com/api/v1/automations/trigger" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{ \"lead_id\": \"$LEAD_ID\" }"
+```
+
+<Visibility for="agents">
+- Corpo: `{lead_id: uuid}`. Sem validação de tipo além da presença.
+- Efeitos: `followUp.create` (filtra por `lead.tags` e `lead.column_id`), `reengagement.create` (retorna cedo sem `conversation_expires_in`), webhooks por inatividade (`onLeadInteractionCompleted`). Não agenda `inactivity_handover`.
+- Exige conexão oficial (token e número da Meta); sem ela, 400. Na conexão não oficial, a chave "Disparar automações" da coluna também não agenda nada.
+- 200 `{message: "Automations triggered successfully"}`.
+</Visibility>
+
+## Armadilhas
+
+- **Usa o id, não o número.** Chame `GET /leads/{numero}` antes.
+- **Só na conexão oficial.** Na conexão não oficial a rota responde 400 e nada é agendado.
+- **200 não quer dizer que algo foi agendado.** Se nenhum follow-up casa com as tags e a
+  coluna do lead, nada acontece. Confira os filtros.
+- **Ordem importa.** Mova o lead ou ponha a tag **antes** de disparar: o filtro usa a
+  coluna e as tags do momento da chamada.
+- **Disparar de novo reinicia a contagem.** Chamar a rota a cada evento empurra o
+  follow-up para frente e ele pode nunca sair.
+- **Transbordo por inatividade não é agendado** por esta rota.
+
+## Para saber mais
+
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- [Automações: visão geral](/produto/automacoes/visao-geral)
+- [Leads](/api/leads), [Fluxos e webhook de entrada](/api/fluxos-e-webhook-de-entrada)
+- Termos para buscar: "follow-up automático WhatsApp", "drip schedule".

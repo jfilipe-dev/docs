@@ -1,0 +1,57 @@
+---
+title: "Agência, cliente final e projeto"
+description: "Leia para entender como a conta da agência se organiza em organizações e projetos, e por que cada cliente final deve ser um projeto isolado."
+---
+
+Na Zatten, a conta da agência guarda vários **projetos**, e cada projeto é **1 número de WhatsApp + 1 agente de IA**. As **organizações** agrupam projetos dentro da conta. O white-label, a equipe e a cobrança se encaixam nessa estrutura.
+
+## Os quatro níveis
+
+| Nível | O que é | Exemplo |
+|---|---|---|
+| **Agência** (conta, ou *tenant*) | A conta inteira. Tem a marca (white-label), o domínio, os usuários e todos os projetos. É criada no cadastro. | "Agência Norte" |
+| **Organização** | Uma pasta que agrupa projetos. A conta nasce com uma organização chamada "Principal". | "Clínica Sorriso" (com 2 números) |
+| **Projeto** | 1 número de WhatsApp + 1 agente, com funil, tags, propriedades, automações, departamentos, chaves de API e métricas próprios. É a unidade de cobrança. | "Clínica Sorriso — Unidade Centro" |
+| **Departamento** | Um grupo de atendentes humanos dentro do projeto, que recebe leads. | "Recepção", "Comercial" |
+
+```text
+Agência (tenant: marca, domínio, usuários)
+├── Organização "Clínica Sorriso"
+│   ├── Projeto "Unidade Centro"   → 1 número, 1 agente, 1 assinatura
+│   └── Projeto "Unidade Sul"      → 1 número, 1 agente, 1 assinatura
+└── Organização "Imobiliária Alfa"
+    └── Projeto "Vendas"           → 1 número, 1 agente, 1 assinatura
+```
+
+## Como tratar cada cliente final
+
+Trate cada cliente final como pelo menos um projeto isolado:
+
+- **Um número de WhatsApp = um projeto.** Se o cliente final tem dois números, são dois projetos (e duas assinaturas).
+- **Uma organização por cliente final.** Coloque todos os projetos desse cliente na mesma organização. Assim fica fácil dar a ele acesso só ao que é dele.
+- **Nada é compartilhado entre projetos.** Funil, tags, propriedades, automações, chave da IA, chaves de API e conexão do WhatsApp são de cada projeto. Para reaproveitar uma configuração, duplique o projeto ou use um template (veja [Criar a conta e o primeiro projeto](/comecar/criar-conta-e-projeto)).
+- **A marca é da agência.** Nome, logo, cores e domínio valem para a conta inteira, e todos os clientes finais veem a mesma marca. Veja [White-label](/comecar/white-label).
+
+## Quem vê o quê
+
+Os usuários pertencem à conta da agência. Ao criar um acesso, você escolhe:
+
+1. o **papel** (Admin, Editor, Gestor ou Visualizador);
+2. quais **organizações e projetos** a pessoa vê;
+3. em quais **departamentos** ela atende.
+
+Então um cliente final pode entrar no painel e ver só os projetos dele. Veja [Montar a equipe](/comecar/equipe-e-permissoes).
+
+## Armadilhas
+
+- **Duas marcas na mesma conta não existem.** Se dois clientes finais precisam ver marcas diferentes, a marca é a da agência para os dois.
+- **Um projeto não troca de conta.** Para levar um projeto para outra conta, leia o template (pelo MCP com `get_template` ou pela [API de template](/api/template); o botão **Exportar** só existe no motor antigo) e importe o JSON na outra conta. A conexão do WhatsApp e o histórico não vão junto, e as chaves do arquivo vão: confira se devem ficar.
+- **Mover o número entre projetos é uma ação própria.** O admin pode passar a conexão oficial e a assinatura de um projeto para outro da mesma conta, e o projeto de origem é desativado. Veja [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia).
+
+## Para saber mais
+
+- [Organizações e projetos (referência)](/produto/organizacoes-e-projetos): criar, ler o template, duplicar, excluir.
+- [Planos, limites e cobrança](/comecar/planos-e-limites): por que a cobrança é por projeto.
+- [Organizar sua agência no computador](/trabalhar-com-ia/organizar-a-agencia): uma pasta por cliente final para o assistente de IA.
+- [Glossário](/inicio/glossario).
+- Termos para buscar: "multi-tenant", "white-label", "WhatsApp Business Account (WABA)".

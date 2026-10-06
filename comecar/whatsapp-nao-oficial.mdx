@@ -1,0 +1,79 @@
+---
+title: "WhatsApp não oficial (QR Code)"
+description: "Leia para conectar um número por QR Code, entender os status e as configurações da conexão não oficial, os templates próprios e os riscos."
+---
+
+A conexão não oficial pareia o número do projeto com a Zatten lendo um QR Code no celular, como no WhatsApp Web. Ela conecta em segundos, funciona com qualquer número e **não tem janela de 24h**. Em troca, depende do celular ligado, não é homologada pela Meta e **não tem campanhas, reengajamento nem conversões para o Meta Ads**.
+
+<Warning>
+Use a conexão não oficial só quando a oficial não for possível. O número corre mais risco de bloqueio pelo WhatsApp, principalmente com volume alto ou mensagens para quem não falou com a empresa. Explique isso ao cliente final antes.
+</Warning>
+
+## Conectar
+
+<Steps>
+<Step title="Escolha o método">
+Em **WhatsApp**, clique em **Conectar via QR code**. O projeto precisa de assinatura ativa.
+</Step>
+<Step title="Gere o código">
+Clique em **Conectar WhatsApp (QR code)**.
+</Step>
+<Step title="Leia no celular">
+Abra o WhatsApp no celular, vá em **Aparelhos conectados → Conectar um aparelho** e aponte a câmera para o código.
+</Step>
+<Step title="Pronto">
+A tela mostra "WhatsApp conectado", com o nome e o número.
+</Step>
+</Steps>
+
+Se o código expirar antes da leitura, a tela avisa "Essa conexão expirou" e pede para gerar um novo.
+
+## Estados da conexão
+
+| O que a tela mostra | O que significa | O que fazer |
+|---|---|---|
+| **WhatsApp conectado** (nome e número) | O número está pareado e recebendo mensagens. | Nada. |
+| Botão **Continuar pareamento** | O QR Code foi gerado e ainda não foi lido. | Clicar e ler o código. |
+| **WhatsApp desconectado** | A sessão caiu ou o WhatsApp foi desconectado pelo celular. | **Reconectar via QR code**, lendo um código novo. |
+| **Erro na conexão** | A conexão falhou. | Remover a conexão e conectar de novo. Se persistir, falar com o suporte. |
+
+Quando a conexão cai, o **admin da conta recebe um e-mail** avisando qual número desconectou.
+
+## Configurações
+
+Ficam na própria tela da conexão, depois de conectar. Cada campo salva sozinho.
+
+| Configuração | Opções | Padrão |
+|---|---|---|
+| **Rejeitar ligações** | Não rejeitar · Rejeitar todas · Rejeitar só chamadas de voz · Rejeitar só chamadas de vídeo | Rejeitar todas |
+| **Status de presença** | Só ao digitar (recomendado) · Sempre online · Sempre offline | Só ao digitar |
+| **Confirmação de leitura** | Sempre confirmar · Nunca confirmar | Nunca confirmar |
+
+## Templates próprios
+
+Na conexão não oficial não existem templates da Meta. Os templates são criados direto no painel, na aba **Templates** de **WhatsApp**, **sem aprovação**, e enviados como texto comum. Eles servem para o follow-up e para os envios que pedem template. Veja [Templates do WhatsApp](/produto/templates-whatsapp).
+
+## O que muda em relação à oficial
+
+| Recurso | Na conexão não oficial |
+|---|---|
+| Janela de 24h | Não existe. O texto livre pode ser enviado a qualquer momento. |
+| Campanhas | O menu **Campanhas** some. |
+| Reengajamento | A automação não aparece (ela só existe para a janela de 24h). |
+| Conversões para o Meta Ads | A automação não aparece. |
+| Cobrança por mensagem | Não há cobrança da Meta. |
+| Humano responde pelo celular | A mensagem aparece no CRM e pausa a IA pelo tempo da [Pausa humana](/engenharia-de-ia/pausa-humana). |
+
+## Armadilhas
+
+- **Celular desligado ou sem internet = projeto parado.** O agente não recebe nem responde até o celular voltar.
+- **Não dá para ter as duas conexões.** Se o projeto já tem conexão oficial, a conexão por QR Code dá erro de conflito. Remova a oficial antes.
+- **Migrar para a oficial depois exige recomeçar a conexão.** Desconecte o QR Code, escolha "Conectar via Meta" e refaça. Os templates próprios não viram templates da Meta: crie e aprove os templates na Meta.
+- **Envio em massa por fora das campanhas** (por exemplo, por automações ou pela API) aumenta o risco de bloqueio do número.
+
+## Para saber mais
+
+- [Qual conexão escolher](/comecar/conexoes-whatsapp).
+- [Janela de 24h, templates e o que dá para enviar](/comecar/janela-de-24h).
+- [Follow-up](/produto/automacoes/follow-up).
+- Termos para buscar: "WhatsApp Web pareamento", "aparelhos conectados", "bloqueio de número WhatsApp".

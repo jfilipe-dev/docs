@@ -1,0 +1,73 @@
+---
+title: "Comece por aqui"
+description: "Leia primeiro: o que é esta documentação, como ela está organizada e qual seção abrir para cada tipo de pergunta sobre a Zatten."
+---
+
+Esta é a documentação oficial da Zatten e a fonte da verdade sobre o produto, a
+API e a forma certa de operar um projeto. Ela foi escrita principalmente para
+assistentes de IA (Claude Code, Codex, Cursor e outros) que configuram a Zatten
+para agências, e serve também para quem lê com os próprios olhos.
+
+Tudo aqui descreve o que o painel, o servidor e o agente fazem **hoje**. Preços
+não são copiados: a doc sempre aponta para a página oficial.
+
+<Note>
+Você é um assistente de IA? Leia [Para agentes de IA](/inicio/para-agentes-de-ia)
+antes de qualquer outra página. Ela tem as regras que valem em toda tarefa.
+</Note>
+
+## Como a doc está organizada
+
+São 7 seções, cada uma responde a um tipo de pergunta.
+
+| Seção | Responde a | Comece por |
+|---|---|---|
+| **Início** | Como usar esta doc, regras para assistentes, termos | [Glossário](/inicio/glossario) |
+| **Começar** | O que é a Zatten, planos, custos, conexão do WhatsApp, equipe e marca | [O que é a Zatten](/comecar/o-que-e-a-zatten) |
+| **Trabalhar com IA** | Como operar a Zatten por um assistente de IA: skill, MCP, regras, navegador e API | [Visão geral](/trabalhar-com-ia/visao-geral) |
+| **Produto** | Uma página por recurso do painel: funil, tags, propriedades, automações, campanhas e outros | [Funil (Kanban)](/produto/funil-kanban) |
+| **Engenharia de IA** | Como o agente funciona e como configurá-lo bem: modelo, prompt, tools, skills, buffer, pausa, LangSmith | [Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona) |
+| **Playbooks** | Estratégia pronta por nicho e por objetivo, só com o que a Zatten oferece | [Como usar os playbooks](/playbooks/como-usar) |
+| **API e webhooks** | Endpoints, autenticação, limites, erros e eventos | [Visão geral da API](/api/visao-geral) |
+
+Há ainda [Fontes externas](/referencias/fontes-externas), com os links oficiais
+(Meta, OpenAI, OpenRouter, LangChain, Composio) e os termos para buscar em cada um.
+
+## Qual página abrir para cada pergunta
+
+| Se a pergunta é… | Abra |
+|---|---|
+| "O que significa X?" | [Glossário](/inicio/glossario) |
+| "Quanto custa?" | [Planos e limites](/comecar/planos-e-limites) e [Custos de operação](/comecar/custos-de-operacao) |
+| "Qual conexão do WhatsApp usar?" | [Conexões do WhatsApp](/comecar/conexoes-whatsapp) |
+| "Posso mandar mensagem para este lead agora?" | [Janela de 24h](/comecar/janela-de-24h) |
+| "Como instalo a skill e o MCP?" | [Instalar a skill e o MCP](/trabalhar-com-ia/instalar) |
+| "O que o assistente pode e não pode fazer sozinho?" | [As regras que o assistente segue](/trabalhar-com-ia/regras) |
+| "Como altero o projeto pelo MCP?" | [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona) e [Referência do template](/trabalhar-com-ia/referencia-do-template) |
+| "Isso dá para fazer pelo MCP?" | [O que só se faz pelo painel](/trabalhar-com-ia/so-pelo-painel) |
+| "Como funciona o recurso X do painel?" | A página do recurso em **Produto** |
+| "Por que a automação não disparou?" | [Quando as automações disparam](/produto/automacoes/quando-disparam) |
+| "Por que o agente respondeu assim?" | [Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona) e [LangSmith](/engenharia-de-ia/langsmith) |
+| "Como monto um bom agente para uma clínica?" | O nicho em **Playbooks** |
+| "Qual endpoint uso para Y?" | **API e webhooks** |
+
+## Como ler a doc por máquina
+
+- **MCP da doc:** `https://docs.zatten.com/mcp`. Público e sem login, com busca e
+  leitura de páginas. É o caminho preferido.
+- **Índice:** `https://docs.zatten.com/llms.txt` lista todas as páginas, cada uma
+  com a frase que diz quando lê-la.
+- **Página em Markdown:** acrescente `.md` ao endereço de qualquer página.
+
+Detalhes em [Para agentes de IA](/inicio/para-agentes-de-ia).
+
+## Convenções desta doc
+
+- **Um termo por conceito**, sempre o do painel. Os termos estão no
+  [Glossário](/inicio/glossario).
+- **Números com unidade:** segundos, minutos, horas, e o valor padrão.
+- **Seção "Armadilhas"** em toda página de recurso: o que faz algo parecer
+  configurado sem funcionar.
+- **Seção "Pelo MCP"** quando o recurso pode ser alterado pelo assistente.
+- **Blocos marcados só para agentes** trazem nomes de campo, enums e payloads.
+  Quem lê no navegador não os vê.

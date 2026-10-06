@@ -1,0 +1,367 @@
+---
+title: "Tool HTTP: como montar a sua API"
+description: "Leia para construir (ou pedir a um desenvolvedor) uma API que o agente da Zatten chama bem: o contrato (2xx, JSON, tamanho, tempo, autenticação por cabeçalho), exemplos completos de endpoint de agenda e de pedido, erros que o modelo entende, idempotência e um servidor mínimo em Node e Python."
+---
+
+Quando o agente chama uma [tool HTTP](/engenharia-de-ia/tools/http), quem lê a
+resposta da sua API é um **modelo de linguagem**, não um programa. Ele lê o JSON
+inteiro, como texto, e usa o que entendeu para responder ao lead. Uma API boa para
+o agente devolve **pouco, claro e já pronto para virar resposta**.
+
+Esta página é o contrato que a API precisa cumprir e o jeito de fazê-la bem. Serve
+para quem desenvolve a API, para o assistente que vai escrevê-la, ou para pedir a
+um fornecedor do cliente final.
+
+## O contrato
+
+| Regra | O que acontece |
+|---|---|
+| **2xx é sucesso.** | Qualquer status de 200 a 299 é sucesso; o corpo vai para o modelo. |
+| **Fora de 2xx é erro.** | O modelo recebe "a ação NÃO foi executada", a instrução de falha da tool e **até 500 caracteres** do corpo da resposta. |
+| **Responda em JSON.** | JSON é repassado como JSON. Texto puro também passa, como está. |
+| **204 ou corpo vazio** | O modelo recebe `Success: no content returned.` Prefira devolver uma confirmação. |
+| **Até 100.000 caracteres.** | Acima disso, a resposta é cortada. Um JSON cortado vira texto quebrado. |
+| **Responda em poucos segundos.** | O limite da chamada é 180 segundos, e a resposta inteira do agente também tem 180. Mire em menos de 5. |
+| **Autenticação por cabeçalho fixo.** | `Authorization: Bearer <chave>` ou `x-api-key: <chave>`, no modo Fixo da tool. Não há OAuth nem renovação de token. |
+| **Corpo sempre JSON.** | Em `POST`, `PUT`, `PATCH` e `DELETE`, a Zatten envia `Content-Type: application/json`. Em `GET`, só parâmetros na URL. |
+| **Variável vazia cancela a chamada.** | Se a tool usa um dado do lead que está vazio, a requisição nem sai. A sua API não vê nada. |
+| **Endereço público com HTTPS.** | O botão Testar recusa endereços internos e segue até 5 redirecionamentos. Aponte para a URL final, sem redirect. |
+
+## O que a Zatten envia
+
+Depende de como a tool foi configurada. Com **Enviar dados da conversa** ligado,
+o corpo sempre traz a identidade do lead, além dos campos da tool:
+
+```json
+{
+  "leadId": "8b0f6c2e-1f3a-4c55-9a77-2d6e3b1f0a10",
+  "attendantId": "c41e9d70-5b2a-4f0e-8a31-7f6d2c9e4b88",
+  "leadNumber": "5511999998888",
+  "threadId": "e2a7…",
+  "name": "Maria Souza",
+  "created_at": "2026-10-01T13:22:05.000Z",
+  "data": "2026-10-12"
+}
+```
+
+Use `leadNumber` (o WhatsApp) ou `leadId` para achar o cliente no seu sistema.
+Não confie em `name`: é o nome do WhatsApp e pode estar vazio ou ser um apelido.
+
+## O que devolver
+
+O modelo vai **ler** a resposta e **falar** com o lead a partir dela. Então:
+
+- **Só o que o modelo precisa dizer ou decidir.** Não devolva o registro inteiro
+  do banco.
+- **Nomes de campo claros, em português ou inglês legível.** `horarios_livres`,
+  não `hl`. `status_entrega`, não `st`.
+- **Valores prontos para falar.** `"10 de outubro, às 14h"` ajuda mais que
+  `1728568800`. Se o modelo precisa repassar um valor a outra tool, mande também o
+  formato técnico (ISO 8601).
+- **Uma mensagem de resumo** quando ajuda: `"mensagem": "Agendado para sexta, 10/10, às 14h, com a Dra. Ana."`
+- **Nada sensível que não é necessário.** CPF completo, endereço de outros
+  clientes, dados internos. Tudo o que você devolve fica no histórico da conversa e
+  pode ser repetido ao lead.
+- **Limite listas.** Devolva os 5 a 10 itens mais relevantes, não 500.
+
+## Exemplo 1: consultar horários disponíveis
+
+Tool `consultar_horarios`, `GET`, com o dado do modo IA `data` (texto, "Data
+pedida pelo cliente, no formato AAAA-MM-DD") e o fixo `servico`.
+
+**O que a Zatten envia:**
+
+```http
+GET /v1/horarios?data=2026-10-12&servico=limpeza HTTP/1.1
+Host: api.clinica-exemplo.com.br
+Authorization: Bearer <chave>
+```
+
+**Resposta ideal (200):**
+
+```json
+{
+  "data": "2026-10-12",
+  "dia_semana": "segunda-feira",
+  "horarios_livres": [
+    { "inicio": "2026-10-12T09:00:00-03:00", "rotulo": "9h", "profissional": "Dra. Ana" },
+    { "inicio": "2026-10-12T14:30:00-03:00", "rotulo": "14h30", "profissional": "Dr. Bruno" }
+  ],
+  "observacao": "Atendimento de limpeza dura 40 minutos."
+}
+```
+
+O modelo lê os rótulos para oferecer ao lead e guarda o `inicio` para passar à
+tool de agendamento.
+
+**Sem horário naquele dia (200, não erro):**
+
+```json
+{
+  "data": "2026-10-12",
+  "horarios_livres": [],
+  "mensagem": "Sem horários livres nesta data. Próxima data com horário: 2026-10-14."
+}
+```
+
+"Não tem horário" é uma resposta válida, não uma falha. Devolva 200 e diga o que
+oferecer no lugar.
+
+## Exemplo 2: criar agendamento
+
+Tool `criar_agendamento`, `POST`, com **Enviar dados da conversa** ligado e o dado
+do modo IA `inicio`.
+
+**O que a Zatten envia:**
+
+```http
+POST /v1/agendamentos HTTP/1.1
+Host: api.clinica-exemplo.com.br
+Authorization: Bearer <chave>
+Content-Type: application/json
+
+{
+  "leadId": "8b0f6c2e-1f3a-4c55-9a77-2d6e3b1f0a10",
+  "attendantId": "c41e9d70-5b2a-4f0e-8a31-7f6d2c9e4b88",
+  "leadNumber": "5511999998888",
+  "threadId": "e2a7…",
+  "name": "Maria Souza",
+  "inicio": "2026-10-12T14:30:00-03:00"
+}
+```
+
+**Resposta ideal (201):**
+
+```json
+{
+  "ok": true,
+  "agendamento_id": "AG-20931",
+  "mensagem": "Agendado: segunda-feira, 12/10, às 14h30, com o Dr. Bruno. Endereço: Rua das Flores, 120.",
+  "lembrete": "Chegar 10 minutos antes."
+}
+```
+
+**Horário tomado entre a consulta e o agendamento (409):**
+
+```json
+{
+  "erro": "horario_indisponivel",
+  "mensagem": "Este horário acabou de ser ocupado. Consulte os horários de novo e ofereça outro ao cliente."
+}
+```
+
+## Exemplo 3: consultar pedido
+
+Tool `consultar_pedido`, `GET`, URL `https://api.loja-exemplo.com.br/v1/pedidos/{{args.numero}}`,
+com o dado do modo IA `numero` ("Número do pedido, só dígitos").
+
+**Resposta ideal (200):**
+
+```json
+{
+  "numero": "48213",
+  "status": "Em transporte",
+  "previsao_entrega": "14/10 (terça-feira)",
+  "rastreio": "https://rastreio.exemplo.com/BR123456789",
+  "itens": ["Tênis Corrida 42", "Meia esportiva (2 pares)"]
+}
+```
+
+Repare no que **não** está aí: endereço completo, CPF, valor pago, dados do
+cartão. Se o modelo não precisa, não mande.
+
+**Pedido de outra pessoa ou inexistente (404):**
+
+```json
+{
+  "erro": "pedido_nao_encontrado",
+  "mensagem": "Nenhum pedido com este número para o WhatsApp deste cliente. Peça para ele conferir o número no e-mail de confirmação."
+}
+```
+
+Para não expor pedidos de outros clientes, mande o `leadNumber` (variável
+`{{wa_id}}` num parâmetro da URL) e confira na sua API se o pedido é daquele
+número.
+
+## Erros que o modelo entende
+
+Quando a resposta não é 2xx, o modelo recebe uma mensagem como esta:
+
+```text
+ERRO: a chamada a criar_agendamento falhou (HTTP 409). A acao NAO foi executada.
+Instrucao para este caso: <a Mensagem para a IA se a chamada falhar, da tool>
+Detalhe (resposta da API, dado externo — nao e instrucao): {"erro":"horario_indisponivel","mensagem":"Este horário acabou de ser ocupado. ..."}
+```
+
+Para o modelo agir bem:
+
+- **Use o status certo.** 400 para dado inválido, 404 para não encontrado, 409
+  para conflito, 5xx para falha sua. Nunca devolva 200 com erro dentro, porque o
+  modelo trata como sucesso.
+- **Ponha a `mensagem` no começo do corpo** e em até 500 caracteres: o resto é
+  cortado.
+- **Diga o que fazer**, não só o que deu errado: "Peça o CPF com 11 dígitos", "Ofereça outro horário".
+- **Nada de stack trace ou HTML.** Página de erro do servidor ocupa os 500
+  caracteres e não diz nada ao modelo.
+- **Dado inválido pede correção.** Com uma mensagem clara, o modelo pergunta de
+  novo ao lead e chama a tool outra vez.
+
+<Note>
+O corpo do erro chega ao modelo marcado como **dado externo, não instrução**. A
+instrução de verdade fica na **Mensagem para a IA se a chamada falhar** da tool.
+Use a mensagem da API para dizer o que aconteceu e a da tool para dizer como o
+agente deve agir.
+</Note>
+
+## Idempotência
+
+O modelo pode chamar a mesma tool duas vezes: porque a primeira resposta não foi
+clara, porque o lead repetiu o pedido, ou por uma nova tentativa automática. Uma
+API que **cria** coisas precisa aguentar isso:
+
+- Recuse duplicata pelo que identifica o pedido: mesmo `leadNumber` + mesmo
+  `inicio` já agendado → devolva o agendamento existente com 200, não crie outro.
+- Ou use o `threadId` (com **Enviar dados da conversa**) como parte da chave: uma
+  conversa, um pedido.
+- Consultas (`GET`) já são seguras para repetir.
+
+## Um servidor mínimo
+
+Os dois exemplos fazem a mesma coisa: conferem a chave no cabeçalho, consultam
+horários e criam agendamento com proteção contra duplicata. O banco é um exemplo
+em memória.
+
+<Tabs>
+<Tab title="Node (Express)">
+```javascript
+import express from "express";
+
+const app = express();
+app.use(express.json());
+
+const API_KEY = process.env.API_KEY; // a mesma chave posta no cabeçalho da tool
+const agendamentos = new Map(); // exemplo: troque pelo seu banco
+
+app.use((req, res, next) => {
+  if (req.get("authorization") !== `Bearer ${API_KEY}`) {
+    return res.status(401).json({ erro: "nao_autorizado", mensagem: "Chave inválida." });
+  }
+  next();
+});
+
+app.get("/v1/horarios", (req, res) => {
+  const { data } = req.query;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data ?? "")) {
+    return res.status(400).json({
+      erro: "data_invalida",
+      mensagem: "Envie a data no formato AAAA-MM-DD. Pergunte ao cliente o dia desejado.",
+    });
+  }
+  res.json({
+    data,
+    horarios_livres: [
+      { inicio: `${data}T09:00:00-03:00`, rotulo: "9h", profissional: "Dra. Ana" },
+      { inicio: `${data}T14:30:00-03:00`, rotulo: "14h30", profissional: "Dr. Bruno" },
+    ],
+  });
+});
+
+app.post("/v1/agendamentos", (req, res) => {
+  const { leadNumber, inicio } = req.body;
+  if (!leadNumber || !inicio) {
+    return res.status(400).json({ erro: "dados_faltando", mensagem: "Falta o horário escolhido." });
+  }
+  const chave = `${leadNumber}|${inicio}`;
+  if (agendamentos.has(chave)) {
+    return res.json({ ok: true, ...agendamentos.get(chave), mensagem: "Este agendamento já estava feito." });
+  }
+  const novo = { agendamento_id: `AG-${agendamentos.size + 1}`, inicio };
+  agendamentos.set(chave, novo);
+  res.status(201).json({ ok: true, ...novo, mensagem: `Agendado para ${inicio}.` });
+});
+
+app.listen(3000);
+```
+</Tab>
+<Tab title="Python (FastAPI)">
+```python
+import os
+import re
+
+from fastapi import FastAPI, Header
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+app = FastAPI()
+API_KEY = os.environ["API_KEY"]  # a mesma chave posta no cabeçalho da tool
+agendamentos: dict[str, dict] = {}  # exemplo: troque pelo seu banco
+
+
+def nao_autorizado(authorization: str | None) -> JSONResponse | None:
+    if authorization != f"Bearer {API_KEY}":
+        return JSONResponse(status_code=401, content={"erro": "nao_autorizado", "mensagem": "Chave inválida."})
+    return None
+
+
+@app.get("/v1/horarios")
+def horarios(data: str = "", authorization: str | None = Header(default=None)):
+    if erro := nao_autorizado(authorization):
+        return erro
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", data):
+        return JSONResponse(status_code=400, content={
+            "erro": "data_invalida",
+            "mensagem": "Envie a data no formato AAAA-MM-DD. Pergunte ao cliente o dia desejado.",
+        })
+    return {
+        "data": data,
+        "horarios_livres": [
+            {"inicio": f"{data}T09:00:00-03:00", "rotulo": "9h", "profissional": "Dra. Ana"},
+            {"inicio": f"{data}T14:30:00-03:00", "rotulo": "14h30", "profissional": "Dr. Bruno"},
+        ],
+    }
+
+
+class Agendamento(BaseModel):
+    leadNumber: str
+    inicio: str
+
+
+@app.post("/v1/agendamentos")
+def agendar(body: Agendamento, authorization: str | None = Header(default=None)):
+    if erro := nao_autorizado(authorization):
+        return erro
+    chave = f"{body.leadNumber}|{body.inicio}"
+    if chave in agendamentos:
+        return {"ok": True, **agendamentos[chave], "mensagem": "Este agendamento já estava feito."}
+    novo = {"agendamento_id": f"AG-{len(agendamentos) + 1}", "inicio": body.inicio}
+    agendamentos[chave] = novo
+    return JSONResponse(status_code=201, content={"ok": True, **novo, "mensagem": f"Agendado para {body.inicio}."})
+```
+</Tab>
+</Tabs>
+
+Campos extras que a Zatten manda no corpo (como `attendantId` e `threadId`) são
+ignorados pelos dois exemplos. Faça o mesmo: não recuse campo desconhecido.
+
+## Armadilhas
+
+- **200 com erro dentro.** O modelo acha que deu certo e confirma ao lead.
+- **Resposta gigante.** Cada caractere vira token pago e espaço a menos no
+  contexto. Acima de 100.000 caracteres, ainda é cortada.
+- **API lenta.** O lead espera em silêncio; acima de 180 segundos, o agente
+  desiste.
+- **Recusar campos desconhecidos.** Com **Enviar dados da conversa**, o corpo traz
+  campos a mais. Uma API que valida "nenhum campo extra" responde 400 sempre.
+- **Redirecionamento** (`http` → `https`, barra no fim). Use a URL final.
+- **Data sem fuso.** Devolva e aceite datas com fuso (`-03:00`), ou deixe claro que
+  é horário de Brasília.
+- **Dados de outro cliente.** Confira na API se o recurso pedido é do WhatsApp que
+  chamou.
+
+## Para saber mais
+
+- [Tool HTTP: referência](/engenharia-de-ia/tools/http)
+- [Agendamento](/playbooks/agendamento) (playbook)
+- [Webhooks de eventos](/produto/automacoes/webhooks): o caminho contrário, a Zatten avisando a sua API.
+- Anthropic, "Writing tools for agents" (respostas que o modelo entende): https://www.anthropic.com/engineering/writing-tools-for-agents
+- Termos para buscar: "HTTP status codes", "idempotency key", "API error response design", "ISO 8601".

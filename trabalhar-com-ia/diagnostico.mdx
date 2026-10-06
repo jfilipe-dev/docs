@@ -1,0 +1,157 @@
+---
+title: "Diagnóstico de um projeto"
+description: "Leia na primeira vez que o assistente abre um cliente: o roteiro de checagens do projeto (campo do template, por que importa, o que recomendar), em que ordem fazer e como entregar a lista priorizada, sem aplicar nada."
+---
+
+O diagnóstico é a leitura completa de um projeto na primeira vez que o assistente abre
+um cliente (quando ainda não existe `clientes/<cliente>/`). O assistente lê o template,
+compara com as boas práticas desta doc e devolve uma **lista priorizada de
+recomendações**. **Nada é aplicado no diagnóstico.** Cada recomendação vira, depois,
+um pedido normal, com plano e "sim".
+
+## O roteiro, em ordem
+
+<Steps>
+  <Step title="Identificar o projeto">
+    `list_projects` e confirmar com a pessoa qual projeto é o cliente. Anotar o
+    `project_id` e o nome exato.
+  </Step>
+  <Step title="Ler o template e guardar a linha de base">
+    `get_template`. Gravar a resposta em `snapshots/` e a `revision` no Vigente da
+    `MEMORIA.md`. Ver [Mudanças feitas pelo painel](/trabalhar-com-ia/mudancas-pelo-painel).
+  </Step>
+  <Step title="Perguntar o que o template não diz">
+    Qual conexão do WhatsApp o projeto usa (oficial, coexistência ou QR Code), se
+    há anúncios Click-to-WhatsApp, quem atende quando a IA transfere. Se houver
+    navegador, dá para ler em `/meta` e `/crm/departments` (só leitura, com o
+    projeto conferido na tela).
+  </Step>
+  <Step title="Rodar as checagens">
+    As da tabela abaixo, na ordem. Anotar a evidência de cada achado: o campo e o
+    valor encontrado.
+  </Step>
+  <Step title="Ler as páginas da doc dos achados">
+    Antes de recomendar, ler a página de cada recurso envolvido. A recomendação
+    cita a página.
+  </Step>
+  <Step title="Entregar a lista e preencher o CLIENTE.md">
+    No formato do fim desta página. Preencher o `CLIENTE.md` com o que deu para
+    inferir e perguntar o resto (nicho, objetivo, regras do cliente).
+  </Step>
+</Steps>
+
+<Note>
+O primeiro achado decide o resto. Se o projeto está no **motor antigo**, o bloco
+`langchain` não existe, e as checagens de modelo, LangSmith, tools e skills do
+LangChain não se aplicam. A recomendação principal passa a ser migrar.
+</Note>
+
+## As checagens
+
+Os campos são do template devolvido por `get_template`. `langchain.config` é o
+config do agente no LangChain Agent; `llm_attendant` são os campos do projeto.
+
+### Crítico: o atendimento falha ou perde mensagem
+
+| # | O que olhar (campo) | Por que importa | O que recomendar | Página |
+|---|---|---|---|---|
+| C1 | `columns[]` com `order: 0` e `shutdown_ai: true` | A coluna de entrada recebe todo lead novo. Com **Desativar IA**, a IA nunca responde ninguém. | Desligar **Desativar IA** na coluna de entrada. | [Funil (Kanban)](/produto/funil-kanban) |
+| C2 | `llm_attendant.message_buffer` vazio ou `0` | Com buffer vazio ou 0, a mensagem do lead é salva e os webhooks saem, mas ela **não vai ao agente**: a IA não responde. | Definir um buffer entre 1 e 30 segundos. | [Buffer de mensagens](/engenharia-de-ia/buffer) |
+| C3 | `follow_ups[]` com `method: "FOLLOW_UP"` e `template_name` vazio ou ausente de `meta_templates[].name` | Follow-up sem template não envia nada; é salvo desligado. | Associar um template; conferir em `/meta` se ele está **aprovado**. | [Follow-up](/produto/automacoes/follow-up) |
+| C4 | Conexão do projeto x recursos usados | Na conexão por QR Code, reengajamento, conversões e campanhas não funcionam. Na oficial, texto livre só vale dentro da janela de 24h. | Ver a tabela "Conexão x recursos" abaixo. | [Qual conexão escolher](/comecar/conexoes-whatsapp) |
+| C5 | `webhooks[]`, `integration_webhooks[]`, `mcps[]` com `status: "ACTIVE"` e `url` vazia; `custom_actions[]` com `is_active: true` e `webhook_url` vazia | Parece ligado, mas não tem para onde mandar. | Pôr o endereço (no painel ou pelo MCP) ou desligar. | [Webhooks](/produto/automacoes/webhooks), [Servidores MCP](/engenharia-de-ia/tools/mcp) |
+| C6 | `langchain.config.settings.human_approval.enabled: true`, qualquer `tools[].require_approval: true`, ou `mcps[].request_approval: true` | O painel não tem tela de aprovação. A conversa fica esperando uma aprovação que nunca vem. | Desligar a aprovação humana. | [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) |
+
+### Alto: custa caro, fica cego ou atende mal
+
+| # | O que olhar (campo) | Por que importa | O que recomendar | Página |
+|---|---|---|---|---|
+| A1 | `llm_attendant.llm` diferente de `LANGCHAIN_AGENT` | O motor antigo é legado. Fallback, retry, LangSmith, versões e skills na config só existem no LangChain Agent. | **Migrar para o LangChain Agent** (no painel, em `/project`). | [LangChain x motor antigo](/engenharia-de-ia/langchain-x-motor-antigo), [Migrar](/engenharia-de-ia/migrar) |
+| A2 | `langchain.config.settings.tracing.enabled` falso, ou `api_key` vazia | Sem LangSmith, não dá para ver por que o agente errou nem quanto cada conversa custou. | Ligar o LangSmith com uma chave do cliente. | [Observabilidade com LangSmith](/engenharia-de-ia/langsmith) |
+| A3 | `langchain.config.model.fallback.enabled` falso ou `models` vazio; `model.retry` desligado; `settings.error_handling` desligado ou sem `handoff_tool` | Se o modelo cair, o lead fica sem resposta (ou recebe erro em inglês). | Ligar retry (2 a 3 tentativas), 1 modelo de reserva de outro fornecedor e a mensagem de erro com transferência para humano. | [Resiliência](/engenharia-de-ia/resiliencia) |
+| A4 | `langchain.config.model.name` e `provider` | Modelo caro demais para o caso, ou que não entende áudio ou imagem que os leads mandam. | Comparar 2 ou 3 modelos em custo e modalidades. | [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo), [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia) |
+| A5 | `llm_attendant.pause_in_human_interaction` igual a `0` | Com 0 minutos, a IA volta a responder logo depois de um humano falar, por cima dele. | Uma pausa que cubra o atendimento humano (o padrão é 60 minutos). | [Pausa humana](/engenharia-de-ia/pausa-humana) |
+| A6 | Nenhuma coluna com `transhipment: true`; nenhum `attendant_teams[]` com `default: true` | Sem coluna de transbordo, não há etapa no funil para "com humano", e a transferência automática quando o modelo falha não tem para onde mover o lead. Sem departamento padrão, lead novo não entra no rodízio, e o transbordo notifica só o responsável do lead: sem responsável, ninguém é avisado. | Criar a coluna de transbordo e marcar um departamento padrão. Conferir em `/crm/departments` se ele tem membros que recebem leads. | [Funil](/produto/funil-kanban), [Departamentos](/produto/departamentos), [Transbordo bem feito](/playbooks/transbordo) |
+| A7 | `properties[]` que o prompt ou as tools usam, com `send_to_ai` falso; ou `langchain.config.instructions.inject_context` falso | O agente não enxerga o valor da propriedade (nem nome, tags e etapa, sem `inject_context`). | Marcar `send_to_ai` nas propriedades que o agente precisa e ligar `inject_context`. `send_to_ai` só se muda pelo template. | [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado), [Propriedades](/produto/propriedades) |
+| A8 | `langchain.config.settings.transcription.model` igual a `openai/whisper-1` com o provider resolvendo para `openai` | Na OpenAI direta, o nome certo é `whisper-1`. Com o prefixo, o áudio do lead não é transcrito. | Ajustar o nome do modelo de transcrição ao provider. | [Mídia](/engenharia-de-ia/midia) |
+
+### Médio: qualidade e manutenção
+
+| # | O que olhar (campo) | Por que importa | O que recomendar | Página |
+|---|---|---|---|---|
+| M1 | `langchain.config.instructions.system_prompt` (ou `llm_attendant.prompt` no motor antigo) sem seções; com catálogo, FAQ ou tabela de preços inteira; com regras de quando chamar cada tool | Prompt sem estrutura é instável. Conhecimento longo pesa em toda mensagem (custo). Regra de tool rende mais na descrição da tool. | Estruturar (papel, objetivo, fluxo, regras, tom, quando transferir); mover conhecimento longo para skills e regras de tool para a descrição da tool. | [Escrever um bom prompt](/engenharia-de-ia/prompt) |
+| M2 | `llm_attendant.message_buffer` entre 1 e 2 | Lead que manda três mensagens seguidas recebe três respostas. | Subir o buffer (o padrão do servidor é 10 segundos). | [Buffer de mensagens](/engenharia-de-ia/buffer) |
+| M3 | `properties[]` com `is_enum: false` cujo nome indica opções fechadas (convênio, interesse, plano, unidade, origem) | Texto livre gera "Unimed", "unimed", "UNIMED": filtros e campanhas falham. | Transformar em lista (`is_enum: true` com `values`). Não converter propriedade que já tem texto preenchido nos leads sem planejar. | [Propriedades](/produto/propriedades) |
+| M4 | `langchain.config.tools[]` com `description` curta ou genérica; `parameters` sem descrição; parâmetro `array` sem `items`; mais de cerca de 10 tools sem `settings.tool_selector` | A descrição é o que o modelo lê para decidir chamar. Array sem `items` faz alguns modelos recusarem a chamada inteira. | Reescrever descrições (quando usar, quando não usar, o que devolve); completar o schema; considerar o seletor de tools. | [Tools: visão geral](/engenharia-de-ia/tools/visao-geral), [Tool HTTP](/engenharia-de-ia/tools/http) |
+| M5 | Tools `type: "skill"` (ou `skills[]`) somando mais de cerca de 100 KB, ou uma skill com tabelas inteiras; `context_editing` ligado sem `load_skill` em `exclude_tools`; `tool_selector` ligado sem `load_skill` em `always_include` | Skill grande pesa no editor e no contexto. Os dois ajustes apagam ou escondem a skill sem aviso. | Skill curta que ensina a buscar o dado; excluir `load_skill` da limpeza e incluí-la sempre no seletor. | [Skills do agente](/engenharia-de-ia/skills) |
+| M6 | Automações com `status: "INACTIVE"` | Pode ser de propósito ou esquecimento. | Perguntar, não ligar por conta própria. Webhooks desligados por falhas aparecem com um aviso no painel. | [Visão geral das automações](/produto/automacoes/visao-geral) |
+
+### Conexão x recursos
+
+O template não diz qual é a conexão. Pergunte, ou leia em `/meta` pelo navegador.
+
+| Recurso no template | Oficial (Cloud API) e coexistência | Não oficial (QR Code) |
+|---|---|---|
+| `follow_ups[]` com `RE_ENGAGEMENT` (reengajamento) | Funciona | **Não funciona** |
+| `conversions[]` (Meta Ads) | Funciona para leads vindos de anúncio | **Não funciona** |
+| Campanhas | Tela `/crm/campaigns` | **O menu não aparece** |
+| `follow_ups[]` com `FOLLOW_UP` | Template da Meta **aprovado** | Template próprio da conexão por QR |
+| `meta_templates[]` | Precisam de aprovação da Meta | Não se aplicam |
+| Texto livre (transbordo por inatividade, reengajamento) | Só dentro da janela de 24h | Sem janela de 24h |
+
+## Como entregar o resultado
+
+Uma lista só, do mais grave para o menos grave, com no máximo uma linha de
+evidência por item. Nada foi aplicado; diga isso no começo.
+
+```markdown
+## Diagnóstico — Clínica Sorriso (06/10/2026)
+Nada foi alterado. Cada item vira um pedido separado, com plano e "sim".
+
+### Crítico
+1. **Follow-up "Lembrete 24h" sem template.** `follow_ups[0].template_name` vazio:
+   não envia nada. → Associar o template "lembrete_consulta" e conferir se está
+   aprovado. [Follow-up](/produto/automacoes/follow-up)
+
+### Alto
+2. **Motor antigo.** `llm_attendant.llm = OPENAI_RESPONSES`. → Migrar para o
+   LangChain Agent (no painel). [Migrar](/engenharia-de-ia/migrar)
+3. **Buffer curto.** `message_buffer = 1`: três mensagens seguidas recebem três
+   respostas. → 8 segundos. [Buffer](/engenharia-de-ia/buffer)
+
+### Médio
+4. **"Convênio" é texto livre.** Deveria ser lista. [Propriedades](/produto/propriedades)
+
+### Preciso saber
+- Qual conexão o projeto usa? (oficial, coexistência, QR Code)
+- Quem recebe os leads transferidos?
+```
+
+Depois da lista, o assistente pergunta: "Quer que eu crie um artefato para discutirmos,
+ou vamos direto ao ponto?". O diagnóstico também é registrado no Histórico da
+`MEMORIA.md`.
+
+## Armadilhas
+
+- **Aplicar junto.** O diagnóstico não aplica nada, nem o que parece óbvio. Misturar
+  mudança pedida com não pedida torna o "sim" menos informado.
+- **Recomendar sem evidência.** Todo item cita o campo e o valor. "O prompt pode
+  melhorar" sem trecho não é achado.
+- **Julgar `status: "INACTIVE"` como erro.** Pode ser decisão do cliente. Pergunte.
+- **Esquecer o que não está no template.** Conexão, aprovação dos templates da Meta,
+  membros de departamento e webhooks desligados por falhas só aparecem no painel.
+- **Ler o rascunho como se estivesse no ar.** `get_template` traz a versão mais nova
+  do agente, publicada ou não. Se há rascunho, diga que o que está no ar pode ser
+  diferente.
+
+## Para saber mais
+
+- [Como usar os playbooks](/playbooks/como-usar) e
+  [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- [Como o agente da Zatten funciona](/engenharia-de-ia/como-o-agente-funciona)
+- [Referência do template (JSON)](/trabalhar-com-ia/referencia-do-template) e
+  [Referência do config do agente](/engenharia-de-ia/referencia-do-config)
+- [Organizar sua agência no computador](/trabalhar-com-ia/organizar-a-agencia)
+- Anthropic, "Writing tools for agents": https://www.anthropic.com/engineering/writing-tools-for-agents
+- Termos para buscar: "auditoria de agente WhatsApp", "tool description best
+  practices", "LLM fallback", "prompt structure".

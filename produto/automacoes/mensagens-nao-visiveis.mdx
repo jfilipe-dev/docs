@@ -1,0 +1,80 @@
+---
+title: "Resposta para mensagens não visíveis"
+description: "Leia para entender por que algumas mensagens de anúncio não aparecem no CRM na coexistência e como configurar a resposta automática para elas: quando responde e quando não."
+---
+
+Na **coexistência**, algumas mensagens chegam à Zatten sem conteúdo: a Meta avisa que o lead escreveu, mas não entrega o texto. Isso acontece principalmente com conversas iniciadas por **anúncios**. O agente não tem o que responder, e o lead ficaria sem retorno. Esta automação manda um texto fixo nesses casos, pedindo, por exemplo, que o lead repita a mensagem.
+
+## Onde fica no painel
+
+**Automações → Automações nativas → criar → Resposta Automática para mensagens não visíveis.** Só existe **uma por projeto**: depois de criada, o tipo aparece como "Automação já criada".
+
+## Como configurar
+
+| Campo | O que faz |
+|---|---|
+| **Nome da Automação** | Nome na lista. Obrigatório. |
+| **Mensagem pré-definida** | O texto enviado ao lead. Obrigatório. Texto fixo, sem variáveis. |
+
+Um texto que funciona: "Oi! Recebemos seu contato, mas sua mensagem não chegou completa por aqui. Pode escrever de novo, por favor?"
+
+## Como funciona por trás
+
+### Quando responde
+
+Quando a Meta entrega uma mensagem do lead marcada como **indisponível** (erro 131060 da Meta). A Zatten então:
+
+1. registra a mensagem na conversa como erro (o conteúdo não aparece no CRM);
+2. envia a **Mensagem pré-definida** como texto comum;
+3. gera o evento `ERROR` nos [webhooks de eventos](/produto/automacoes/webhooks), com o código `ERROR_META_UNAVAILABLE - 131060`.
+
+### Quando não responde
+
+- A automação está desligada.
+- A IA está **pausada ou desligada** para aquele lead (por exemplo, um humano assumiu).
+- O agente está **desligado** ou fora do **Horário de funcionamento**.
+- A conexão é **não oficial**: ali esse tipo de mensagem não existe, então a automação nunca age, mesmo aparecendo na tela.
+
+### Repetição
+
+Não há limite: cada mensagem indisponível gera uma resposta. Se o lead mandar três mensagens assim seguidas, recebe o texto três vezes.
+
+O envio não conta como interação concluída: não agenda follow-up nem transbordo.
+
+## Por que isso acontece
+
+Na coexistência, o número continua no app WhatsApp Business e também na API da Meta. Alguns tipos de mensagem, em especial as que vêm de anúncios, a Meta não repassa à API com o conteúdo. A Zatten recebe só o aviso de que a mensagem existe. O texto pode ser visto no app WhatsApp Business do celular.
+{/* A CONFIRMAR: que a mensagem indisponível na API aparece no app WhatsApp Business do celular (não verificado no código; vem da descrição do painel e do comportamento da coexistência). */} Veja [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia).
+
+## Pelo MCP
+
+Bloco `unseen_message`: um **objeto** (ou `null`), não uma lista, porque só existe uma por projeto.
+
+- A chave é fixa: mandar outro `name` renomeia a mesma resposta.
+- Nasce desligada se `status` não vier.
+
+<Visibility for="agents">
+```json
+{
+  "unseen_message": {
+    "name": "Mensagem de anúncio não visível",
+    "message": "Oi! Sua mensagem não chegou completa por aqui. Pode escrever de novo, por favor?",
+    "status": "ACTIVE"
+  }
+}
+```
+</Visibility>
+
+## Armadilhas
+
+- **Com humano atendendo, não responde.** IA pausada ou desligada bloqueia esta automação também. O humano precisa olhar o celular.
+- **Fora do Horário de funcionamento do agente, não responde.** Mensagens de anúncio à noite ficam sem retorno se o agente tem horário.
+- **Texto repetido.** Várias mensagens indisponíveis seguidas geram várias respostas iguais. Escreva um texto que não soe estranho repetido.
+- **Não confunda com horário comercial.** Mensagem diferente fora do horário é do [Transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade), não desta automação.
+
+## Para saber mais
+
+- [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia)
+- [Webhooks de eventos](/produto/automacoes/webhooks): o evento `ERROR`.
+- Meta: [coexistência com o app WhatsApp Business](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users), [anúncios Click-to-WhatsApp](https://developers.facebook.com/documentation/ads-commerce/marketing-api/ad-creative/messaging-ads/click-to-whatsapp).
+- Termos para buscar: "WhatsApp coexistence", "error 131060", "unsupported message type WhatsApp Cloud API".

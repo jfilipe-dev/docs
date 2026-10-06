@@ -1,0 +1,210 @@
+---
+title: "Arquitetura de um bom projeto"
+description: "Leia antes de desenhar ou revisar um projeto: o papel de cada peça (funil, tags, propriedades, departamentos, automações, tools, prompt e skills), como elas se acionam umas às outras, e os padrões e antipadrões que fazem um projeto funcionar ou falhar em silêncio."
+---
+
+Um projeto bom tem cada informação no lugar certo. O **funil** diz onde o lead
+está, as **tags** e **propriedades** dizem o que se sabe dele, as **automações**
+agem com o tempo, as **tools** são as mãos do agente e o **prompt** é o roteiro.
+Quando uma peça faz o trabalho de outra, o projeto parece funcionar no teste e
+falha com lead real.
+
+## Uma peça para cada pergunta
+
+| Pergunta | Peça | Por quê |
+|---|---|---|
+| Em que etapa o lead está **agora**? | [Coluna do funil](/produto/funil-kanban) | O lead ocupa uma coluna só. A coluna liga e desliga a IA, faz transbordo, dispara conversões e filtra automações. |
+| O que é verdade sobre ele (sim ou não)? | [Tag](/produto/tags) | Tags se acumulam. Servem para segmentar automações e campanhas. |
+| Que **valor** ele informou? | [Propriedade](/produto/propriedades) | Guarda um dado (convênio, bairro, plano). Em lista, filtra e segmenta sem variação de escrita. |
+| Quem atende quando a IA passa a conversa? | [Departamento](/produto/departamentos) | O rodízio escolhe o responsável, que recebe o aviso do transbordo. |
+| O que acontece se ninguém responder? | [Automações](/produto/automacoes/visao-geral) | Agem pelo tempo: follow-up, reengajamento, transbordo por inatividade. |
+| O que o agente pode **fazer**? | [Tools](/engenharia-de-ia/tools/visao-geral) | Mover, marcar, gravar, transferir, consultar a agenda. |
+| Como o agente conduz a conversa? | [Prompt](/engenharia-de-ia/prompt) | Identidade, objetivo, fluxo, regras, quando transferir. |
+| O que ele precisa saber só às vezes? | [Skill](/engenharia-de-ia/skills) | Tabelas, políticas e roteiros longos, carregados sob demanda. |
+| Que dado muda a cada minuto (agenda, estoque, pedido)? | [Tool HTTP](/engenharia-de-ia/tools/http) ou [Composio](/engenharia-de-ia/tools/composio) | Dado vivo se busca na hora. Nunca fica escrito no prompt. |
+
+## Como as peças conversam
+
+Cada peça aciona outras. Este é o caminho de um lead típico:
+
+```text
+Lead manda "oi"
+  └─ entra na coluna de entrada + departamento padrão (rodízio escolhe o responsável)
+Agente responde (a cada mensagem, recebe nome, tags, etapa e propriedades marcadas)
+  ├─ grava propriedades         → @properties_update_<slug>
+  ├─ põe tags                   → @tag_add_<tag>
+  └─ move no funil              → @kanban_move_<coluna>
+        ├─ coluna com Transbordo → IA desligada + aviso ao responsável
+        ├─ conversão da coluna   → evento ao Meta Ads (se o lead veio de anúncio)
+        └─ fluxos "Movido no Kanban" e webhooks de Kanban
+Resposta enviada = interação concluída
+  └─ agenda follow-ups, transbordo por inatividade e webhooks por inatividade
+     que batem nos filtros de coluna e tag
+Lead fica em silêncio
+  ├─ reengajamento: texto livre antes de a janela de 24h fechar (conexão oficial)
+  ├─ follow-up: template depois do atraso
+  └─ transbordo por inatividade: mensagem + move para a coluna de humano
+Humano responde pelo chat
+  └─ IA pausada pelos minutos da pausa humana
+```
+
+Três ligações que não se deduzem da tela:
+
+- **A chave "Disparar automações" da coluna só vale quando uma pessoa move o lead
+  pelo CRM.** Quando o agente, a API ou um fluxo move, as automações não são
+  reagendadas por ela. Veja [Quando as automações disparam](/produto/automacoes/quando-disparam).
+- **Os filtros das automações são conferidos de novo na hora do envio.** Um
+  follow-up filtrado pela coluna "Triagem" não sai se o lead já mudou de coluna.
+  É isso que torna a coluna o melhor filtro de automação.
+- **O agente vê as propriedades só com "enviar para a IA" ligado**, opção que só
+  existe no template. Veja [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado).
+
+## Padrões
+
+### O funil é o processo do cliente
+
+- **De 4 a 8 colunas.** Cada coluna é uma etapa em que algo diferente acontece:
+  outra automação, outro responsável, outra conversão. Etapa sem consequência não
+  precisa de coluna.
+- **Uma coluna de transbordo** com a chave **Transbordo**, para onde o agente, o
+  transbordo por inatividade e a falha do modelo mandam o lead. Veja
+  [Resiliência](/engenharia-de-ia/resiliencia).
+- **Saber quem move cada coluna.** O agente move nas etapas que ele conclui
+  (qualificou, agendou). A equipe move nas que acontecem fora do WhatsApp
+  (compareceu, assinou, pagou). Nas colunas que a equipe move, ligue
+  **Disparar automações** se houver follow-up daquela etapa.
+- **Decidir o fim do ciclo.** Uma coluna final com **Desativar IA** deixa a IA
+  muda para aquele lead até alguém religar. Se o lead pode voltar meses depois
+  (novo agendamento, nova compra), deixe a IA ligada na coluna final e diga no
+  prompt o que fazer em cada etapa, ou
+  [encerre o atendimento](/produto/encerrar-atendimento), que devolve o lead à
+  entrada com a IA ligada.
+
+### Tags e propriedades com papel claro
+
+- **Tag é sim ou não; propriedade guarda um valor.** "Convênio: Unimed" é
+  propriedade. "Urgente" é tag.
+- **Vínculo certo.** **Contato** para o que vale para sempre (cliente, ex-aluno,
+  VIP). **Conversa** para o que vale neste atendimento (urgente, aguardando
+  documento). Ao encerrar, o que é de conversa some.
+- **Tag de marco.** A coluna mostra onde o lead está agora; ela não lembra por onde
+  ele passou. Para contar depois quem chegou a uma etapa ("já agendou alguma
+  vez"), use uma tag de vínculo contato posta junto com a mudança de coluna.
+- **Lista sempre que as respostas são conhecidas**, com poucos valores e um
+  "Outro". O agente recebe as opções e não inventa variações.
+- **Escreva os valores aceitos no "Quando usar" da ação** de propriedade. O modelo
+  acerta de primeira. Veja [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten#preencher-propriedade).
+
+### Poucas tools, bem descritas
+
+- **Cada coluna, tag e propriedade que o agente mexe é uma tool a mais.** Seis
+  colunas, cinco tags e quatro propriedades viram quinze tools. Dê ao agente só as
+  ações que ele precisa fazer.
+- **Até umas dez tools** o modelo escolhe bem. Acima disso, ligue **Filtrar tools**.
+  Veja [Tools: visão geral](/engenharia-de-ia/tools/visao-geral).
+- **A regra de quando usar fica na tool**, no "Quando usar no seu atendimento" ou
+  na descrição. O prompt diz a ordem das etapas.
+
+### O prompt conduz, não armazena
+
+- O prompt tem o fluxo, o tom e as proibições. Tabelas, políticas e FAQ vão para
+  skills. Agenda, preço do dia e status de pedido vêm de tools.
+- Não escreva dado de lead, data ou hora no prompt: chegam pelo contexto injetado.
+  Veja [Escrever um bom prompt](/engenharia-de-ia/prompt).
+
+### O humano sempre tem por onde entrar
+
+- Departamento padrão com membros recebendo leads, para todo lead ter
+  responsável.
+- **Direcionar para departamento** antes de **Transferir para humano**, quando há
+  mais de uma equipe: o responsável escolhido é quem recebe o aviso.
+- [Pausa humana](/engenharia-de-ia/pausa-humana) com valor gravado, do tamanho de
+  uma intervenção da equipe.
+
+## Antipadrões
+
+| Antipadrão | O que acontece | Faça assim |
+|---|---|---|
+| **Tag para estado que deveria ser coluna** ("Em negociação", "Agendado", "Perdido" como tags) | O lead fica com tags contraditórias; nada liga ou desliga a IA, nem dispara conversão; filtros de automação não acompanham a etapa. | Etapa exclusiva é coluna. Se precisar lembrar que passou por ela, uma tag de marco, de vínculo contato. |
+| **Coluna para atributo** ("Convênio Unimed", "Zona Sul") | O lead perde a etapa ao ser classificado; o funil vira uma lista de categorias. | Atributo é propriedade em lista. |
+| **Propriedade de texto livre que deveria ser lista** (convênio, bairro, plano, origem) | "Unimed", "unimed", "UNIMED": filtros, campanhas e relatórios falham. Depois de preenchida, não vira mais lista. | Lista desde a criação, com "Outro". |
+| **Propriedade que o agente usa sem "enviar para a IA"** | O agente pergunta de novo o que o lead já disse. | Ligue `send_to_ai` pelo template. |
+| **"Definir tag única" num projeto que usa tags para várias coisas** | Uma tag de temperatura apaga a de origem, a de convênio, a de cliente. | **Adicionar tag** e **Remover tag**. Tag única só para um grupo exclusivo. |
+| **Tag de vínculo conversa para algo permanente** ("Cliente") | Some no primeiro encerramento, e as automações filtradas por ela param. | Vínculo contato. |
+| **Muitas tools** (uma por coluna, uma por tag, um servidor MCP inteiro) | O modelo escolhe a tool errada ou nenhuma; cada mensagem custa mais. | Só as ações necessárias; ações do MCP contam uma por uma; **Filtrar tools** acima de dez. |
+| **Duas tools quase iguais** | O modelo alterna entre elas. | Junte, ou deixe a diferença explícita na descrição. |
+| **Regra de negócio no prompt que deveria estar na tool** ("só mova para Agendado depois de confirmar data e hora", longe da tool) | O modelo decide chamar a tool sem a regra à vista. | Regra no "Quando usar" da ação ou na descrição da tool HTTP. |
+| **Dado vivo no prompt** (horários livres, estoque, preço do dia) | Fica velho e o agente oferece o que não existe. | Tool que busca na hora; skill que ensina a buscar. |
+| **Conhecimento longo no prompt** (tabela de preços, FAQ inteiro) | Custa em toda mensagem e dilui as regras. | [Skill](/engenharia-de-ia/skills). |
+| **Coluna de transbordo sem departamento com membros** | Ninguém é avisado; o lead espera sem IA. | Departamento padrão com membros recebendo leads. |
+| **Follow-up sem filtro de coluna** | Lead em atendimento humano, ganho ou perdido recebe "ficou alguma dúvida?". | Filtre pelas colunas em que o lead ainda está decidindo. |
+| **Transbordo por inatividade sem colunas de origem** | Age até em lead encerrado, que volta para a entrada. | Sempre defina as colunas de origem. |
+| **Contar com "Disparar automações" quando quem move é o agente** | O follow-up da coluna nunca começa. | Use um follow-up filtrado pela coluna (é agendado quando o agente responde) ou um [fluxo](/produto/trigger-flow/conceitos) "Movido no Kanban". |
+| **Nomes repetidos** de colunas ou tags | Automações, tools e template se referem a elas pelo nome e pegam a errada. | Nomes únicos. |
+
+## Checklist de arquitetura
+
+Antes de entregar, confira:
+
+- [ ] Cada coluna tem uma consequência (automação, transbordo, conversão ou
+  responsável) e se sabe quem move o lead para ela.
+- [ ] Existe uma coluna com **Transbordo** e um departamento padrão com membros
+  recebendo leads.
+- [ ] A coluna de entrada não tem **Desativar IA**.
+- [ ] Tags com o vínculo certo; nenhuma tag faz o papel de etapa.
+- [ ] Propriedades com respostas conhecidas estão em lista; as que o agente usa,
+  com **enviar para a IA**.
+- [ ] Até umas dez tools, cada uma com "quando usar" e "quando não usar".
+- [ ] Cada `@` do prompt aponta para uma tool que existe.
+- [ ] Follow-ups com template aprovado e filtro de coluna; transbordo por
+  inatividade com colunas de origem.
+- [ ] Buffer e pausa humana gravados com valor explícito.
+- [ ] Retry, fallback e falha do agente configurados. Veja
+  [Resiliência](/engenharia-de-ia/resiliencia).
+
+## Pelo MCP
+
+O [diagnóstico](/trabalhar-com-ia/diagnostico) confere boa parte desta página no
+template do projeto. Para corrigir um antipadrão, faça um plano com o bloco
+afetado e o bloco `langchain`, quando o agente usa o item.
+
+<Visibility for="agents">
+Sinais de antipadrão no template:
+
+| Sinal | Onde |
+|---|---|
+| Tags com nomes de etapa que também existem em `columns[].name` | `tags`, `columns` |
+| `properties[].is_enum: false` com nome de opção fechada (convênio, plano, unidade, origem, bairro, interesse) | `properties` |
+| Propriedade citada no `system_prompt` ou com tool `properties.update` e `send_to_ai: false` | `properties`, `langchain.config.tools[]._zatten` |
+| Tools com `_zatten.template: "tag.add_only"` em projeto com mais de um grupo de tags | `langchain.config.tools` |
+| Mais de cerca de 10 itens em `langchain.config.tools` sem `settings.tool_selector` ligado | `langchain.config` |
+| `follow_ups[]` com `columns` vazio | `follow_ups` |
+| `inactivity_handovers[]` com `source_column_names` vazio | `inactivity_handovers` |
+| Nenhum `columns[].transhipment: true`; nenhum `attendant_teams[].default: true` | `columns`, `attendant_teams` |
+| `@nome` no `system_prompt` sem tool de mesmo nome | `langchain.config` |
+
+Não converta propriedade de texto livre já preenchida em lista: a escrita é
+recusada. Proponha uma propriedade nova.
+</Visibility>
+
+## Armadilhas
+
+- **Desenhar o funil pelo que a equipe gostaria de ver, não pelo que muda.** Coluna
+  que nada aciona só dá trabalho de mover.
+- **Renomear sem `slug`.** Pelo template, um nome novo sem o `slug` cria outro
+  item e o antigo fica de fora sem ser apagado.
+- **Excluir coluna ou tag que uma tool usa.** A tool sai do agente junto. Revise o
+  prompt.
+- **Mover em massa no CRM.** Não aplica nenhuma chave da coluna nem conversões.
+
+## Para saber mais
+
+- [Funil (Kanban)](/produto/funil-kanban), [Tags](/produto/tags), [Propriedades](/produto/propriedades)
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten)
+- [Escrever um bom prompt](/engenharia-de-ia/prompt)
+- [Como usar os playbooks](/playbooks/como-usar)
+- Anthropic, "Writing tools for agents": https://www.anthropic.com/engineering/writing-tools-for-agents
+- Anthropic, "Effective context engineering for AI agents": https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+- Termos para buscar: "CRM pipeline design", "lead stage vs tag", "tool
+  description best practices", "context engineering".

@@ -1,0 +1,57 @@
+---
+title: "Conectar o WhatsApp: qual conexão escolher"
+description: "Leia para escolher entre a conexão oficial (API da Meta, com ou sem coexistência) e a não oficial (QR Code), e saber o que cada uma libera e bloqueia."
+---
+
+Cada projeto conecta **um** número de WhatsApp, por um de dois caminhos: a **API Oficial** da Meta (recomendada) ou a **API Não Oficial**, por QR Code. A conexão oficial pode funcionar em **coexistência** com o app WhatsApp Business, no mesmo número. A escolha muda o que o projeto pode fazer: campanhas, reengajamento, conversões para o Meta Ads, janela de 24h e templates.
+
+A conexão fica em **WhatsApp** no menu do projeto. A primeira tela pede para escolher o método: **Conectar via Meta** ou **Conectar via QR code**.
+
+## Comparativo
+
+| | Oficial (API da Meta) | Oficial em coexistência | Não oficial (QR Code) |
+|---|---|---|---|
+| **Como conecta** | Login no Facebook (Embedded Signup da Meta). | O mesmo fluxo, com um número que já usa o app WhatsApp Business. | Ler o QR Code com o celular, como no WhatsApp Web. |
+| **Precisa do celular ligado** | Não. | Não para a Zatten. O app continua funcionando no celular. | Sim. O celular pareado precisa ficar ligado e com internet. |
+| **Conta Meta Business** | Obrigatória. | Obrigatória. | Não precisa. |
+| **Custo por mensagem** | Sim, a Meta cobra por mensagem entregue. | Sim, igual à oficial. | Não há cobrança da Meta. |
+| **Janela de 24h** | Sim. Fora dela, só template aprovado. | Sim. | Não existe. Pode mandar texto a qualquer momento. |
+| **Templates** | Aprovados pela Meta. | Aprovados pela Meta. | Criados no painel, sem aprovação, enviados como texto. |
+| **Campanhas** | Sim. | Sim. | Não. O menu Campanhas some. |
+| **Reengajamento** | Sim. | Sim. | Não. A automação não aparece. |
+| **Conversões para o Meta Ads** | Sim, na integração "WhatsApp Business + Anúncios". | Sim, na mesma integração. | Não. A automação não aparece. |
+| **Humano responde pelo celular** | Não há app no número. | Sim. A mensagem enviada pelo app aparece no CRM e pausa a IA. | Sim. A mensagem enviada pelo celular aparece no CRM e pausa a IA. |
+| **Risco de bloqueio do número** | Baixo, dentro das regras da Meta. | Baixo. | Maior: a conexão não é homologada pela Meta. |
+
+Detalhes de cada uma:
+
+- [WhatsApp oficial (Cloud API) e coexistência](/comecar/whatsapp-oficial-e-coexistencia)
+- [WhatsApp não oficial (QR Code)](/comecar/whatsapp-nao-oficial)
+- [Janela de 24h, templates e o que dá para enviar](/comecar/janela-de-24h)
+
+## Como escolher
+
+- **Use a oficial** em todo projeto que vai rodar campanhas, anúncios Click-to-WhatsApp, follow-up com template aprovado ou volume alto. É o padrão recomendado.
+- **Use a oficial em coexistência** quando o cliente final já atende pelo app WhatsApp Business e quer continuar respondendo pelo celular no mesmo número.
+- **Use a não oficial** só quando a oficial não for possível (por exemplo, o cliente não tem ou não consegue criar uma conta Meta Business) e o projeto não depende de campanhas nem de anúncios. Explique ao cliente o risco do número.
+
+## Trocar de conexão
+
+Um projeto tem **uma** conexão por vez.
+
+- Para trocar de método, **remova a conexão atual** primeiro. Com uma conexão oficial ativa, o botão "Escolher outro método" some, e aparece "Remova a conexão atual abaixo antes de trocar de método".
+- Tentar conectar por QR Code num projeto que já tem conexão oficial dá erro de conflito.
+- O admin pode passar a conexão oficial **para outro projeto** da mesma conta, com o botão **Trocar projeto**. Veja [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia).
+
+## Armadilhas
+
+- **Começar na não oficial e "migrar depois"** obriga a remover a conexão e refazer tudo pela Meta. Campanhas, reengajamento e conversões só aparecem depois.
+- **Na conexão oficial, a Meta cobra cada resposta do agente** (mensagens de serviço, desde 01/10/2026), e só entrega se a conta do WhatsApp Business tiver forma de pagamento. Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+- **Na coexistência, algumas conversas de anúncio não aparecem no CRM.** Para elas existe a automação de [mensagens não visíveis](/produto/automacoes/mensagens-nao-visiveis).
+
+## Para saber mais
+
+- [Visão geral das automações](/produto/automacoes/visao-geral): o que cada conexão libera.
+- [Campanhas](/produto/campanhas).
+- Meta: [visão geral da plataforma](https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform), [coexistência com o app WhatsApp Business](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users), [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing).
+- Termos para buscar: "WhatsApp Cloud API", "Embedded Signup", "coexistence WhatsApp Business app", "customer service window".

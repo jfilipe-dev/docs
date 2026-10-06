@@ -1,0 +1,216 @@
+---
+title: "Trigger Flow: disparar pela API e receber webhooks"
+description: "Leia quando um sistema externo precisa rodar fluxos do Trigger Flow: o disparo genérico (POST /flows/trigger) para os gatilhos que não disparam sozinhos, o webhook de entrada por caminho (POST /hooks/<path>), a idempotência de 24h e como o corpo vira {{trigger.body}}."
+---
+
+Há duas formas de rodar fluxos a partir de outro sistema. As duas usam a
+**chave de API do projeto** no header `x-api-key` e respondem **202** assim que
+os fluxos são enfileirados.
+
+| Rota | Para quê | Quem chama |
+|---|---|---|
+| `POST /api/v1/flows/trigger` | Avisar que um evento aconteceu com um lead ("a tag X foi adicionada", "o lead foi criado") | Um sistema que você controla: seu backend, n8n, Make |
+| `POST /api/v1/hooks/<path>` | Receber o payload de um sistema que **não** se molda (ERP, formulário, gateway de pagamento) | Qualquer sistema que poste JSON numa URL |
+
+Base: `https://api.zatten.com`. A chave sai de **API Keys** no painel
+([Chaves de API do projeto](/produto/chaves-de-api)). A referência completa dos
+endpoints fica em [Disparar fluxos e webhook de entrada](/api/fluxos-e-webhook-de-entrada).
+
+<Note>
+**A rota avisa, não faz.** `/flows/trigger` com `lead.tag_added` não aplica a tag:
+ela só roda os fluxos daquele gatilho. Para aplicar a tag, chame a API de leads e,
+depois, o disparo.
+</Note>
+
+## Onde fica no painel
+
+No editor do fluxo, ao escolher o gatilho **Webhook recebido**, o painel lateral
+mostra a URL pronta e um `curl` de exemplo com os campos declarados. O disparo
+genérico não tem tela: é só API.
+
+## Como configurar
+
+### Disparo genérico: `POST /flows/trigger`
+
+Use para os gatilhos que **não disparam sozinhos** (Novo lead criado, Mensagem
+recebida, Propriedade alterada, Lead inativo). Mover o lead e pôr ou tirar tag pela
+API de leads **já disparam** os fluxos de Kanban e de tag: não chame
+`/flows/trigger` de novo para o mesmo evento, ou o fluxo roda duas vezes.
+
+```bash
+curl -X POST https://api.zatten.com/api/v1/flows/trigger \
+  -H "x-api-key: SUA_CHAVE_DE_API" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "trigger_type": "lead.property_changed",
+    "lead_number": "5511999998888",
+    "trigger_event": { "property": "cidade", "value": "Recife" },
+    "idempotency_key": "crm-evt-01HXYZ"
+  }'
+```
+
+| Campo | Obrigatório | O que é |
+|---|---|---|
+| `trigger_type` | Sim | O gatilho. Ver a tabela abaixo. |
+| `lead_number` ou `lead_id` | Um dos dois | O lead. O número aceita com ou sem o 9º dígito ([Identificar o lead](/api/identificar-o-lead)). |
+| `trigger_event` | Depende do gatilho | O que aconteceu. Mande só ids: nomes de tag e coluna a Zatten busca. |
+| `idempotency_key` | Não | Repetir a mesma chave em **24 horas** não roda os fluxos de novo. |
+| `attendant_id` | Não | Se vier, tem de ser o projeto da chave. Senão, 403. |
+
+O que mandar em `trigger_event`:
+
+| `trigger_type` | `trigger_event` |
+|---|---|
+| `lead.created` | — |
+| `lead.first_message` | — (já dispara sozinho; use só para reprocessar) |
+| `lead.message_received` | `message_text` |
+| `lead.column_changed` | `to_column_id`, e `from_column_id` se o fluxo filtra a origem |
+| `lead.tag_added`, `lead.tag_removed` | `tag_id` |
+| `lead.property_changed` | `property` (o **slug**), `value` |
+| `lead.assignee_changed` | `department_id`, `user_email` ou `user_id` (os que se aplicam) |
+| `lead.conversation_closed` | — |
+| `lead.inactive` | — |
+| `webhook.inbound` | `path`, `body` (prefira a rota `/hooks`) |
+
+A resposta diz quantos fluxos casaram e o que aconteceu com cada um:
+
+```json
+{
+  "message": "Flows dispatched",
+  "trigger_type": "lead.tag_added",
+  "matched": 2,
+  "dispatched": 1,
+  "deduped": false,
+  "runs": [
+    { "run_id": "9c1e…", "flow_name": "Boas-vindas VIP", "status": "running", "reason": null },
+    { "run_id": "4b2f…", "flow_name": "Outro fluxo", "status": "skipped",
+      "reason": "tag_id: esperado \"8f2a…\", evento trouxe \"3c1b…\"" }
+  ]
+}
+```
+
+- `matched`: fluxos **ligados** com esse gatilho.
+- `dispatched`: quantos de fato rodaram. Menor que `matched` não é erro: o
+  `reason` diz qual filtro do gatilho não bateu.
+- `deduped: true`: a `idempotency_key` já foi usada nas últimas 24 horas. Nada rodou.
+
+### Webhook de entrada: `POST /hooks/<path>`
+
+1. No editor, crie um fluxo com o gatilho **Webhook recebido**.
+2. Preencha o **Path** (só minúsculas, números e hífen, ex.: `erp-pedido-fechado`).
+   Ele é único no projeto.
+3. Em **Campos que você vai receber**, declare os campos do JSON que o fluxo vai
+   usar (`pedido_id`, `cliente.nome`). Cada um vira `{{trigger.body.<campo>}}`.
+4. Salve, ligue o fluxo e cole a URL no sistema de origem.
+
+```bash
+curl -X POST "https://api.zatten.com/api/v1/hooks/erp-pedido-fechado?lead_number=5511999998888&idempotency_key=pedido-9182" \
+  -H "x-api-key: SUA_CHAVE_DE_API" \
+  -H "Content-Type: application/json" \
+  -d '{ "pedido_id": 9182, "cliente": { "nome": "Ana" } }'
+```
+
+| Parte | O que vai |
+|---|---|
+| Caminho | O **Path** do gatilho |
+| Query `lead_number` ou `lead_id` | O lead (um dos dois, obrigatório) |
+| Query `idempotency_key` | Opcional. Recomendado: sistemas de webhook reenviam |
+| Corpo | O JSON do remetente, cru, sem envelope. Aceita objeto, lista ou vazio |
+
+O corpo inteiro vira `{{trigger.body}}`:
+
+```
+{ "pedido_id": 9182, "cliente": { "nome": "Ana" } }
+{{trigger.body.pedido_id}}     → 9182
+{{trigger.body.cliente.nome}}  → Ana
+```
+
+A resposta é só `{ "message": "Flow triggered" }`, com 202, **mesmo se nenhum
+fluxo casar** com o caminho. Para saber se rodou, veja as
+[Execuções](/produto/trigger-flow/execucoes) do fluxo.
+
+## Como funciona por trás
+
+- O projeto vem da chave. Uma chave nunca dispara fluxo em outro projeto.
+- Cada fluxo ligado com o gatilho é testado contra os filtros. Os que batem viram
+  execuções; os outros ficam como **Ignorado**.
+- A idempotência vale para a combinação gatilho + lead + `idempotency_key`, por
+  24 horas. A mesma chave para outro lead ou outro gatilho roda normalmente. Sem
+  `idempotency_key`, cada chamada roda os fluxos de novo.
+- A execução segue na fila, em segundo plano. O 202 quer dizer "recebido e
+  despachado", não "terminou".
+- As [regras de limite da API](/api/limites) valem para estas rotas.
+
+<Visibility for="agents">
+Respostas:
+
+| Rota | Status | Quando |
+|---|---|---|
+| `/flows/trigger` | 202 | Aceito (inclusive com `dispatched: 0`) |
+| `/flows/trigger` | 400 | `trigger_type` desconhecido, ou sem `lead_number`/`lead_id` |
+| `/flows/trigger` | 401 | Chave inválida |
+| `/flows/trigger` | 403 | `attendant_id` diferente do projeto da chave |
+| `/flows/trigger` | 404 | Lead não existe no projeto |
+| `/hooks/<path>` | 202 | Recebido, inclusive sem fluxo que case |
+| `/hooks/<path>` | 400 | Sem `lead_number`/`lead_id`, ou path vazio |
+| `/hooks/<path>` | 404 | Lead não existe no projeto |
+
+Em todo disparo pela API ficam disponíveis também `trigger.lead_id`,
+`trigger.lead_number` e `trigger.source` (`"api"`).
+
+Mandar mais de um header de autenticação na mesma requisição dá 400. Use só
+`x-api-key`.
+</Visibility>
+
+## Pelo MCP
+
+O MCP não dispara fluxos. Ele cria fluxos (inclusive com o gatilho **Webhook
+recebido** e o `path`) e liga ou desliga. O disparo é sempre pela API, com a chave
+do projeto. Ver [A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia).
+
+## Armadilhas
+
+- **O corpo precisa ser JSON.** Sem `Content-Type: application/json`, o fluxo roda,
+  mas `{{trigger.body}}` chega vazio. Remetentes que postam formulário
+  (`form-urlencoded`) não funcionam direto.
+- **202 não quer dizer que rodou.** No `/hooks`, um path errado também responde 202.
+  Confira nas Execuções.
+- **O lead precisa existir.** Webhook de um número que nunca falou com o projeto
+  nem foi importado em [Contatos](/produto/contatos) dá 404. Nada roda.
+- **Um fluxo antigo sem Path** responde a qualquer `/hooks/…` do projeto. Hoje o
+  editor exige o Path; revise fluxos antigos.
+- **`lead.inactive` pela API roda na hora.** O tempo configurado no gatilho não é
+  conferido.
+- **`lead.property_changed` compara o slug e o valor exatos.** `Recife` e `recife`
+  são valores diferentes.
+- **A API aceita `lead.ai_toggled`**, mas o editor não tem esse gatilho, então
+  não há fluxo para rodar.
+- **Nunca ponha a chave de API num front-end público.** Quem tem a chave lê e
+  altera os leads do projeto.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Meu sistema muda a tag pela API. Os fluxos de 'Tag adicionada' rodam?">
+Sim. `POST`/`DELETE /leads/{numero}/tag` e `PATCH /leads/{numero}/kanban` disparam
+os fluxos de tag e de Kanban sozinhos. Não chame `/flows/trigger` para o mesmo
+evento. Já mudar uma propriedade (`/properties`) ou ligar/desligar a IA não
+dispara fluxos: para esses, use `/flows/trigger`.
+</Accordion>
+<Accordion title="Qual usar: /flows/trigger ou /hooks?">
+`/hooks` quando você não controla o formato do corpo (o sistema de origem manda o
+JSON dele). `/flows/trigger` quando você monta a chamada e quer a resposta com
+`matched`, `dispatched` e o motivo de cada fluxo ignorado.
+</Accordion>
+<Accordion title="Dá para disparar para vários leads de uma vez?">
+Não. Cada chamada é para um lead.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Disparar fluxos e webhook de entrada (API)](/api/fluxos-e-webhook-de-entrada)
+- [Autenticação](/api/autenticacao), [Limites](/api/limites), [Erros](/api/erros)
+- [Trigger Flow: catálogo de blocos](/produto/trigger-flow/blocos)
+- [Chaves de API do projeto](/produto/chaves-de-api)
+- Termos para buscar: "idempotency key", "webhook de entrada", "trigger_event", "x-api-key".

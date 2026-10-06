@@ -1,0 +1,210 @@
+---
+title: "Mensagens: texto e template"
+description: "Leia para enviar uma mensagem a um lead pela API: POST /messages/text (texto livre, só dentro da janela de 24h na conexão oficial, só para lead que já existe) e POST /messages/template (template da Meta, cria o lead se não existir), com corpo, resposta, erros e exemplos."
+---
+
+Duas rotas mandam mensagem de texto para **um** lead:
+
+| Rota | Quando usar |
+|---|---|
+| `POST /messages/text` | Texto livre para um lead que já existe, com a [janela de 24h](/comecar/janela-de-24h) aberta (conexão oficial). |
+| `POST /messages/template` | Template da Meta aprovado. Funciona fora da janela e cria o lead se o número for novo. |
+
+Para imagem, áudio, vídeo e arquivo, veja [Mídia](/api/midia).
+
+<Warning>
+Estas rotas são para **um** lead por vez, numa integração (confirmação de pedido,
+lembrete de consulta). Mandar em loop para uma lista é campanha: use
+[Campanhas](/produto/campanhas). Envio em loop pela API derruba a qualidade do
+número.
+</Warning>
+
+## `POST /messages/text`
+
+Envia uma mensagem de texto livre. O envio é feito na hora: o **201** quer dizer que o
+WhatsApp aceitou a mensagem.
+
+### Corpo
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `lead_number` | string | Sim | Número do lead, só dígitos, com DDI. Ver [Identificar o lead](/api/identificar-o-lead). |
+| `message` | string | Sim | O texto. Não pode ser vazio. Aceita a formatação do WhatsApp (`*negrito*`, `_itálico_`). |
+| `reply_id` | string | Não | Id da mensagem do WhatsApp a citar (a resposta aparece "respondendo" a ela). É o `messageId` que chega no webhook `LEAD_INTERACTION`. |
+
+### Resposta: 201
+
+```json
+{
+  "wa_id": "5511999998888",
+  "thread_id": "zt-thread-3kQ9xV2mB7pL1sR8tY4wZa"
+}
+```
+
+| Campo | O que é |
+|---|---|
+| `wa_id` | O número do lead como está gravado. |
+| `thread_id` | A conversa em que a mensagem foi gravada. Use em `GET /messages/history`. |
+
+### Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Lead number is required` / `Message is required` | Campo faltando ou vazio. |
+| 400 | `Lead with number … not found` | O número não é um lead do projeto. Texto não cria lead: use template. |
+| 400 | `Cannot send message — 24 hour conversation window expired` | Conexão oficial, janela fechada. Use template. |
+| 400 | `Could not send message to number … - <motivo>` | A Meta recusou. |
+| 404 | `Could not find access token or phone number ID` | Projeto sem WhatsApp conectado. |
+| 429, 502, 503 | (descrição do provedor) | Conexão não oficial: provedor limitou, falhou ou está fora. |
+
+Lista completa em [Erros](/api/erros).
+
+### Exemplo
+
+```bash
+curl -X POST "https://api.zatten.com/api/v1/messages/text" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead_number": "5511999998888",
+    "message": "Oi, Maria! Seu pedido 9182 saiu para entrega."
+  }'
+```
+
+### O que acontece no projeto
+
+- A mensagem aparece no chat do lead, do lado do agente (não como mensagem de um humano
+  da equipe).
+- **Não pausa a IA.** Se o lead responder, o agente responde. Para assumir a conversa,
+  pause a IA antes pelo [Controle da IA](/api/controle-da-ia).
+- **Não agenda automações** (follow-up, transbordo, webhook por inatividade). Ver
+  [Quando as automações disparam](/produto/automacoes/quando-disparam).
+- Se o lead estava com o atendimento encerrado, o envio abre uma conversa nova.
+- Quando a mensagem sai, os [webhooks](/api/webhooks-de-saida) recebem
+  `API_KEY_INTERACTION`.
+
+## `POST /messages/template`
+
+Envia um [template da Meta](/produto/templates-whatsapp) aprovado. Na conexão não
+oficial, envia o template de texto salvo no painel (sem aprovação). Se o número ainda
+não é lead do projeto, o lead é **criado** no envio.
+
+### Corpo
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `lead_number` | string | Sim | Número do lead, só dígitos, com DDI. |
+| `template_name` | string | Sim | O **nome** do template, como no painel (minúsculas, números e `_`). |
+| `name` | string | Não | Nome do lead. Usado só quando o lead é criado neste envio (e no `{{nome}}` do template). Não renomeia lead que já existe. |
+| `campaign_id` | string | Não | Id de uma campanha. Liga o envio ao relatório dela. |
+
+Não há campo para os valores das variáveis: elas são preenchidas com os dados do lead.
+
+| Variável no template | Valor no envio |
+|---|---|
+| `{{nome}}` | Nome do lead. Sem nome, "Cliente". |
+| `{{telefone}}` | Número do lead. |
+| `{{data}}`, `{{hora}}` | Data e hora do envio. |
+| `{{slug-da-propriedade}}` | Valor daquela [propriedade](/produto/propriedades) no lead. |
+
+Para um template com propriedade, preencha a propriedade antes pela
+[API de leads](/api/leads) (`PATCH /leads/{numero}/properties`). Lead criado neste mesmo
+envio ainda não tem propriedades.
+
+### Resposta: 201
+
+```json
+{
+  "wa_id": "5511999998888",
+  "name": "Maria Souza",
+  "thread_id": "zt-thread-3kQ9xV2mB7pL1sR8tY4wZa"
+}
+```
+
+`name` é o nome do lead (ou o `name` enviado, se o lead não tinha nome).
+
+### Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Template name is required` | Faltou `template_name`. |
+| 404 | `Template … not found` | Não há template com esse nome no projeto. |
+| 400 | `Template "…" is not approved. Current status: …` | A Meta ainda não aprovou (ou rejeitou). |
+| 400 | `Template variable … value is missing` | O lead não tem a propriedade que o template usa. Nada é enviado. |
+| 404 | `Media ID not found for template: …` | Template com cabeçalho de mídia sem o arquivo guardado. |
+| 404 | `Could not find access token, phone number ID or WABA ID` | Projeto sem conexão oficial configurada. |
+| 400 | `Could not send message to number … - <motivo>` | A Meta recusou o envio. |
+
+### Exemplo
+
+```bash
+curl -X POST "https://api.zatten.com/api/v1/messages/template" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead_number": "5511999998888",
+    "template_name": "lembrete_consulta",
+    "name": "Maria Souza"
+  }'
+```
+
+### O que acontece no projeto
+
+- Lead novo: nasce na primeira coluna do funil, com o `name` enviado. Os webhooks
+  recebem `LEAD_CREATED`.
+- O template aparece no chat do lead já preenchido. Os webhooks recebem `WA_TEMPLATE`
+  no envio e `API_KEY_INTERACTION` na entrega.
+- Template **não agenda automações**.
+- A Meta cobra o template pela categoria dele. Ver
+  [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+<Visibility for="agents">
+- `POST /messages/text` → 201 `{wa_id, thread_id}`. Síncrono: o envio ao provedor acontece antes da resposta.
+- `POST /messages/template` → 201 `{wa_id, name, thread_id}`. Cria o lead se não existir (dispara `LEAD_CREATED`).
+- A janela de 24h é checada só na conexão oficial: `lead.conversation_expires_in` (última mensagem do lead + 24h) no passado → 400.
+- A mensagem de texto pela API é gravada com `from: ATTENDANT`. Não pausa a IA.
+- Não há limite de caracteres próprio da Zatten no `message`; vale o limite do WhatsApp.
+</Visibility>
+
+## Armadilhas
+
+- **Texto para número novo dá 400.** O primeiro contato com um número é sempre por
+  template.
+- **Texto fora da janela dá 400** na conexão oficial. Teste a janela antes, ou mande
+  template direto quando o último contato do lead tem mais de 24 horas.
+- **Template com propriedade vazia não sai.** Ao criar o lead pelo template, use só
+  variáveis que todo lead tem (`{{nome}}`, `{{telefone}}`).
+- **`name` não renomeia.** Para lead que já existe, o nome continua o gravado.
+- **O agente continua respondendo.** Mensagem pela API não pausa a IA.
+- **Template não é "mensagem grátis".** Cada envio é cobrado pela Meta.
+- **Reenviar depois de timeout** pode duplicar a mensagem. Confira o
+  [histórico](/api/historico) antes.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Como sei se o lead está dentro da janela de 24h?">
+A API não tem um campo direto. O fim da janela chega nos
+[webhooks](/api/webhooks-de-saida) em `lead.conversation_expires_in`. Sem isso, tente o
+texto e, se vier o 400 de janela vencida, envie um template.
+</Accordion>
+<Accordion title="Dá para mandar um template com valores de variável que eu escolho?">
+Não. As variáveis vêm dos dados do lead. Grave o valor numa propriedade do lead
+(`PATCH /leads/{numero}/properties`) e use `{{slug-da-propriedade}}` no template.
+</Accordion>
+<Accordion title="Posso mandar texto para um número que nunca falou com o projeto?">
+Não. Envie um template primeiro; ele cria o lead. Na conexão oficial, só depois que o
+lead responder a janela abre para texto livre.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Mídia](/api/midia), [Erros](/api/erros), [Identificar o lead](/api/identificar-o-lead)
+- [Janela de 24h](/comecar/janela-de-24h), [Templates da Meta](/produto/templates-whatsapp),
+  [Campanhas](/produto/campanhas)
+- Meta: [janela de atendimento](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages),
+  [templates](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview),
+  [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing)
+- Termos para buscar: "WhatsApp template message", "customer service window",
+  "WhatsApp text formatting".

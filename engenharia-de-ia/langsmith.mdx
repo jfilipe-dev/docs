@@ -1,0 +1,306 @@
+---
+title: "Observabilidade com LangSmith"
+description: "Leia para ver por dentro o que o agente fez numa conversa: criar a conta e a chave do LangSmith, ligar o monitoramento, achar a conversa de um lead, ler um trace passo a passo, descobrir por que o agente errou, medir o custo por conversa, extrair dados pela API e avaliar o agente."
+---
+
+O **LangSmith** é a ferramenta de observabilidade do LangChain. Com o monitoramento
+ligado, cada resposta do agente vira um registro (um *trace*) com o passo a passo:
+o que o modelo recebeu, o que pensou responder, quais tools chamou com quais
+argumentos, o que cada tool devolveu, quanto tempo e quantos tokens cada passo
+gastou, e onde falhou.
+
+É o instrumento de trabalho de quem cuida do agente. O chat do painel mostra o que
+o lead leu; o LangSmith mostra **por que** o agente respondeu aquilo.
+
+A conta e a chave são da agência. A Zatten só envia os dados para a conta indicada
+no agente.
+
+<Note>
+Só o LangChain Agent envia dados ao LangSmith. Projetos no motor antigo não têm
+monitoramento: [migre](/engenharia-de-ia/migrar).
+</Note>
+
+## O que dá para fazer
+
+| Pergunta | Onde no LangSmith |
+|---|---|
+| Por que o agente respondeu isso para este lead? | O trace daquela resposta |
+| O agente chamou a tool? Com quais argumentos? O que voltou? | Os passos de tool dentro do trace |
+| Quanto custou esta conversa? E o projeto no mês? | Aba **Threads** e estatísticas do projeto |
+| Quais respostas deram erro esta semana? | Filtro de erros no projeto |
+| A mudança no prompt melhorou ou piorou? | Comparar traces antes e depois; avaliação |
+
+## Criar a conta e a chave
+
+<Steps>
+<Step title="Criar a conta">
+Cadastre-se em [smith.langchain.com](https://smith.langchain.com) (Google, GitHub ou
+e-mail). Há plano gratuito; limites e preços em
+[langchain.com/pricing](https://www.langchain.com/pricing).
+</Step>
+<Step title="Criar a chave de API">
+Em **Settings** → **API Keys** → **Create API Key**. Para o agente de um cliente,
+prefira uma **service key** (chave de serviço, não ligada a uma pessoa) com escopo no
+workspace. Escolha a validade. A chave aparece **uma vez só**: copie e guarde num
+lugar seguro. Passo a passo oficial:
+[Create an account and API key](https://docs.langchain.com/langsmith/create-account-api-key).
+</Step>
+<Step title="Anotar a região">
+A conta padrão é nos Estados Unidos e funciona sem ajuste. Se a conta for de outra
+região (EU, por exemplo), o agente precisa do endereço da região no campo `endpoint`,
+que só muda pelo template (ver **Pelo MCP**). Os endereços estão no
+[início rápido](https://docs.langchain.com/langsmith/observability-quickstart).
+</Step>
+</Steps>
+
+## Ligar no agente
+
+Menu **Agente** (`/project`) → ícone de configurações ao lado do **Modelo** →
+**Monitoramento**.
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| Chave **Monitoramento** | Liga o envio. Ligado, mostra "Enviando ao LangSmith". | Desligado |
+| **API Key do LangSmith** | A chave criada acima. | Vazia |
+| **Projeto que recebe os dados** | O nome do projeto no LangSmith. Se não existir, é criado no primeiro envio. | `default` |
+
+Salve e **publique** ([Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)).
+Conversas em andamento começam a enviar em até 2 minutos.
+
+**Um projeto do LangSmith por projeto da Zatten.** Use um nome que identifique o
+cliente final, como `zatten-clinica-sorriso`. Misturar clientes num projeto só
+mistura custos e dados pessoais de clientes diferentes.
+
+**Tags e metadados** (só pelo template): `tags` marca todos os traces do agente
+(ex.: `["producao", "clinica-sorriso"]`); `metadata` acrescenta pares chave-valor
+fixos. Os dois servem para filtrar.
+
+## O que vai para o LangSmith
+
+Cada resposta do agente é **um trace**. Dentro dele:
+
+- **A entrada:** as mensagens novas do lead (o lote juntado pelo
+  [buffer](/engenharia-de-ia/buffer)).
+- **Cada chamada ao modelo:** as mensagens enviadas (prompt, histórico, o bloco
+  "Contexto do lead atual" e o bloco "Agora" do [contexto injetado](/engenharia-de-ia/contexto-injetado)),
+  a resposta, o modelo usado, os tokens de entrada e saída e o tempo.
+- **Cada chamada de tool:** o nome, os argumentos que o modelo preencheu e o texto
+  exato que voltou para o modelo.
+- **Os passos internos:** resumo do histórico, transcrição de áudio, troca para um
+  modelo de reserva, tratamento de erro.
+- **Metadados:** entre eles o `thread_id`, acrescentado automaticamente. É o
+  identificador interno da conversa no serviço do agente (não o da API da Zatten) e
+  agrupa as respostas de uma mesma conversa na aba **Threads**.
+
+<Warning>
+O trace leva **dados pessoais do lead**: nome, WhatsApp, notas, propriedades e o texto
+das mensagens. Trate a conta do LangSmith como trata o CRM: acesso só para quem
+precisa, e o cliente final informado de que as conversas são registradas para
+melhoria do atendimento (LGPD).
+</Warning>
+
+As conversas do [chat de teste](/engenharia-de-ia/testar) também são enviadas, se a
+versão testada tiver o monitoramento ligado.
+
+## Achar a conversa de um lead
+
+Abra o projeto no LangSmith e vá na aba **Threads**: cada linha é uma conversa, com a
+primeira e a última mensagem, número de respostas, tokens e custo.
+
+Para achar uma conversa específica:
+
+1. **Pelo número do lead.** Com **Enviar dados** ligado no agente, o número do lead
+   está no bloco de contexto enviado ao modelo. Busque o número no projeto.
+2. **Pela hora e pelo texto.** Filtre o período em que o lead escreveu e procure o
+   texto da mensagem dele na entrada dos traces.
+
+O `thread_id` que aparece no metadado do trace **não é** o identificador da
+conversa que a API da Zatten devolve (`GET /leads/{numero}/threads`) nem o
+`threadId` dos webhooks e das tools HTTP. É o identificador interno da conversa
+no serviço do agente, calculado a partir do da Zatten. Ele serve para agrupar as
+respostas de uma conversa na aba **Threads**, mas não dá para filtrar pelo valor
+que a API da Zatten mostra.
+
+{/* A CONFIRMAR: se o trace no LangSmith traz algum metadado com o id da conversa da Zatten (zatten_thread_id) ou o id do lead, que permitiria filtrar direto. Pelo código, o thread_id do metadado é o UUID interno do serviço do agente; não verificado num trace real. */}
+
+## Ler um trace passo a passo
+
+Abra um trace. À esquerda fica a árvore de passos; ao clicar num passo, a direita
+mostra entrada, saída, metadados, tempo e tokens.
+
+<Steps>
+<Step title="Confira a entrada">
+A mensagem do lead que gerou a resposta. Se veio áudio, procure o passo de
+transcrição e veja o texto que saiu dele.
+</Step>
+<Step title="Abra a primeira chamada ao modelo">
+Leia o que o modelo recebeu: o prompt, o histórico e o bloco de contexto do lead
+(coluna do funil, tags, propriedades). Muito erro nasce aqui: o dado que o agente
+"devia saber" não estava na entrada.
+</Step>
+<Step title="Veja a decisão do modelo">
+A saída da chamada: um texto (a resposta) ou um pedido de tool, com os argumentos.
+</Step>
+<Step title="Siga cada tool">
+Para cada tool: os argumentos e o texto que voltou. Erros de tool começam com
+`ERRO: a chamada a <nome_da_tool>` e terminam com "A acao NAO foi executada".
+</Step>
+<Step title="Leia a resposta final">
+A última chamada ao modelo produz o texto enviado ao lead (depois, a
+[segmentação](/engenharia-de-ia/segmentacao-e-voz) pode dividir em várias mensagens;
+isso acontece fora do agente e não aparece no trace).
+</Step>
+</Steps>
+
+## Por que o agente errou?
+
+| Sintoma | O que procurar no trace | Onde corrigir |
+|---|---|---|
+| Não chamou a tool que devia | A tool estava na lista enviada ao modelo? Com **Filtrar tools** ligado, ela pode ter sido escondida. A descrição dela cobre esse caso? | Descrição da tool; `always_include` ([Limites e segurança](/engenharia-de-ia/limites-e-seguranca)) |
+| Chamou a tool com argumento errado | Os argumentos do passo da tool. | Descrição dos parâmetros ([Tool HTTP](/engenharia-de-ia/tools/http)) |
+| A tool falhou | O texto de retorno: `ERRO: …` com o status HTTP e o começo da resposta da API, ou aviso de variável vazia. | A API do cliente ([Como montar a sua API](/engenharia-de-ia/tools/montar-sua-api)); a variável do lead |
+| Respondeu algo que não está nas regras | A skill certa foi carregada (`load_skill`)? O trecho do prompt estava lá? | [Skills](/engenharia-de-ia/skills); [prompt](/engenharia-de-ia/prompt) |
+| "Esqueceu" algo dito antes | O histórico na chamada: houve resumo ou resultado apagado (`[cleared]`)? | [Conversas longas](/engenharia-de-ia/conversas-longas) |
+| Inventou dado do lead | O bloco "Contexto do lead atual" estava presente e correto? | **Enviar dados** ligado; propriedade com "enviar para a IA" ([Contexto injetado](/engenharia-de-ia/contexto-injetado)) |
+| Mandou a mensagem de erro ao lead | Passos de modelo com erro, a troca para o modelo de reserva, e o campo `model_error` na saída do trace, com o erro do provider. | [Resiliência](/engenharia-de-ia/resiliencia); chave e créditos do [provider](/engenharia-de-ia/providers) |
+| Mandou a mensagem de limite | Número de chamadas ao modelo no trace. | [Limite de chamadas](/engenharia-de-ia/limites-e-seguranca) |
+| Não respondeu nada | Não há trace: a mensagem não chegou ao agente (IA pausada, desligada, coluna que desativa a IA, buffer). | [Logs](/produto/logs); [Pausa humana](/engenharia-de-ia/pausa-humana) |
+
+Depois de corrigir, repita a mensagem do lead no [chat de teste](/engenharia-de-ia/testar)
+e compare os dois traces.
+
+## Custo por conversa
+
+O LangSmith calcula o custo de cada chamada a partir dos tokens e de uma tabela de
+preços por modelo. A aba **Threads** mostra o custo de cada conversa; as estatísticas
+do projeto, o total do período. Ver [Cost tracking](https://docs.langchain.com/langsmith/cost-tracking).
+
+- **Modelo sem preço na tabela = custo zerado.** A tabela já vem com a maior parte dos
+  modelos da OpenAI, Anthropic e Gemini. Para modelos pelo OpenRouter com outro nome,
+  cadastre o preço em **Settings** → **Model Pricing** (no LangSmith), com o preço por
+  milhão de tokens de entrada e de saída que está na página do modelo no
+  [OpenRouter](https://openrouter.ai/models).
+- **Preço novo não recalcula o passado.** Cadastrar ou mudar um preço vale só para os
+  traces enviados depois.
+- **O custo do LangSmith é estimativa.** A conta que vale é a do provider (OpenAI ou
+  OpenRouter).
+
+Para transformar isso em custo por atendimento e por mês, use o roteiro de
+[Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia).
+
+## Extrair dados pela API
+
+Tudo o que aparece na tela sai pela API do LangSmith, com a mesma chave. Útil para
+relatórios por cliente, para o assistente da agência analisar conversas, ou para
+juntar custo de vários projetos.
+
+<Visibility for="agents">
+Com o SDK em Python (`pip install langsmith`, chave em `LANGSMITH_API_KEY`; conta fora
+dos EUA também precisa de `LANGSMITH_ENDPOINT`):
+
+```python
+from langsmith import Client
+
+client = Client()
+
+# Todas as respostas de uma conversa, pelo thread_id interno visto num trace dela
+# (não é o id da conversa devolvido pela API da Zatten)
+runs = client.list_runs(
+    project_name="zatten-clinica-sorriso",
+    is_root=True,
+    filter='and(eq(metadata_key, "thread_id"), eq(metadata_value, "<thread_id>"))',
+)
+for r in runs:
+    print(r.start_time, r.total_tokens, r.total_cost, r.error)
+
+# Respostas com erro no projeto
+for r in client.list_runs(project_name="zatten-clinica-sorriso", is_root=True, error=True):
+    print(r.start_time, r.error)
+```
+
+Campos úteis de cada execução: `inputs`, `outputs`, `error`, `start_time`,
+`end_time`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `prompt_cost`,
+`completion_cost`, `total_cost`, `extra.metadata`, `tags`. `is_root=True` traz uma
+linha por resposta; sem ele, vêm também os passos internos.
+
+Referência completa da API REST: [api.smith.langchain.com/redoc](https://api.smith.langchain.com/redoc).
+Consultas com o SDK: [Query traces](https://docs.langchain.com/langsmith/export-traces).
+
+A chave do LangSmith dá acesso a dados pessoais de leads. Guarde no `.env` da pasta do
+cliente, nunca na conversa nem em arquivo versionado.
+</Visibility>
+
+## Avaliar o agente
+
+Além de investigar erro, o LangSmith ajuda a medir qualidade de forma repetível:
+
+- **Datasets a partir de traces:** marque respostas boas e ruins e salve como
+  exemplos. Viram a bateria de casos para conferir antes de publicar uma mudança.
+- **Avaliação automática:** um modelo julga as respostas (ex.: "seguiu o tom?",
+  "ofereceu o agendamento?"), em traces novos ou num dataset.
+- **Revisão humana:** filas para alguém da agência ler e anotar conversas.
+
+O agente roda dentro da Zatten, então o teste de uma mudança continua sendo feito no
+[chat de teste](/engenharia-de-ia/testar), com as mensagens do dataset. Ver
+[Evaluation](https://docs.langchain.com/langsmith/evaluation).
+
+## Pelo MCP
+
+O monitoramento fica em `langchain.config.settings.tracing`. Escrever o bloco cria
+uma versão não publicada.
+
+- O `config` enviado **substitui o config inteiro**. Se `settings.tracing` não vier,
+  o monitoramento volta ao padrão (desligado). Mande sempre o config completo, como
+  veio do `get_template`.
+- Dentro de `tracing`, a chave já gravada é **mantida** só quando `api_key` não vem.
+  `"api_key": ""` grava vazio por cima e o monitoramento para. Omita o campo ou
+  devolva intacto o valor do `get_template`.
+- `get_template` devolve a chave preenchida. Nunca mostre na conversa.
+
+<Visibility for="agents">
+```json
+"tracing": {
+  "enabled": true,
+  "api_key": "<chave do LangSmith>",
+  "project": "zatten-clinica-sorriso",
+  "endpoint": "https://api.smith.langchain.com",
+  "tags": ["producao"],
+  "metadata": { "cliente": "clinica-sorriso" }
+}
+```
+
+| Campo | Tipo | Padrão | Notas |
+|---|---|---|---|
+| `enabled` | boolean | `false` | |
+| `api_key` | string | `""` | Sem ela, nada é enviado, mesmo com `enabled: true` |
+| `project` | string | `"default"` | Criado no LangSmith no primeiro envio |
+| `endpoint` | string | `"https://api.smith.langchain.com"` | Troque para a região da conta. Sem tela |
+| `tags` | lista de strings | `[]` | Sem tela |
+| `metadata` | objeto de strings | `{}` | Valores só string. Sem tela. `thread_id` (id interno do serviço do agente) é acrescentado sozinho |
+
+Não existe campo `provider`: o envio é sempre para o LangSmith. Chave desconhecida
+dentro de `tracing` é ignorada (e o painel avisa).
+</Visibility>
+
+## Armadilhas
+
+- **Ligado sem chave não envia nada.** O painel avisa: "O monitoramento está ligado
+  sem API Key, então nada é enviado."
+- **Esquecer de publicar.** Ligar e salvar não basta; só a versão publicada envia
+  dados das conversas reais.
+- **Nome de projeto diferente cria outro projeto.** Um erro de digitação espalha os
+  traces em dois projetos.
+- **Conta fora dos EUA sem `endpoint`.** A chave não é reconhecida e nada chega.
+- **Custo zerado.** O modelo não está na tabela de preços do LangSmith; cadastre.
+- **Retenção.** O LangSmith guarda os traces por um tempo que depende do plano. Para
+  histórico longo, exporte pela API. Ver [langchain.com/pricing](https://www.langchain.com/pricing).
+- **Dados pessoais.** Quem tem acesso ao projeto do LangSmith lê as conversas.
+
+## Para saber mais
+
+- [Testar o agente](/engenharia-de-ia/testar)
+- [Logs](/produto/logs) (o que aconteceu antes do agente: entrega, mídia, erros da Meta)
+- [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia)
+- [Referência do config do agente](/engenharia-de-ia/referencia-do-config)
+- LangSmith: [observabilidade](https://docs.langchain.com/langsmith/observability), [início rápido](https://docs.langchain.com/langsmith/observability-quickstart), [tracing com LangChain](https://docs.langchain.com/langsmith/trace-with-langchain), [threads](https://docs.langchain.com/langsmith/threads), [custos](https://docs.langchain.com/langsmith/cost-tracking), [avaliação](https://docs.langchain.com/langsmith/evaluation), [API](https://api.smith.langchain.com/redoc), [preços](https://www.langchain.com/pricing)
+- Termos para buscar: "LangSmith tracing", "LangSmith threads", "LangSmith cost tracking", "LangSmith list_runs filter metadata", "LLM observability", "LLM-as-judge".

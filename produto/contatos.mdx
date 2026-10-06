@@ -1,0 +1,178 @@
+---
+title: "Contatos"
+description: "Leia para filtrar e organizar a base de leads de um projeto, usar as ações em massa, importar contatos por CSV (formato, telefone, propriedades, limite) e exportar a base."
+---
+
+**Contatos** é a base de leads do projeto: todo lead que já falou com o número ou foi
+importado. A tela junta, em abas, a lista com filtros e ações em massa, o
+[Kanban](/produto/funil-kanban), as [tags](/produto/tags), as
+[propriedades](/produto/propriedades) e a importação e exportação por CSV.
+
+## Onde fica no painel
+
+Menu **Contatos**. As abas:
+
+| Aba | O que tem |
+|---|---|
+| **Kanban** | O funil. Veja [Funil (Kanban)](/produto/funil-kanban) |
+| **Lista** | A tabela de leads, com busca, filtros, colunas e ações em massa |
+| **Tags** | As tags do projeto |
+| **Propriedades** | As propriedades personalizadas |
+| **Importar** | Importação por CSV. Desabilitada em projeto pendente ("Disponível após ativar um plano") |
+| **Exportar** | Exportação da base em CSV |
+
+O **Visualizador** só vê os leads atribuídos a ele. Os outros papéis veem todos.
+
+## A lista
+
+### Busca e ordenação
+
+- **Pesquisar por nome ou telefone.**
+- **Ordenar contatos:** por última interação (mais recente primeiro, o padrão, ou mais
+  antigos) ou por data de criação (mais recente ou mais antigos).
+
+### Filtros
+
+| Filtro | Como funciona |
+|---|---|
+| **Tags** | Mostra quem tem **todas** as tags marcadas |
+| **Departamento** | Leads de um departamento (não aparece para o Visualizador) |
+| **Usuário** | Leads de um responsável (não aparece para o Visualizador) |
+| **Coluna** | Leads numa coluna do funil |
+| **Status do agente** | Agente ligado, desligado ou pausado no lead |
+| **Não lidas** | Só leads com mensagens não lidas |
+| **Atendimento** | Em atendimento ou Encerrado |
+| **Propriedade** | Texto livre: "contém". Lista: um dos valores. Várias condições valem juntas |
+
+### Colunas da tabela
+
+Nome, Telefone, Kanban, Tags, Responsável, Departamento, Agente IA, uma coluna por
+propriedade, Atendimento, Data de entrada e Última interação. O seletor de colunas
+mostra e esconde cada uma.
+
+Kanban e as propriedades são editáveis na própria célula. Mudar a coluna por aqui vale
+como mudança feita no CRM: aplica as chaves da coluna (desativar IA, transbordo,
+disparar automações).
+
+### Ações em massa
+
+Marque os leads e use a barra que aparece:
+
+| Ação | O que faz |
+|---|---|
+| **Mover** | Troca a coluna dos leads selecionados. **Só troca a coluna**: não aplica as chaves da coluna |
+| **Tags → Adicionar / Remover** | Põe ou tira uma tag de todos |
+| **Propriedade** | Preenche uma propriedade com o mesmo valor em todos |
+| **Ligar agente / Desligar agente** | Liga ou desliga a IA para cada lead selecionado |
+| **Excluir** | Apaga os leads. "Esta ação não pode ser desfeita." |
+
+## Importar contatos (CSV)
+
+**Contatos → Importar**. Baixe o modelo em **Baixar Template**: ele já vem com uma
+coluna para cada propriedade do projeto.
+
+### O arquivo
+
+| Regra | Detalhe |
+|---|---|
+| Formato | `.csv`, valores separados por vírgula, em **UTF-8** |
+| Colunas obrigatórias | `nome` e `telefone` (com esses nomes) |
+| Telefone | Formato internacional, **com código do país**: `+5511999999999`. Número sem código do país é recusado |
+| Propriedades | Uma coluna por propriedade, com o **slug** como cabeçalho (o nome também é aceito) |
+| Tamanho | Até **1.000 linhas** por importação, como a tela orienta. Para mais, divida em arquivos |
+| Tag | Opcional: escolha uma tag na tela para todos os contatos do arquivo |
+
+Os contatos importados entram na **coluna de entrada** do funil, sem responsável.
+
+```csv
+nome,telefone,cidade,plano_de_interesse
+João Silva,+5511999999999,Campinas,Anual
+Maria Santos,+5521988888888,,Mensal
+```
+
+### O que é ignorado
+
+- **Leads duplicados**: telefone repetido no arquivo ou que já existe no projeto
+  ("Lead já existe").
+- **Linhas sem nome ou telefone**, ou com telefone inválido.
+- **Colunas de propriedade em branco** (naquela linha).
+- **Colunas que não correspondem a nenhuma propriedade.**
+- **Valor fora da lista** numa propriedade de valores pré-definidos (com aviso).
+
+O resultado mostra quantos entraram, os erros por linha e os avisos (até 50 linhas de
+cada na tela).
+
+### Limite de contatos do plano
+
+Antes de gravar, a importação confere o limite de contatos do plano. Se os contatos
+novos passam do que falta, **o arquivo inteiro é recusado**, com a conta na mensagem.
+Detalhes em [Assinatura e limites](/produto/assinatura-e-limites).
+
+## Exportar contatos
+
+**Contatos → Exportar** gera um CSV (UTF-8) com **todos** os contatos do projeto,
+ordenado por nome, com as colunas:
+
+| Coluna | Conteúdo |
+|---|---|
+| `nome` | Nome do contato |
+| `telefone` | Número do WhatsApp |
+| `kanban` | Coluna do funil onde o lead está |
+| `tags` | Tags do lead, separadas por `;` |
+
+Propriedades, responsável e conversas não vão no arquivo.
+
+## Como funciona por trás
+
+- **Importar não envia mensagem nem dispara automação.** Os contatos só entram na base.
+  Para falar com eles, use uma [campanha](/produto/campanhas) com template da Meta.
+- **Lead novo pelo WhatsApp** entra sozinho na coluna de entrada.
+- **Não há botão de deduplicar** no painel. A importação já ignora telefones repetidos.
+  Para o 9º dígito em números brasileiros, veja
+  [Identificar o lead](/api/identificar-o-lead).
+
+## Pelo MCP
+
+Leads não viajam no template: o MCP configura o projeto, não a base. Para consultar ou
+alterar leads, use a API do dia a dia. Veja
+[A API do dia a dia para agentes](/trabalhar-com-ia/api-do-dia-a-dia) e
+[Leads (API)](/api/leads).
+
+## Armadilhas
+
+- **Mover em massa não faz transbordo nem dispara automações.** Para isso, mova pelo
+  Kanban, pela célula da lista ou pela API.
+- **Telefone sem código do país é recusado.** Planilhas brasileiras costumam vir sem o
+  55: acrescente antes de importar.
+- **Arquivo salvo em outra codificação estraga acentos.** No Excel, use "CSV UTF-8".
+- **A coluna de telefone precisa se chamar `telefone`** (ou `phone`, `whatsapp`).
+  "Celular" não é lido como telefone.
+- **Importar acima do limite recusa o arquivo todo**, não só o excesso.
+- **Exportar e importar em outro projeto perde as propriedades e a coluna.** Só nome e
+  telefone são lidos; o resto precisa vir em colunas de propriedade.
+- **Excluir leads em massa apaga de vez.** Não há lixeira.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Importar contatos manda mensagem para eles?">
+Não. Para enviar a primeira mensagem, crie uma [campanha](/produto/campanhas) com um
+template aprovado pela Meta.
+</Accordion>
+<Accordion title="Por que o Visualizador não vê todos os contatos?">
+Ele só vê os leads atribuídos a ele. Veja
+[Usuários, papéis e permissões](/produto/papeis-e-permissoes).
+</Accordion>
+<Accordion title="Como deixo o agente desligado para uma lista de contatos?">
+Filtre ou selecione os leads na **Lista** e use **Desligar agente**.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Funil (Kanban)](/produto/funil-kanban)
+- [Tags](/produto/tags) e [Propriedades](/produto/propriedades)
+- [Conversas e chat ao vivo](/produto/conversas-e-chat)
+- [Campanhas](/produto/campanhas)
+- [Assinatura e limites](/produto/assinatura-e-limites)
+- Termos para buscar: "importação de leads CSV", "formato E.164", "CSV UTF-8".

@@ -1,0 +1,182 @@
+---
+title: "Pausa humana"
+description: "Leia para configurar a pausa humana: por quantos minutos a IA para depois que um humano responde, o que dispara a pausa, a diferença entre IA pausada e desligada, o que acontece com as mensagens durante a pausa e como religar."
+---
+
+A **pausa humana** é o tempo, em **minutos**, que a IA fica parada para um lead
+depois que um humano responde a ele. Serve para o agente não falar por cima de
+quem assumiu a conversa. Quando o tempo acaba, a IA volta sozinha e responde à
+próxima mensagem do lead.
+
+Vale para os dois motores e é aplicada pelo servidor da Zatten.
+
+## Onde fica no painel
+
+Em **Agente**, abra **Configurações avançadas** e ajuste **Pausa humana**, em
+minutos. A tela aceita de **0 a 1440** (24 horas). Com o campo vazio, a tela mostra
+**60**.
+
+O valor é gravado quando você sai do campo e vale na hora, sem publicar.
+
+**0 = sem pausa**: a IA continua respondendo mesmo depois de um humano escrever.
+
+## O que dispara a pausa
+
+| Quem responde | Pausa? | Por quanto tempo |
+|---|---|---|
+| Humano pelo chat da Zatten (**Conversas**): texto, mídia ou mensagem rápida | Sim | O valor configurado. Com o campo vazio no banco, **5 minutos**. |
+| Humano pelo celular, no app WhatsApp Business (**coexistência**) | Sim | O valor configurado. Com o campo vazio no banco, **sem pausa**. |
+| Humano pelo celular, na **conexão não oficial** | Sim | Igual à linha acima. |
+| **Template** enviado pelo chat | Não | — |
+| Mensagem enviada **pela API** | Não | — |
+| Mensagem enviada por um **fluxo** ou automação | Não | — |
+
+Na conexão oficial sem coexistência não existe app no celular: o humano responde
+pelo chat da Zatten.
+
+<Note>
+A pausa **só estende, nunca encurta**. Se a IA já estava pausada até mais tarde
+(ou desligada), uma nova resposta do humano não muda nada. Cada nova resposta do
+humano, com a IA já pausada, empurra o fim da pausa para "agora + N minutos" se isso
+for mais tarde que o fim atual.
+</Note>
+
+## Ligada, pausada e desligada
+
+Cada lead tem um estado da IA, visível no painel do lead (**Agente IA**) e no filtro
+de **Conversas**.
+
+| Estado | O que significa | Volta sozinha? | Como chega nele |
+|---|---|---|---|
+| **Ligado** | A IA responde. | — | Padrão; alguém religou; o atendimento foi encerrado; a pausa acabou. |
+| **Pausado até…** | A IA não responde até a data e hora mostradas. | **Sim**, no horário mostrado. | Pausa humana; pausa pela API ou por fluxo. |
+| **Desligado** | A IA não responde mais a esse lead. | **Não.** | Chave **Agente IA**; coluna com **Desativar IA** ou **Transbordo**; ações **Transferir para humano** ou **Desligar a IA** do agente; API ou fluxo sem prazo. |
+
+<Warning>
+A ação **Transferir para humano** do agente **desliga** a IA para o lead, não pausa.
+Ela não volta sozinha: alguém precisa religar ou encerrar o atendimento.
+</Warning>
+
+Use a pausa quando o humano faz uma intervenção curta e a IA deve continuar
+depois. Use **desligar** (ou uma coluna de transbordo) quando o humano vai
+conduzir o atendimento até o fim.
+
+## O que acontece com as mensagens durante a pausa
+
+1. A mensagem do lead é gravada e aparece em **Conversas**, como sempre.
+2. Ela entra no [buffer](/engenharia-de-ia/buffer). Quando a espera termina, a IA
+   está pausada e o lote é **descartado**: a IA **não responde depois** a essas
+   mensagens.
+3. Os follow-ups e o transbordo por inatividade pendentes desse lead são
+   cancelados. As mensagens não visíveis também não saem enquanto a IA está
+   pausada.
+
+Quando a pausa acaba, nada é enviado sozinho. A IA responde à **próxima** mensagem
+do lead. No LangChain Agent, essa resposta já leva em conta tudo o que aconteceu
+na pausa: as mensagens do lead e as do humano entram no histórico, marcadas com
+data, hora e autor ("Atendente humano"). O agente sabe o que o humano combinou.
+
+## Como religar
+
+| Onde | Como |
+|---|---|
+| **Painel** | Em **Conversas**, abra o lead e ligue a chave **Agente IA** (**Retomar**, se estava pausada). Vale na próxima mensagem do lead. |
+| **Encerrar atendimento** | Religa a IA (mesmo desligada) e devolve o lead à primeira coluna. Veja [Encerrar atendimento](/produto/encerrar-atendimento). |
+| **API** | `POST /api/v1/leads/{numero}/toggle-attendant-response` com `{ "enabled": true }`. Veja [Controle da IA por lead](/api/controle-da-ia). |
+| **Esperar** | Pausada volta sozinha no horário mostrado. Desligada, não. |
+
+Para **pausar por um tempo** (e não desligar) de fora do painel, use a API com
+`pause_minutes` ou a ação **Ligar, desligar ou pausar a IA** do Trigger Flow. A tela de Conversas
+não tem opção de pausar por X minutos.
+
+## Que valor usar
+
+| Situação | Valor sugerido |
+|---|---|
+| A equipe faz intervenções rápidas e devolve para a IA | **30 a 60 min** |
+| O humano costuma conduzir a conversa por um tempo (negociação, dúvida técnica) | **120 a 240 min** |
+| O humano assume até o fim | Pausa curta **e** desligar a IA do lead (ou usar uma coluna de transbordo) |
+| Sem intervenção humana | **0** |
+
+O valor certo depende de quanto tempo a equipe leva para concluir uma
+intervenção. Se o agente volta a falar no meio da conversa do humano, aumente.
+
+## Pelo MCP
+
+A pausa fica no bloco `llm_attendant`, campo `pause_in_human_interaction`, em
+minutos. A escrita grava na hora (não cria versão do agente).
+
+<Visibility for="agents">
+```json
+{ "llm_attendant": { "pause_in_human_interaction": 60 } }
+```
+
+- Tipo: inteiro, mínimo 0 no template. Unidade: minutos. A tela limita a 1440.
+- Valor nulo no banco: o servidor usa 0 (sem pausa) para respostas pelo celular;
+  o chat da Zatten usa 5 minutos.
+- O estado vem de `lead.ai_response_block_until` (UTC): nulo ou passado = ligado;
+  futuro a menos de 50 anos = pausado; 50 anos ou mais = desligado (desligar grava
+  agora + 100 anos). Não existe job de retomada: a IA volta porque a data passou.
+- Gatilho no servidor: mensagem com `from = USER` (eco do próprio número, na
+  coexistência ou na conexão não oficial). O chat da Zatten aplica a pausa no app.
+- `should_update_on_user_echo` (`llm_attendant`, sem tela): quando o eco do
+  próprio número **cria** um lead novo (o humano iniciou a conversa pelo celular) e
+  a pausa humana é maior que 0, a IA nasce **desligada** para esse lead.
+- API: `toggle-attendant-response` com `{ "enabled": false, "pause_minutes": N }`
+  pausa por N minutos (1 a 10080; só estende). Sem `pause_minutes`, desliga.
+  `pause_minutes` presente mas vazio retorna 400. `pause_minutes` com
+  `enabled: true` retorna 400.
+- O chat de teste do builder ignora a pausa.
+</Visibility>
+
+## Armadilhas
+
+- **Pausada não é desligada.** A pausa acaba sozinha. Se o humano vai até o fim,
+  desligue a IA do lead ou use uma coluna de transbordo.
+- **Pausa 0 = sem pausa.** O agente responde logo depois do humano, por cima da
+  conversa.
+- **Campo vazio se comporta diferente por canal.** Pelo chat da Zatten, 5 minutos;
+  pelo celular, sem pausa. A tela mostra 60, mas esse número só vale depois de
+  gravado. Grave um valor explícito.
+- **Mensagens da pausa não são respondidas depois.** Se o lead perguntou algo
+  durante a pausa e o humano não respondeu, ninguém responde até o lead escrever
+  de novo.
+- **API e fluxos não pausam.** Uma integração em que um humano responde pela API
+  precisa pausar ou desligar a IA na mesma rotina.
+- **Template pelo chat não pausa.** Se o lead responder ao template, quem responde
+  é o agente.
+- **Transferir para humano desliga.** Lead transferido fica sem IA até alguém
+  religar ou encerrar o atendimento.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Respondi pelo celular e a IA respondeu junto. Por quê?">
+A pausa está em 0 ou vazia no banco (pelo celular, vazio = sem pausa), ou a conexão
+é oficial sem coexistência (não há eco do celular). Grave um valor maior que 0.
+</Accordion>
+<Accordion title="A pausa acabou e a IA não falou nada. Está quebrado?">
+Não. A IA só responde quando o lead escreve de novo. Ela não retoma a conversa
+sozinha.
+</Accordion>
+<Accordion title="Dá para a IA voltar só no dia seguinte?">
+Use até 1440 minutos na tela, ou pause pela API com `pause_minutes` (até 10080, 7
+dias). Para não voltar mais, desligue.
+</Accordion>
+<Accordion title="O agente sabe o que o humano disse?">
+No LangChain Agent, sim: na próxima resposta, as mensagens do humano entram no
+histórico como "Atendente humano".
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Conversas e chat ao vivo](/produto/conversas-e-chat)
+- [Encerrar atendimento](/produto/encerrar-atendimento)
+- [Controle da IA por lead (API)](/api/controle-da-ia)
+- [Buffer de mensagens](/engenharia-de-ia/buffer)
+- [Transbordo](/playbooks/transbordo)
+- Meta, coexistência com o app WhatsApp Business: https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users
+
+**Termos para buscar:** "human takeover chatbot", "human handoff", "pausa humana
+IA WhatsApp", "message echoes coexistence".

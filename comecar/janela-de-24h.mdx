@@ -1,0 +1,73 @@
+---
+title: "Janela de 24h, templates e o que dá para enviar"
+description: "Leia para saber quando o projeto pode mandar texto livre e quando só template, como a Zatten calcula a janela de 24h e o que falha fora dela."
+---
+
+Na conexão oficial do WhatsApp, a empresa só pode mandar **mensagem livre** (texto, imagem, áudio, arquivo) dentro da **janela de 24h**, que abre e reinicia a cada mensagem do lead. Fora da janela, só sai **template aprovado pela Meta**. A regra é da Meta, e a Zatten a aplica em todos os envios. Na conexão não oficial (QR Code), a janela não existe.
+
+## Como a Zatten calcula a janela
+
+**Fim da janela = hora da última mensagem do lead + 24 horas.**
+
+- Só a mensagem **do lead** abre ou estende a janela.
+- Respostas do agente, de um humano pelo CRM, do app WhatsApp Business (coexistência) ou da API **não** estendem.
+- A janela está aberta enquanto o fim estiver no futuro. Exatamente no horário do fim, ela já conta como fechada.
+- Lead que nunca mandou mensagem (por exemplo, importado por CSV) não tem janela aberta.
+
+No CRM, a conversa mostra quanto tempo falta para a janela fechar. Com a janela fechada, o campo de mensagem dá lugar ao aviso **Janela expirada**, e só é possível mandar template.
+
+<Visibility for="agents">
+O fim da janela fica no campo `conversation_expires_in` do lead, que vem na consulta do lead pela API (`GET /api/v1/leads/{numero}`) e no payload dos webhooks de saída. Formato de data e hora em UTC. Nulo ou no passado = janela fechada. Na conexão não oficial o campo pode existir, mas não vale: não há janela. No Trigger Flow, a condição usa `conversation_window` com os valores `open` ou `expired`, reavaliada no momento da condição.
+</Visibility>
+
+## O que dá para enviar
+
+| Envio | Janela aberta | Janela fechada |
+|---|---|---|
+| Resposta do agente de IA | Sai. | Não acontece: o agente só responde a uma mensagem do lead, que reabre a janela. |
+| Texto ou mídia pelo CRM | Sai. | Bloqueado na tela ("Janela expirada"). Use um template. |
+| Texto ou mídia pela API (`/messages/text`, `/messages/image` etc.) | Sai. | Falha com erro 400 de janela vencida. |
+| Template (CRM, API, campanha, follow-up) | Sai. | Sai. É o único jeito de falar com o lead fora da janela. |
+| **Follow-up** | Sai (usa template). | Sai (usa template). |
+| **Reengajamento** | Sai, X minutos antes de a janela fechar, como texto livre. | Não sai. Ele existe justamente para agir antes do fechamento. |
+| **Transbordo por inatividade** | A mensagem sai e o lead muda de coluna. | A mensagem **não sai**, mas o lead **muda de coluna** mesmo assim. |
+| Mensagem agendada de texto livre | Sai. | Falha. Agende com template quando o envio puder cair fora da janela. |
+
+## Templates
+
+Template é uma mensagem pré-aprovada pela Meta, com categoria (marketing, utilidade ou autenticação), variáveis e, opcionalmente, mídia e botões. É criado em **WhatsApp → Templates**, enviado à Meta e só pode ser usado depois de aprovado. Cada envio de template é cobrado pela Meta conforme a categoria. Veja [Templates do WhatsApp](/produto/templates-whatsapp).
+
+Desde 01/10/2026 a Meta também cobra as mensagens livres dentro da janela (mensagens de serviço). Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+## Na conexão não oficial
+
+Não há janela. O texto livre sai a qualquer momento, e os "templates" são textos salvos no painel, sem aprovação. Por isso o reengajamento nem aparece nas automações dessa conexão. Veja [WhatsApp não oficial](/comecar/whatsapp-nao-oficial).
+
+## Armadilhas
+
+- **A janela conta a partir do lead, não da conversa.** Um humano que responde no fim da janela não ganha mais 24h. Se o lead não responder, o próximo contato precisa ser template.
+- **Transbordo por inatividade fora da janela** move o lead sem avisar o cliente. Configure o atraso para cair dentro das 24h.
+- **Lead importado não tem janela.** O primeiro contato com quem veio de CSV é sempre por template (campanha ou API).
+- **Segmentar a resposta não muda a janela**, mas cada pedaço é uma mensagem cobrada pela Meta.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Por que a API devolveu erro ao mandar texto para um lead?">
+A janela de 24h desse lead fechou. Mande um template com `POST /messages/template`. Veja [Mensagens](/api/mensagens) e [Erros](/api/erros).
+</Accordion>
+<Accordion title="O agente de IA pode iniciar uma conversa?">
+Não com texto livre fora da janela. Para falar primeiro com o lead, use um template (campanha, follow-up, API ou uma ação do Trigger Flow).
+</Accordion>
+<Accordion title="Mensagens que chegam por anúncio têm regra diferente?">
+A Meta tem uma janela grátis para conversas iniciadas por anúncio Click-to-WhatsApp, que muda a cobrança, não o que dá para enviar. Veja a página de preços da Meta.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Qual conexão escolher](/comecar/conexoes-whatsapp).
+- [Reengajamento](/produto/automacoes/reengajamento), [Follow-up](/produto/automacoes/follow-up), [Transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade).
+- [Templates do WhatsApp](/produto/templates-whatsapp).
+- Meta: [janela de atendimento (customer service window)](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages#customer-service-windows), [templates](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview), [categorias de template](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-categorization), [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing).
+- Termos para buscar: "customer service window", "24-hour window", "template message", "free entry point".

@@ -1,0 +1,155 @@
+---
+title: "Propriedades personalizadas"
+description: "Leia para criar campos personalizados do lead (texto livre ou lista de valores), entender o slug, o vínculo, a opção de enviar o valor para a IA e o que não dá para mudar depois que a propriedade está em uso."
+---
+
+A **propriedade** é um campo personalizado do lead: "Cidade", "Plano de interesse",
+"Data da consulta". Pode ser **texto livre** ou uma **lista fechada de valores**. Quem
+preenche pode ser a equipe, o agente (com uma ação da Zatten), a API, um fluxo ou a
+importação de contatos. Cada propriedade tem um **slug**, o identificador fixo usado
+pelo agente, pela API e pelo CSV.
+
+## Onde fica no painel
+
+- **Contatos → aba Propriedades**: a tabela com **Nome**, **Slug**, **Vínculo**,
+  **Valores** e **Descrição**, e o botão **Adicionar Propriedade**.
+- **Contatos → Lista**: uma coluna por propriedade, editável na própria célula; o filtro
+  **Filtrar por propriedade**; a ação em massa de propriedade.
+- **Painel do lead** (em **Conversas**): o bloco **Propriedades**.
+
+## Como configurar
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Nome da Propriedade** | O nome que aparece no painel. Também gera o slug | Obrigatório |
+| **Descrição** | O que o campo guarda e em que formato | **Obrigatória** |
+| **Vínculo** | **Contato** (permanece após encerrar a conversa) ou **Conversa** (removida ao encerrar) | Contato |
+| **Valores pré-definidos** | Liga a lista fechada. O valor só pode ser uma das opções, no CRM e nas APIs | Desligado |
+| Cada valor | **Valor** e **Descrição (opcional)** | — |
+
+### O slug
+
+- É gerado do nome na criação: minúsculas, sem acento, espaços viram `_`. "Data de
+  Nascimento" vira `data_de_nascimento`.
+- **Não muda depois**, mesmo renomeando a propriedade. Os valores preenchidos nos leads
+  ficam presos a ele.
+- Não pode repetir no projeto: "Já existe uma propriedade com o slug … neste projeto".
+- É o nome do campo nas tools do agente, na API e no cabeçalho do CSV de importação.
+
+### Texto livre ou lista?
+
+| Tipo | Use quando | Exemplo |
+|---|---|---|
+| **Texto livre** | O valor é aberto | Nome da empresa, e-mail, observação |
+| **Lista** | As respostas possíveis são conhecidas | Plano (mensal, anual), Origem (Instagram, Google, indicação) |
+
+Prefira **lista** sempre que der: o agente recebe as opções e não inventa variações, e
+campanhas e filtros por valor ficam confiáveis. Na lista, cada valor precisa ser único
+(sem diferenciar maiúsculas) e é preciso ao menos um.
+
+## Como funciona por trás
+
+- **Ao encerrar o atendimento**, as propriedades de vínculo **Conversa** saem do lead e
+  ficam no histórico daquela conversa. As de vínculo **Contato** continuam.
+- **Enviar para a IA:** cada propriedade tem a opção "enviar para a IA". Ligada, o valor
+  preenchido entra no contexto do agente a cada resposta. Essa opção **não aparece no
+  formulário do painel**: hoje só se liga ou desliga pelo template (MCP ou JSON). Veja
+  [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado).
+- **O agente preenche pela ação "preencher propriedade"**, sempre pelo slug. Com lista,
+  ele só aceita os valores da lista. Veja
+  [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten).
+- **Filtro em Contatos:** texto livre busca por "contém"; lista escolhe um dos valores.
+  Várias condições valem juntas (todas precisam bater).
+
+{/* A CONFIRMAR: valor padrão de "enviar para a IA" (send_to_ai) numa propriedade criada pelo painel. O formulário não envia o campo; vale o padrão do banco, que não foi conferido. */}
+
+### O que muda depois que está em uso
+
+| Mudança | No painel | Pelo template (MCP) |
+|---|---|---|
+| Renomear | Pode. O slug não muda | Pelo `slug` |
+| Texto livre já preenchido → lista | **Bloqueado**: "Esta propriedade já está preenchida em N contato(s) como texto livre, por isso não pode ser convertida para valores pré-definidos." | Recusado, com nota e a contagem |
+| Tirar um valor da lista | Pede confirmação e **apaga esse valor dos contatos** que o tinham | O valor sai da lista, mas **continua nos leads** que o tinham |
+| Trocar o vínculo | Pode | Pode |
+| Excluir | Se o agente usa a propriedade, pede confirmação e a tool sai junto | Não exclui (fica como órfã) |
+
+## Pelo MCP
+
+As propriedades viajam no bloco `properties` do template, com os valores da lista.
+
+- **Renomeie pelo `slug`.** Sem `slug`, um nome novo cria outra propriedade.
+- `is_enum: true` e `values` andam juntos. `values` sem `is_enum: true` é ignorado, com
+  nota.
+- `send_to_ai` só se altera por aqui.
+- Valor retirado de `values` continua existindo nos leads.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Obrigatório |
+| `slug` | string ou null | Chave de identidade. É o nome do parâmetro nas tools do agente |
+| `description` | string ou null | Obrigatória no painel |
+| `scope` | `lead` ou `conversation` | Vínculo Contato ou Conversa |
+| `is_enum` | boolean | Liga a lista fechada |
+| `send_to_ai` | boolean | Injeta o valor no contexto do agente |
+| `values` | lista de `{ value, description? }` | Chave de cada valor: `value` |
+
+```json
+{
+  "properties": [
+    {
+      "slug": "plano_de_interesse",
+      "name": "Plano de interesse",
+      "description": "Plano que o lead quer contratar",
+      "scope": "lead",
+      "is_enum": true,
+      "send_to_ai": true,
+      "values": [
+        { "value": "Mensal" },
+        { "value": "Anual", "description": "Pagamento à vista com desconto" }
+      ]
+    }
+  ]
+}
+```
+</Visibility>
+
+## Armadilhas
+
+- **Decida entre texto e lista antes de preencher.** Depois que algum contato tem valor
+  em texto livre, não dá mais para virar lista. A saída é criar outra propriedade.
+- **Tirar um valor da lista no painel apaga dados.** Os contatos com aquele valor
+  ficam sem a propriedade. Confira a contagem na confirmação.
+- **Renomear não muda o slug.** Um slug ruim ("teste_1") fica para sempre; escolha bem o
+  nome na criação.
+- **"Enviar para a IA" não está no formulário.** Para o agente enxergar a propriedade,
+  ligue pelo template.
+- **Vínculo Conversa some ao encerrar.** Dados permanentes (CPF, cidade) devem ser de
+  vínculo **Contato**.
+- **Valor fora da lista na importação é ignorado**, com aviso no resultado.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Como preencho propriedades em massa?">
+Em **Contatos → Lista**, selecione os leads e use a ação de propriedade. Ou importe um
+CSV com uma coluna por propriedade, usando o slug como cabeçalho. Veja
+[Contatos](/produto/contatos).
+</Accordion>
+<Accordion title="O agente consegue ler uma propriedade?">
+Sim, se ela estiver com "enviar para a IA" ligado e preenchida no lead. Para o agente
+gravar, ele precisa da ação "preencher propriedade" apontando para ela.
+</Accordion>
+<Accordion title="Tag ou propriedade?">
+Tag é sim ou não. Propriedade guarda um valor. Veja [Tags](/produto/tags).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Tags](/produto/tags)
+- [Contatos](/produto/contatos)
+- [Qualificação de leads](/playbooks/qualificacao)
+- [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- Termos para buscar: "campos personalizados de CRM", "enum", "slug".

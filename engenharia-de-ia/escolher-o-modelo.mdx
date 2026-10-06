@@ -1,0 +1,197 @@
+---
+title: "Escolher o modelo"
+description: "Leia para escolher o modelo do agente e ajustar os parâmetros: modalidades (imagem, áudio, PDF), custo x qualidade x latência, Max Tokens, temperatura (padrão 0), raciocínio e quando usar cada nível."
+---
+
+O modelo é o que lê a conversa e decide o que responder e quais tools chamar.
+Escolher é equilibrar três coisas: **custo** (preço por token), **qualidade**
+(segue as regras, usa as tools certas) e **latência** (quanto o lead espera). E
+conferir uma quarta: se o modelo **entende o que os leads mandam** (imagem, PDF).
+
+## Onde fica no painel
+
+Em **Agente**, o seletor de modelo mostra a lista do provider escolhido, com
+etiquetas de modalidade. O ícone de ajustes ao lado abre **Configurações do
+modelo**: Provider, API Key, Temperatura, Top P, Raciocínio, Max Tokens, Seed,
+Timeout, Tentativas e Fallback.
+
+## Modalidades: o modelo entende imagem? PDF?
+
+Cada modelo da lista tem etiquetas com o que aceita de entrada:
+
+| Etiqueta | O que significa no agente |
+|---|---|
+| **Texto** | Todos têm. |
+| **Áudio** | Aparece em **todos**: a Zatten transcreve o áudio antes de o modelo ver. O modelo recebe texto. |
+| **Imagem** | O modelo vê imagens que o lead manda. Sem essa etiqueta, a imagem não é entendida. |
+| **Arquivo** | O modelo lê PDF. |
+| **Vídeo** | Não conte com ela: na conexão oficial e na coexistência, o servidor não envia vídeo ao agente ([Mídia](/engenharia-de-ia/midia)). |
+
+Na lista da **OpenAI**, o painel só marca Texto e Imagem. Para saber se um modelo
+da OpenAI lê PDF, confira na página do modelo. No **OpenRouter**, as etiquetas
+vêm do próprio OpenRouter.
+
+Se os leads do cliente mandam foto de documento, de produto ou comprovante,
+escolha um modelo com **Imagem**. Detalhes de cada mídia em
+[Mídia: áudio, imagem e PDF](/engenharia-de-ia/midia).
+
+## Custo x qualidade x latência
+
+| Tipo de modelo | Custo | Velocidade | Bom para |
+|---|---|---|---|
+| Pequeno (famílias "mini", "nano", "flash") | Baixo | Rápido | Triagem, FAQ, agendamento simples, poucas tools |
+| Intermediário | Médio | Médio | A maioria dos atendimentos: qualificação, várias tools, regras de negócio |
+| Grande | Alto | Mais lento | Venda consultiva, muitas regras que se cruzam, muitas tools encadeadas |
+| Qualquer um **com raciocínio** | Mais saída cobrada | Mais lento | Decisões com várias condições; conferir antes de agir |
+
+Como escolher na prática:
+
+1. **Comece por um modelo pequeno ou intermediário** que aceite as modalidades
+   que o cliente precisa.
+2. **Teste 5 a 10 conversas reais** no chat do builder: as mais comuns e as mais
+   difíceis. Veja se ele chama as tools certas e segue as regras.
+3. **Suba de modelo só se errar**, e só depois de conferir que o erro não é do
+   prompt ou da descrição da tool.
+4. **Calcule o custo por atendimento** dos 2 ou 3 candidatos com
+   [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia).
+
+No WhatsApp, latência pesa: somada ao [buffer](/engenharia-de-ia/buffer) e às
+tools, uma resposta lenta parece abandono.
+
+## Parâmetros
+
+### Temperatura
+
+Controla o quanto a resposta varia. Vai de **0 a 2**; o **padrão é 0**.
+
+- **0 a 0,3** para atendimento: respostas consistentes, que seguem o prompt.
+- Acima de 0,7 o agente varia mais as palavras, mas também inventa mais.
+- Mexa na **temperatura** ou no **Top P**, nunca nos dois.
+- Com **raciocínio** ligado, muitos modelos ignoram a temperatura.
+
+### Max Tokens
+
+O limite de tokens que o modelo pode **gerar** em cada chamada. O **padrão é
+4096**. Se o valor passar do máximo do modelo, o agente reduz sozinho (quando
+conhece o limite daquele modelo).
+
+- Resposta de WhatsApp é curta. Sem raciocínio, 1000 a 2000 sobra.
+- Com raciocínio, o raciocínio também conta nesse limite. Deixe 4096 a 8192.
+- Baixo demais corta a resposta no meio ou impede a chamada de tool.
+- Alto demais não aumenta o custo da resposta (paga-se o que é gerado), mas no
+  OpenRouter reserva mais crédito por chamada.
+
+Para controlar o tamanho da resposta, escreva no prompt ("responda em até 3
+frases"). O Max Tokens é só o teto.
+
+### Raciocínio (reasoning effort)
+
+Quanto o modelo "pensa" antes de responder. Opções: **Padrão**, **Mínimo**,
+**Baixo**, **Médio**, **Alto** e **Muito alto**.
+
+- **Padrão** não envia nada: o modelo usa o comportamento dele. Na família
+  `gpt-5.x` da OpenAI, Padrão significa sem raciocínio, para manter as tools
+  funcionando.
+- Modelos sem raciocínio ignoram a opção.
+- O raciocínio é cobrado como **saída** e não aparece para o lead.
+- Quanto maior o nível, mais lenta e cara a resposta.
+
+| Nível | Quando usar |
+|---|---|
+| Padrão ou Mínimo | Atendimento comum, FAQ, triagem |
+| Baixo | Qualificação com algumas regras, escolha entre várias tools |
+| Médio | Regras que se cruzam (agenda + política + exceções), cálculos em vários passos |
+| Alto ou Muito alto | Raramente no WhatsApp: a espera fica longa. Teste a latência antes |
+
+Com raciocínio ligado, o **Top P** é descartado em modelos que não o aceitam.
+
+### Outros campos
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Top P** | Alternativa à temperatura: restringe às palavras mais prováveis | 1 (não restringe) |
+| **Seed** | Fixa a aleatoriedade para repetir respostas em testes | 0 = aleatório |
+| **Timeout** | Quanto esperar o provider antes de desistir da tentativa, em **segundos** | 60 |
+| **Tentativas** e **Fallback** | O que fazer quando o modelo falha | Ver [Resiliência](/engenharia-de-ia/resiliencia) |
+
+## Pelo MCP
+
+Tudo fica em `langchain.config.model`. Mudar o modelo pelo assistente cria uma
+versão não publicada; quem publica é a pessoa, no painel.
+
+<Visibility for="agents">
+| Campo | Tipo | Padrão | Notas |
+|---|---|---|---|
+| `model.provider` | `"openai" \| "openrouter"` | obrigatório | |
+| `model.name` | string | obrigatório | OpenRouter: `fabricante/modelo` |
+| `model.temperature` | número 0–2 | `0` | |
+| `model.max_tokens` | inteiro | `4096` | Reduzido ao limite do modelo, se conhecido |
+| `model.provider_options.top_p` | número 0–1 | — | Removido com raciocínio ligado (OpenAI) |
+| `model.provider_options.reasoning` | `{ "effort": "minimal" \| "low" \| "medium" \| "high" \| "xhigh" }` ou `null` | `null` (Padrão) | Na OpenAI, com effort definido, a chamada vai pela Responses API |
+| `model.provider_options.seed` | inteiro | — | |
+| `model.provider_options.timeout_seconds` | inteiro | `60` | Sempre segundos |
+| `model.provider_options.max_retries` | inteiro | `2` | Tentativas do cliente do provider, além do retry do agente |
+| `model.provider_options.openrouter_provider` | objeto | — | Roteamento entre provedores no OpenRouter |
+
+- Chave desconhecida em `provider_options` é descartada em silêncio. Um erro de
+  digitação (`temprature`) não dá erro: o campo só não vale.
+- Não existe `verbosity` no LangChain Agent.
+- Lista de modelos do OpenRouter com preço e modalidades:
+  `https://openrouter.ai/api/v1/models` (campo `architecture.input_modalities`;
+  o painel filtra `supported_parameters` com `tools` e saída só texto).
+- Ao trocar de modelo, confira os schemas das tools HTTP: arrays precisam de
+  `items` (modelos Gemini recusam sem).
+</Visibility>
+
+## Armadilhas
+
+- **Trocar de modelo sem testar as tools.** Cada modelo segue descrições de tool
+  de um jeito. Teste as ações principais depois de trocar.
+- **Modelo sem Imagem num cliente que recebe fotos**: o agente responde sem ver a
+  imagem, e pode inventar.
+- **Raciocínio alto no WhatsApp**: respostas de muitos segundos, mais o buffer.
+  O lead acha que ninguém está respondendo.
+- **Max Tokens baixo com raciocínio ligado**: o raciocínio consome o limite e a
+  resposta sai vazia ou cortada.
+- **Temperatura e Top P mexidos juntos**: efeito difícil de prever. Escolha um.
+- **Escolher pelo preço por token só.** Um modelo barato que chama a tool errada
+  gera mais chamadas e mais tokens. Compare o custo **por atendimento**.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Qual modelo a Zatten recomenda?">
+Não há um fixo: modelos e preços mudam todo mês. Comece por um modelo pequeno ou
+intermediário com as modalidades certas, teste com conversas reais e compare o
+custo por atendimento. Como referência, um agente de orçamentos real custa cerca
+de R$0,30 por atendimento completo.
+</Accordion>
+<Accordion title="Por que o modelo que eu quero não aparece na lista?">
+No OpenRouter, o painel só lista modelos que aceitam tools e respondem em texto: o
+agente precisa de tools. Na OpenAI, ficam de fora modelos que não são de chat
+(imagem, áudio, embeddings).
+</Accordion>
+<Accordion title="O agente ficou lento depois que liguei o raciocínio. É normal?">
+Sim. Volte para Padrão ou Baixo e veja se a qualidade se mantém.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Providers: OpenAI e OpenRouter](/engenharia-de-ia/providers)
+- [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia)
+- [Mídia: áudio, imagem e PDF](/engenharia-de-ia/midia)
+- [Escrever um bom prompt](/engenharia-de-ia/prompt)
+- OpenAI, modelos: https://developers.openai.com/api/docs/models
+- OpenAI, preços: https://developers.openai.com/api/docs/pricing
+- OpenAI, raciocínio: https://developers.openai.com/api/docs/guides/reasoning
+- OpenAI, guia do modelo mais recente: https://developers.openai.com/api/docs/guides/latest-model
+- OpenRouter, modelos: https://openrouter.ai/models (em JSON: https://openrouter.ai/api/v1/models)
+- OpenRouter, guia de modelos: https://openrouter.ai/docs/guides/overview/models
+- OpenRouter, tokens de raciocínio: https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+- OpenRouter, cache de prompt: https://openrouter.ai/docs/guides/best-practices/prompt-caching
+- OpenRouter, parâmetros: https://openrouter.ai/docs/api/reference/parameters
+
+**Termos para buscar:** "reasoning effort", "max_completion_tokens reasoning
+tokens", "temperature vs top_p", "input modalities vision", "LLM latency
+WhatsApp", "model tool calling support".

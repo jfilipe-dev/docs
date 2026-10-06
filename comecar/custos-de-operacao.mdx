@@ -1,0 +1,102 @@
+---
+title: "Quanto custa operar um projeto"
+description: "Leia para somar as três contas de um projeto (plano da Zatten, consumo da IA e mensagens da Meta) e estimar o custo por conversa e por mês."
+---
+
+Operar um projeto custa três contas, pagas a três empresas diferentes: o **plano da Zatten**, o **consumo da IA** (pago ao provedor, por token) e as **mensagens da Meta** (pagas à Meta, por mensagem entregue). O custo da IA e da Meta varia com o modelo, o tamanho das conversas e o volume, mas a ordem de grandeza costuma ser baixa: um agente de orçamentos completo sai na casa de **R$ 0,30 por atendimento** em IA.
+
+## As três contas
+
+| Conta | Quem cobra | Como cobra | Onde ver o preço |
+|---|---|---|---|
+| **Plano da Zatten** | Zatten | Valor fixo por projeto, mensal ou anual. | [zatten.com/planos](https://www.zatten.com/planos) |
+| **IA** | OpenAI ou OpenRouter, com a sua chave (BYOK) | Por token de entrada e de saída, conforme o modelo. Sem acréscimo da Zatten. | [Preços da OpenAI](https://developers.openai.com/api/docs/pricing), [modelos do OpenRouter](https://openrouter.ai/models) |
+| **Meta** (só na conexão oficial) | Meta, na forma de pagamento da conta do WhatsApp Business | Por mensagem entregue, conforme a categoria e o país do destinatário. | [Preços da plataforma do WhatsApp](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing) |
+
+Na conexão não oficial (QR Code) não existe a conta da Meta, mas também não existem campanhas, reengajamento e conversões. Veja [Qual conexão escolher](/comecar/conexoes-whatsapp).
+
+### O que mudou na Meta em 01/10/2026
+
+Desde **1º de outubro de 2026**, a Meta cobra **toda mensagem de serviço**: qualquer mensagem que não é template, enviada dentro da janela de 24h, seja escrita por uma pessoa ou por uma IA de terceiros, como o agente da Zatten. Antes, essas respostas eram grátis. Pela página da Meta, o valor da mensagem de serviço é o mesmo da mensagem de utilidade no mesmo país.
+
+Na prática: **cada resposta que o agente manda no WhatsApp oficial é uma mensagem cobrada pela Meta.** Templates (marketing, utilidade e autenticação) continuam cobrados como antes. Mensagens dentro da janela grátis de quem chega por anúncio Click-to-WhatsApp continuam sem cobrança de entrega.
+
+<Warning>
+A Meta avisou que deixa de entregar mensagens de serviço das contas sem forma de pagamento cadastrada. Sem cartão na conta do WhatsApp Business, as respostas do agente param de chegar. Confira em [Billing Hub](https://business.facebook.com/latest/billing_hub/payment_methods/) (Meta Business Suite).
+</Warning>
+
+## Exemplo resolvido
+
+<Note>
+Os números abaixo são **ilustrativos**. Preços consultados em **06/10/2026** em [openrouter.ai/api/v1/models](https://openrouter.ai/api/v1/models) e na [página de preços de mensagens de serviço da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages). Câmbio ilustrativo de R$ 5,40 por dólar. Confira sempre os valores atuais antes de apresentar a um cliente.
+</Note>
+
+**O cenário:** um agente de atendimento com o modelo `openai/gpt-5.4-mini` no OpenRouter, que custava US$ 0,75 por milhão de tokens de entrada e US$ 4,50 por milhão de tokens de saída na data da consulta.
+
+### 1. Tokens de uma conversa típica
+
+A cada mensagem do lead, o agente chama o modelo uma vez, e cada chamada reenvia o prompt, a descrição das ferramentas e o histórico da conversa. Por isso a entrada pesa muito mais que a saída.
+
+| Item | Por chamada | Chamadas | Total |
+|---|---|---|---|
+| Entrada: prompt (3.000) + ferramentas (1.500) + histórico (média de 2.000) | 6.500 tokens | 8 | **52.000 tokens** |
+| Saída: a resposta do agente | 150 tokens | 8 | **1.200 tokens** |
+
+### 2. Custo de IA por conversa
+
+| Conta | Cálculo | Valor |
+|---|---|---|
+| Entrada | 52.000 × US$ 0,75 ÷ 1.000.000 | US$ 0,0390 |
+| Saída | 1.200 × US$ 4,50 ÷ 1.000.000 | US$ 0,0054 |
+| **IA por conversa** | | **US$ 0,0444 ≈ R$ 0,24** |
+
+### 3. Custo da Meta por conversa
+
+A própria página da Meta usa, como exemplo, US$ 0,0068 por mensagem de utilidade no Brasil (valor de 01/07/2026), que é também o valor da mensagem de serviço. Com 8 respostas do agente:
+
+8 × US$ 0,0068 = **US$ 0,0544 ≈ R$ 0,29 por conversa.**
+
+### 4. Por mês, com 1.000 contatos
+
+Supondo uma conversa por contato no mês:
+
+| Conta | Por conversa | × 1.000 conversas |
+|---|---|---|
+| IA | US$ 0,0444 | US$ 44,40 ≈ R$ 240 |
+| Meta (mensagens de serviço) | US$ 0,0544 | US$ 54,40 ≈ R$ 294 |
+| Plano da Zatten | — | valor do plano em [zatten.com/planos](https://www.zatten.com/planos) |
+| **Total** | | **≈ R$ 534 + o plano** |
+
+Templates de follow-up e campanhas são somados à parte, pelo preço da categoria de cada um.
+
+## O que faz o custo subir ou descer
+
+- **O modelo.** Entre modelos, o preço por token varia mais de 10 vezes. Um modelo maior só vale se a qualidade for necessária. Veja [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo).
+- **O tamanho do prompt e das ferramentas.** Vão em toda chamada. Um prompt de 10.000 tokens custa três vezes mais que um de 3.000, a conversa inteira.
+- **O cache de prompt.** A parte fixa do prompt costuma entrar em cache no provedor e custar bem menos. Por isso o custo real tende a ser **menor** que a conta acima. O prompt da Zatten é fixo de propósito para aproveitar o cache.
+- **Conversas longas.** O histórico cresce a cada troca. O resumo automático limita isso. Veja [Conversas longas](/engenharia-de-ia/conversas-longas).
+- **Ferramentas.** Cada ferramenta chamada é mais uma chamada ao modelo na mesma mensagem.
+- **Segmentação.** Dividir a resposta em várias mensagens no WhatsApp não muda o custo da IA, mas **cada pedaço é uma mensagem cobrada pela Meta**. Veja [Segmentação e voz](/engenharia-de-ia/segmentacao-e-voz).
+
+## Onde ver o gasto real
+
+- **Métricas** do projeto: tokens e gasto em dólar da IA, mensagens enviadas e recebidas. Veja [Métricas](/produto/metricas).
+- **Painel do provedor:** o consumo da chave na OpenAI ou no OpenRouter.
+- **Meta Business Suite:** as mensagens cobradas e a fatura da conta do WhatsApp Business.
+
+Para fazer a conta com as conversas reais de um cliente, peça ao seu assistente de IA o roteiro de [Estimar o custo de IA de um cliente](/trabalhar-com-ia/estimar-custo-de-ia).
+
+## Armadilhas
+
+- **Conta da Meta sem forma de pagamento:** as respostas do agente param de ser entregues.
+- **Comparar só o preço por token:** um modelo barato que precisa de três chamadas para resolver pode sair mais caro que um modelo melhor que resolve em uma.
+- **Esquecer as mensagens de serviço:** desde 01/10/2026, um agente que responde muito no WhatsApp oficial gera custo na Meta mesmo sem nenhum template.
+
+## Para saber mais
+
+- [Quanto cobrar do cliente final](/comecar/quanto-cobrar): montar o preço a partir destes custos.
+- [Estimar o custo de IA de um cliente](/trabalhar-com-ia/estimar-custo-de-ia): a conta com dados reais.
+- [Providers: OpenAI e OpenRouter](/engenharia-de-ia/providers).
+- Meta: [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing), [mensagens de serviço cobradas desde 01/10/2026](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages), [tabela pública](https://whatsappbusiness.com/products/platform-pricing/).
+- OpenRouter: [modelos (JSON)](https://openrouter.ai/api/v1/models), [cache de prompt](https://openrouter.ai/docs/guides/best-practices/prompt-caching.md). OpenAI: [preços](https://developers.openai.com/api/docs/pricing).
+- Termos para buscar: "per-message pricing WhatsApp", "service messages pricing", "free entry point", "price per million tokens", "prompt caching".

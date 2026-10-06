@@ -1,0 +1,145 @@
+---
+title: "Trigger Flow: execuções e depuração"
+description: "Leia quando um fluxo do Trigger Flow não fez o que devia: onde ver o histórico de execuções, o que significa cada status, os limites (100 passos, 2 fluxos em cadeia, timeouts, idempotência de 24h, execução travada após 30 minutos) e um roteiro de depuração."
+---
+
+Cada vez que um fluxo é disparado para um lead, a Zatten grava uma **execução**:
+quando começou, o gatilho, o lead, o status e o passo a passo do que rodou. É o
+primeiro lugar para olhar quando um fluxo "não funcionou".
+
+## Onde fica no painel
+
+No editor do fluxo (`/automations/flows/<id>`), botão **Execuções**. O botão só
+aparece depois que o fluxo foi salvo pela primeira vez.
+
+- À esquerda, as execuções **mais recentes**, 25 por vez, com status e lead.
+  O botão de atualizar recarrega a lista.
+- À direita, a execução escolhida: data e hora, gatilho, duração, a mensagem de
+  erro (se houver) e **uma linha por passo**, com o nome do bloco, se deu certo,
+  a saída escolhida nas condições (**Sim** ou **Não**) e o tempo em milissegundos.
+
+Só **admin** e **editor** veem as execuções.
+
+## Como ler cada status
+
+| Status | Quer dizer | O que fazer |
+|---|---|---|
+| **Concluído** | O fluxo chegou ao fim de um caminho sem erro. | Nada. Se o efeito não apareceu, confira o caminho: uma condição pode ter ido para o Não. |
+| **Em andamento** | Os passos ainda estão na fila. | Aguarde e atualize. Se passar de 30 minutos, vira Falhou. |
+| **Falhou** | Um passo deu erro e a execução parou nele. | Leia o erro do passo em vermelho (roteiro abaixo). |
+| **Ignorado** | O fluxo foi disparado, mas os filtros do gatilho não bateram. Nenhum passo rodou. | Confira os filtros do gatilho (tag, coluna, path, valor). |
+
+Se o fluxo **não aparece com nenhuma execução**, ele não foi disparado: ou está
+desligado, ou o gatilho não dispara sozinho (ver
+[de onde vem cada gatilho](/produto/trigger-flow/blocos#de-onde-vem-cada-gatilho)),
+ou o evento não aconteceu do jeito esperado (ex.: a mudança foi feita por uma ação
+em massa no CRM, ou numa propriedade pela API, que não disparam fluxos).
+
+## Limites
+
+| Limite | Valor | O que acontece |
+|---|---|---|
+| Passos por execução | **100** | No 101º passo a execução falha ("teto de 100 passos"). |
+| Fluxos em cadeia | **2** para responsável alterado e conversa encerrada | "Definir responsável" e "Reiniciar conversa" disparam outro fluxo até o segundo nível. Mover no Kanban e pôr/tirar tag também disparam fluxos, e esses **não** contam para o limite: um vaivém entre fluxos de Kanban ou de tag não para sozinho. Monte sem laço. |
+| Timeout de ação da Zatten (tag, coluna, mensagem…) | **10 segundos** | O passo falha. |
+| Timeout da Requisição HTTP | **30 segundos** (padrão), configurável de 1 a 120 | O passo falha. |
+| Resposta da Requisição HTTP | **10 MB** no máximo; guardada até **32 KB** | Acima de 10 MB falha; acima de 32 KB o corpo é cortado. |
+| Download de mídia | **30 segundos**, até **3 redirecionamentos** | O passo falha. |
+| Tamanho de mídia | Imagem 5 MB, áudio 16 MB, vídeo 16 MB, arquivo 50 MB | O passo falha. |
+| Idempotência na API | **24 horas** por gatilho + lead + chave | Repetição não roda (`deduped: true`). |
+| Execução parada | **30 minutos** em andamento | Uma verificação a cada 5 minutos marca como Falhou. |
+| Novas tentativas | **Nenhuma** | Passo que falha não é repetido. |
+
+Disparos automáticos também têm proteção contra duplicidade: "Primeira mensagem" e
+"Conversa encerrada" rodam uma vez por conversa, e "Responsável alterado" ignora a
+mesma troca repetida dentro do mesmo minuto (duplo clique).
+
+## Como funciona por trás
+
+- Cada passo é um item numa fila. Entre um passo e outro, o estado fica gravado na
+  execução. Por isso uma execução pode ficar **Em andamento** por alguns segundos.
+- Um passo com resposta de erro (status 400 ou maior) **para a execução**. Os
+  passos seguintes não rodam.
+- Um passo nunca roda duas vezes na mesma execução, mesmo que a fila entregue de
+  novo: uma mensagem não sai em dobro.
+- O histórico mostra o que rodou e o erro, mas não o conteúdo das requisições.
+  Headers que parecem segredo ficam mascarados no registro.
+
+## Roteiro de depuração
+
+<Steps>
+<Step title="O fluxo está ligado?">
+Na lista de fluxos, a chave precisa estar ligada. Fluxo desligado não gera
+execução.
+</Step>
+<Step title="O gatilho dispara sozinho?">
+Novo lead criado, Mensagem recebida, Propriedade alterada e Lead inativo só
+rodam pela API. Ações em massa no CRM não disparam fluxos.
+</Step>
+<Step title="Há execução? Qual o status?">
+Abra **Execuções**. Sem execução: o evento não chegou. **Ignorado**: o filtro do
+gatilho não bateu; pela API, a resposta de `/flows/trigger` traz o motivo em
+`reason`.
+</Step>
+<Step title="Falhou: qual passo e qual erro?">
+O passo em vermelho mostra o erro, no formato `MÉTODO caminho respondeu STATUS`.
+Causas comuns na tabela abaixo.
+</Step>
+<Step title="Concluído mas sem efeito?">
+Veja a saída de cada condição (Sim/Não). Lembre que `{{lead.*}}` é a foto do
+início: uma condição depois de "Mover no Kanban" ainda vê a coluna antiga.
+</Step>
+<Step title="Teste com um lead seu">
+Dispare de novo com o seu número (mova seu lead, aplique a tag, ou chame a API
+com uma `idempotency_key` nova) e acompanhe a execução.
+</Step>
+</Steps>
+
+| Erro no passo | Causa provável | Correção |
+|---|---|---|
+| Enviar texto ou mídia com status 4xx | Janela de 24h fechada na conexão oficial | Condição **Janela de 24h** antes; no Não, **Enviar template**. |
+| Enviar template com status 4xx | Template não aprovado, nome errado ou variável do template sem dado no lead | Confira em [Templates do WhatsApp](/produto/templates-whatsapp). |
+| Requisição HTTP com 400 | Corpo inválido para o sistema do cliente (muitas vezes aspas em volta de `{{…}}`) | Teste o corpo fora da Zatten; confira o tipo de cada campo. |
+| Requisição HTTP com 401 ou 403 | Header de autenticação errado ou vencido | Atualize o header no bloco. |
+| Timeout | O sistema de destino demorou | Aumente o **Timeout** (até 120 s) ou responda mais rápido no destino. |
+| Mídia: arquivo excede o limite, ou falha ao baixar | Arquivo grande demais, URL privada ou com muitos redirecionamentos | Use uma URL pública e direta, dentro do limite. |
+| Ligar/desligar a IA com 400 | "Pausar por" vazio (por exemplo, variável que resolveu vazia) | Preencha os minutos. |
+| "teto de 100 passos" | Fluxo longo demais | Divida em dois fluxos. |
+
+## Pelo MCP
+
+O MCP não lê execuções. Para depurar, use o painel pelo navegador (botão
+**Execuções** no editor) ou a resposta do disparo pela API, que traz
+`matched`, `dispatched` e o `reason` de cada fluxo ignorado. Ver
+[Diagnóstico de um projeto](/trabalhar-com-ia/diagnostico).
+
+## Armadilhas
+
+- **Execução sem lead.** A lista mostra "Sem lead associado" quando o lead foi
+  excluído depois.
+- **Excluir o fluxo apaga as execuções dele.**
+- **"Concluído" não garante entrega no WhatsApp.** Quer dizer que a Zatten aceitou
+  o envio. A entrega aparece no chat e em [Logs](/produto/logs).
+- **Notificar responsável conta como Concluído mesmo sem responsável:** o passo
+  registra que não havia para quem enviar e a execução segue.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Dá para reexecutar uma execução que falhou?">
+Não há botão. Corrija o fluxo e dispare o evento de novo (ou chame
+`/flows/trigger` com uma `idempotency_key` nova).
+</Accordion>
+<Accordion title="Por quanto tempo as execuções ficam guardadas?">
+{/* A CONFIRMAR: não há limpeza de execuções antigas no código conferido; confirmar se existe retenção. */}
+Ficam no histórico do fluxo enquanto o fluxo existir.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Trigger Flow: conceitos](/produto/trigger-flow/conceitos)
+- [Trigger Flow: catálogo de blocos](/produto/trigger-flow/blocos)
+- [Trigger Flow: disparar pela API e receber webhooks](/produto/trigger-flow/api)
+- [Logs](/produto/logs)
+- Termos para buscar: "execuções", "Ignorado", "Falhou", "teto de 100 passos", "timeout".

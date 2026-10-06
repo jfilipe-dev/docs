@@ -1,0 +1,218 @@
+---
+title: "Academias"
+description: "Leia para montar ou revisar o projeto de uma academia, estúdio ou box: qualificação por objetivo, aula experimental agendada, lembrete, pós-experimental, matrícula, reativação de ex-alunos, funil, propriedades, automações, configurações recomendadas, métricas e erros comuns."
+---
+
+O agente de uma academia descobre o **objetivo** do lead, **agenda a aula
+experimental**, lembra do horário e, depois da aula, conduz à **matrícula**. Com
+ex-alunos, o caminho é a reativação. Uma conversa termina bem quando o lead tem
+dia e hora da experimental, ou quando o ex-aluno aceitou voltar.
+
+Serve também para estúdios de pilates, boxes de crossfit, escolas de dança,
+natação e lutas.
+
+## O objetivo do atendimento
+
+| | |
+|---|---|
+| **Conversão** | Aula experimental agendada. Depois, matrícula. |
+| **A IA faz** | Recebe, qualifica, apresenta planos, agenda e lembra a experimental, retoma depois da aula, reativa ex-alunos. |
+| **A recepção faz** | Confirma presença, matrícula presencial, negociações fora da tabela, alunos com pendência. |
+| **Nunca** | Prometer resultado físico, inventar promoção, prescrever treino ou dieta. |
+
+## Funil recomendado
+
+| Coluna | O que significa | Quem move | Desativar IA | Transbordo | Disparar automações |
+|---|---|---|---|---|---|
+| **Novo Contato** (entrada) | Chegou; a IA qualifica | Automático | Não | Não | Não |
+| **Experimental agendada** | Dia e hora confirmados | Agente | Não | Não | Não |
+| **Fez experimental** | Veio à aula | Recepção | Não | Não | Sim |
+| **Não veio** | Faltou à experimental | Recepção | Não | Não | Sim |
+| **Matriculado** | Assinou um plano | Recepção | Não | Não | Não |
+| **Atendimento Humano** | A recepção assumiu | Agente, falha do modelo | Sim (junto) | **Sim** | Não |
+| **Perdido** | Desistiu | Agente ou recepção | Não | Não | Não |
+
+- **"Fez experimental" e "Não veio" são movidas pela recepção**, com **Disparar
+  automações**: cada uma começa o seu follow-up quando ela arrasta o card.
+- **A IA fica ligada em Matriculado.** O aluno pergunta de horário e de regras; o
+  prompt diz para responder pela skill e transferir o que for financeiro.
+
+O modelo de nicho "Academias & Fitness" cria Novo Contato, Experimental,
+Negociação, Ganho e Perdido, **sem coluna de transbordo** e sem propriedades.
+Renomeie pelo `slug`, crie as colunas que faltam (inclusive Atendimento Humano) e
+as propriedades.
+
+## Tags
+
+| Tag | Vínculo | Quem põe | Para quê |
+|---|---|---|---|
+| **Ex-aluno** | Contato | Agente, ou na importação da base antiga | Muda o caminho para reativação; segmenta campanhas de volta. |
+| **Aluno** | Contato | Recepção, ao matricular | Marco. Fica fora das campanhas de captação. |
+
+## Propriedades
+
+| Propriedade (slug) | Tipo | Valores | Vínculo | Enviar para a IA |
+|---|---|---|---|---|
+| Objetivo (`objetivo`) | Lista | Emagrecer, Ganhar massa, Saúde, Condicionamento, Outro | Contato | Sim |
+| Modalidade (`modalidade`) | Lista | As da academia | Conversa | Sim |
+| Horário preferido (`horario_preferido`) | Lista | Manhã, Tarde, Noite | Contato | Sim |
+| Data da experimental (`data_da_experimental`) | Texto | `AAAA-MM-DD HH:MM` | Conversa | Sim |
+| Unidade (`unidade`) | Lista | As unidades (só se houver mais de uma) | Contato | Sim |
+
+Objetivo e horário em lista viram campanhas certeiras: "turma nova de manhã" para
+quem prefere manhã.
+
+## Tools
+
+**Ações da Zatten:**
+
+| Tool | Quando usar |
+|---|---|
+| `@properties_update_objetivo`, `_modalidade`, `_horario_preferido` | Assim que o lead informar. Valores aceitos no "Quando usar". |
+| `@properties_update_data_da_experimental` | Ao confirmar a experimental. |
+| `@tag_add_ex_aluno` | O lead diz que já treinou na academia. |
+| `@kanban_move_experimental_agendada` | Com dia e hora confirmados. |
+| `@kanban_move_perdido` | Desistiu. |
+| `@schedule_add_lembrete_experimental` | Modo **A IA decide**: 3 horas antes da aula. |
+| `@schedule_remove_lembrete_experimental` | Remarcou ou cancelou. |
+| `@transbordo_notify` | Pendência financeira, negociação fora da tabela, reclamação, pedido de pessoa. |
+
+**Grade de aulas:** se o sistema da academia tem API, uma
+[tool HTTP](/engenharia-de-ia/tools/http) `consultar_vagas_experimental`. Sem
+API, a grade fixa numa skill e a recepção confirma.
+
+**Skills:** `planos_e_precos` (planos, valores, promoções com data de validade,
+condição de retorno para ex-aluno, link de matrícula online se houver) e
+`grade_de_aulas`.
+
+São cerca de 10 tools. Com a tool de grade, ligue **Filtrar tools** se passar.
+
+## Esqueleto do prompt
+
+```markdown
+# Identidade
+Você é o Leo, da Academia Movimento, no WhatsApp.
+
+# Objetivo
+Agendar a aula experimental. Com ex-aluno, trazer de volta.
+
+# Tom
+Animado e acolhedor, sem exagero. Frases curtas, uma pergunta por vez.
+
+# Fluxo de atendimento
+1. Cumprimente e pergunte o objetivo (@properties_update_objetivo).
+2. Se já treinou aqui, @tag_add_ex_aluno e siga "Ex-aluno".
+3. Pergunte modalidade e horário preferido, salvando cada um.
+4. Ofereça a experimental gratuita em até 3 horários da grade.
+5. Confirmado: salve a data, @kanban_move_experimental_agendada e
+   @schedule_add_lembrete_experimental. Diga o que levar.
+
+# Ex-aluno
+Pergunte o motivo da pausa, sem julgar. Ofereça a condição de retorno da skill
+planos_e_precos. Se aceitar, mande o link de matrícula ou transfira.
+
+# Por etapa
+- Fez experimental: pergunte como foi e apresente o plano que combina com o
+  objetivo. Promoção só se estiver na skill e dentro da validade (veja o bloco Agora).
+- Não veio: ofereça outro horário.
+- Matriculado: responda dúvidas de aluno pela skill; financeiro, transfira.
+
+# O que nunca fazer
+- Prometer resultado ("perde 5 kg em um mês").
+- Inventar promoção ou desconto.
+- Passar treino ou dieta.
+```
+
+## Automações
+
+| Automação | Configuração | Por quê |
+|---|---|---|
+| **Lembrete da experimental** | Ação **Agendar mensagem**, template utilitário `lembrete_experimental`, 3 horas antes | Falta na experimental é a maior perda do funil. |
+| **Retomada** (follow-up) | Coluna Novo Contato; 1 hora e 24 horas | Decisão por impulso: quem esfria em um dia raramente volta. |
+| **Reengajamento** | Coluna Novo Contato; 60 minutos antes de a janela fechar | Texto livre antes do template. Só na conexão oficial. |
+| **Pós-experimental** (follow-up) | Coluna Fez experimental; 2 horas e 48 horas | Matrícula no calor da aula; um segundo toque com a condição. |
+| **Remarcação** (follow-up) | Coluna Não veio; 1 hora | Oferece outro horário. |
+| **Reativação** ([campanha](/playbooks/campanhas)) | Leads com a tag Ex-aluno, template de Marketing, em datas de retomada (início do ano, volta das férias) | A base de ex-alunos é o lead mais barato. |
+| **Conversões** (só com anúncios) | `LeadSubmitted` em Experimental agendada; `Purchase` em Matriculado, com o valor médio do plano | O Meta Ads aprende a trazer quem agenda e matricula. |
+
+Campanhas e reengajamento só existem na conexão oficial. Para importar a base de
+ex-alunos com a tag, veja [Contatos](/produto/contatos).
+
+## Configurações recomendadas
+
+| Configuração | Valor | Por quê |
+|---|---|---|
+| [Buffer](/engenharia-de-ia/buffer) | 6 a 8 segundos | Mensagens curtas; o lead quer resposta rápida. |
+| [Pausa humana](/engenharia-de-ia/pausa-humana) | 30 a 60 minutos | A recepção intervém rápido e devolve. |
+| [Modelo](/engenharia-de-ia/escolher-o-modelo) | Pequeno | Fluxo simples, poucas regras. |
+| Temperatura | 0 a 0,3 | O modelo de nicho vem com 0,8. A animação vem do tom no prompt, não da temperatura. |
+| Raciocínio | Padrão | Não precisa. |
+| [Segmentação](/engenharia-de-ia/segmentacao-e-voz) | Ligada | Conversa leve, de mensagens curtas. |
+| [Mídia](/engenharia-de-ia/midia) | Áudio liberado; imagem se os leads mandam prints | O modelo de nicho vem com imagem desligada. |
+| [Resiliência](/engenharia-de-ia/resiliencia) | Tentativas 2, fallback de outro fabricante, falha do agente movendo para Atendimento Humano | Padrão de todo projeto. |
+| Horário de funcionamento do agente | 24h | Muita gente decide treinar à noite. |
+
+## Métricas
+
+| Métrica | Como medir |
+|---|---|
+| Taxa de agendamento | Leads que chegaram a Experimental agendada ÷ leads novos |
+| Comparecimento | Fez experimental ÷ (Fez experimental + Não veio) |
+| Conversão da experimental | Matriculado ÷ Fez experimental |
+| Reativação | Ex-alunos que chegaram a Matriculado ÷ ex-alunos que conversaram |
+| Leads por campanha e conversões | [Métricas](/produto/metricas) |
+| Custo de IA por matrícula | Custo real ([LangSmith](/engenharia-de-ia/langsmith) ou provider) ÷ matrículas |
+
+## Pelo MCP
+
+<Visibility for="agents">
+```json
+{
+  "columns": [
+    { "slug": "novo_contato", "name": "Novo Contato", "order": 0 },
+    { "name": "Experimental agendada", "order": 1, "color": "#F59E0B" },
+    { "name": "Fez experimental", "order": 2, "color": "#3B82F6", "should_trigger_automations": true },
+    { "name": "Não veio", "order": 3, "color": "#F97316", "should_trigger_automations": true },
+    { "name": "Matriculado", "order": 4, "color": "#22C55E" },
+    { "name": "Atendimento Humano", "order": 5, "color": "#A855F7", "transhipment": true, "shutdown_ai": true },
+    { "name": "Perdido", "order": 6, "color": "#EF4444" }
+  ],
+  "follow_ups": [
+    { "name": "Pós-experimental 2h", "method": "FOLLOW_UP", "delay": 2, "delay_unit": "HOURS",
+      "order_follow_up": 1, "template_name": "pos_experimental", "columns": ["Fez experimental"], "tags": null },
+    { "name": "Pós-experimental 48h", "method": "FOLLOW_UP", "delay": 48, "delay_unit": "HOURS",
+      "order_follow_up": 2, "template_name": "condicao_matricula", "columns": ["Fez experimental"], "tags": null }
+  ],
+  "llm_attendant": { "message_buffer": 7, "pause_in_human_interaction": 45 }
+}
+```
+
+- Renomeie as colunas do modelo (Experimental, Negociação, Ganho) pelo `slug` lido
+  em `get_template`, em vez de criar novas.
+- Os follow-ups nascem desligados. Os templates precisam existir e estar
+  aprovados.
+</Visibility>
+
+## Erros comuns
+
+- **Promoção no prompt.** Promoção vencida continua sendo oferecida. Na skill, com
+  data de validade, e o agente compara com o bloco "Agora".
+- **Promessa de resultado.** "Em 30 dias você vê diferença" gera reclamação.
+- **Experimental sem horário real.** Oferecer horário fora da grade faz o lead ir
+  e não ter aula.
+- **Recepção que não move o card.** Sem mover para Fez experimental ou Não veio,
+  os follow-ups não saem. É o ponto que mais quebra o funil.
+- **Temperatura alta para "parecer animado".** Varia o texto e inventa condição.
+- **Campanha de captação para quem já é aluno.** Filtre pela tag Ex-aluno ou por
+  coluna, não mande para a base inteira.
+- **Sem coluna de transbordo.** O modelo de nicho não tem: a falha do modelo e o
+  transbordo por inatividade ficam sem destino.
+
+## Para saber mais
+
+- [Agendamento](/playbooks/agendamento), [Follow-up e reengajamento](/playbooks/follow-up-e-reengajamento), [Campanhas](/playbooks/campanhas)
+- [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten)
+- [Contatos](/produto/contatos) (importar a base de ex-alunos)
+- [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- Termos para buscar: "aula experimental conversão", "reativação de ex-alunos
+  academia", "no-show aula experimental".

@@ -1,0 +1,300 @@
+---
+title: "Escrever um bom prompt"
+description: "Leia antes de escrever ou revisar o prompt de um agente: a estrutura recomendada, o que vai no prompt, na descrição da tool e na skill, por que o prompt é fixo (cache), como citar tools com @, exemplos por nicho e os erros mais comuns."
+---
+
+O prompt (no painel, **Instruções**) é o texto que o agente lê antes de toda
+resposta. Ele diz quem o agente é, o que ele precisa conseguir na conversa, como
+fala, que passos segue, quando usa cada tool e quando passa o lead para um
+humano. É a peça que mais muda a qualidade do atendimento.
+
+O prompt não trabalha sozinho. O agente também lê a **descrição de cada tool**,
+a lista de **skills** e o bloco de [contexto do lead](/engenharia-de-ia/contexto-injetado).
+Um bom agente põe cada informação no lugar certo.
+
+## Onde fica no painel
+
+Em **Agente**, seção **Instruções**. O ícone de expandir, no canto do campo, abre
+o editor em tela cheia (**Instruções do agente**). Digite `@` para citar uma tool.
+
+Salvar cria um rascunho. A mudança só chega aos leads depois de **Publicar**, e as
+conversas em andamento pegam a versão nova em até 2 minutos. Veja
+[Versões e publicação](/engenharia-de-ia/versoes-e-publicacao).
+
+## O que vai em cada lugar
+
+| Onde | O que colocar | Exemplo |
+|---|---|---|
+| **Prompt** | O que vale em toda conversa: identidade, objetivo, tom, fluxo, regras, quando usar cada tool, quando transferir, o que nunca fazer. | "Antes de agendar, confirme nome e convênio." |
+| **Descrição da tool** | Quando chamar aquela tool e o que ela faz, em uma ou duas frases. Regras de negócio da própria ação. | "Use quando o lead confirmar data e horário da consulta." |
+| **Nota da ação da Zatten** | Regra extra somada à descrição pronta de uma [ação da Zatten](/engenharia-de-ia/tools/acoes-da-zatten). | "Só mova para Agendado depois de a tool de agenda confirmar." |
+| **Skill do agente** | Conhecimento longo que só serve em parte das conversas: tabela de preços, lista de convênios, política de troca, roteiro de um produto. | Skill `convenios` com as regras de cada convênio. |
+| **Contexto injetado** | Dados do lead que mudam (nome, tags, coluna, propriedades). Você não escreve: a Zatten envia. O prompt só diz como usar. | "Se a Etapa do Kanban for Agendado, não ofereça novo horário." |
+
+Regra prática: se a informação só é útil quando o agente vai chamar uma tool, ela
+vai na descrição da tool. Se é longa e só serve às vezes, vira
+[skill](/engenharia-de-ia/skills). Se vale sempre, fica no prompt.
+
+## Estrutura recomendada
+
+Escreva em seções curtas, com títulos. O modelo segue melhor instruções
+organizadas e você acha o que mudar depois.
+
+```markdown
+# Identidade
+Você é a Ana, assistente virtual da Clínica Sorriso, no WhatsApp.
+
+# Objetivo
+Agendar a primeira consulta de avaliação. Uma conversa termina bem quando o
+paciente tem data e horário confirmados.
+
+# Tom
+Português do Brasil, frases curtas, cordial e direto. Uma pergunta por vez.
+Sem emojis em excesso. Texto simples, sem títulos nem Markdown.
+
+# Regras
+- Nunca dê diagnóstico nem indique remédio.
+- Preços: só os da skill `precos`. Se não estiver lá, diga que confirma com a equipe.
+- Fora do horário do bloco "Agora" (seg a sex, 8h às 18h), avise que a equipe
+  retorna no próximo dia útil.
+
+# Fluxo de atendimento
+1. Cumprimente e pergunte o nome, se ainda não estiver no "Contexto do lead atual".
+2. Pergunte o motivo do contato e salve com @properties_update_motivo.
+3. Pergunte se tem convênio. Salve com @properties_update_convenio.
+4. Ofereça horários e confirme o agendamento.
+
+# Quando usar cada tool
+- @properties_update_motivo: assim que o paciente disser o motivo.
+- @tag_add_urgente: se houver dor forte, sangramento ou inchaço.
+- @kanban_move_agendado: só depois de data e horário confirmados.
+
+# Quando transferir para um humano
+Use @transbordo_notify quando: o paciente pedir para falar com uma pessoa;
+reclamar de atendimento anterior; perguntar algo que não está nas instruções nem
+nas skills. Avise que vai chamar alguém da equipe e então transfira: depois da
+transferência, a IA fica desligada para esse lead.
+
+# O que nunca fazer
+- Prometer desconto, prazo ou resultado de tratamento.
+- Inventar horário disponível.
+- Pedir dados de cartão ou senha.
+```
+
+### O que cada seção resolve
+
+| Seção | Para quê | Erro que evita |
+|---|---|---|
+| **Identidade** | Quem fala e em nome de quem. | O agente se apresentar como "assistente de IA genérico". |
+| **Objetivo** | O que é uma conversa bem-sucedida. Uma frase. | O agente conversar sem levar a lugar nenhum. |
+| **Tom** | Como escreve: tamanho, formalidade, emojis, formatação. | Respostas longas demais para WhatsApp. |
+| **Regras** | Limites do negócio. Poucas e claras. | Promessas que o cliente final não pode cumprir. |
+| **Fluxo de atendimento** | A ordem das etapas, em lista numerada. | Pedir tudo de uma vez ou pular a qualificação. |
+| **Quando usar cada tool** | O gatilho de cada ação, citada com `@`. | Tool que nunca é chamada, ou chamada cedo demais. |
+| **Quando transferir** | Os casos que vão para humano e o que dizer ao lead. | Lead preso com a IA ou transferido à toa. |
+| **O que nunca fazer** | As proibições, separadas das regras. | O modelo "esquecer" uma proibição no meio de outras regras. |
+
+## Por que o prompt é fixo
+
+O prompt é o mesmo em todas as conversas do projeto, de propósito. Os providers
+(OpenAI, OpenRouter) guardam em cache o começo do pedido que se repete. Quando o
+começo é igual, o provider reaproveita esse trecho, cobra menos por ele e
+responde mais rápido.
+
+Por isso a Zatten monta cada pedido nesta ordem:
+
+1. **tools e prompt**: iguais em todas as conversas;
+2. **histórico da conversa**: cresce, mas o começo não muda;
+3. **o que muda**: o bloco "Contexto do lead atual" e o bloco "Agora" (data e
+   hora), sempre **no fim**. Veja [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado).
+
+Consequências para quem escreve:
+
+- **Não escreva dados de um lead no prompt.** Eles chegam no fim, pelo contexto.
+- **Não escreva data nem hora no prompt.** O bloco "Agora" já traz, atualizado.
+- **Não troque o prompt a toda hora.** Cada versão publicada recomeça o cache.
+- O prompt pode citar os blocos pelo título ("veja o bloco Agora"). Os títulos não
+  mudam.
+
+Detalhe de custo: o desconto do cache aparece como tokens de entrada em cache na
+fatura do provider. Veja os links em "Para saber mais".
+
+## Citar tools com @
+
+No editor, digite `@` e escolha a tool. O prompt guarda o nome técnico dela, por
+exemplo `@kanban_move_agendado`, que é o mesmo nome que o modelo vê na lista de
+tools. Citar pelo nome exato liga a instrução à tool certa.
+
+As [ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten) têm nomes no
+formato `ação_alvo`: `kanban_move_<coluna>`, `tag_add_<tag>`,
+`properties_update_<propriedade>`, `transbordo_notify`, `attendant_shutdown`.
+
+<Warning>
+Se você trocar o alvo de uma ação (outra coluna, outra tag) ou apagar a tool, o
+nome muda e a citação no prompt fica apontando para uma tool que não existe.
+Revise o prompt sempre que mexer nas tools.
+</Warning>
+
+## Exemplos curtos por nicho
+
+São trechos para adaptar, não prompts completos. Os modelos de nicho do painel
+trazem um prompt inicial para cada um. Veja os [playbooks](/playbooks/como-usar).
+
+<Tabs>
+<Tab title="Clínica">
+```markdown
+# Objetivo
+Agendar a avaliação. Coletar motivo, convênio e especialidade antes de oferecer horário.
+
+# Regras
+- Nunca dê diagnóstico. Para qualquer sintoma, sugira a consulta.
+- Urgência (dor forte, sangramento): @tag_add_urgente e @transbordo_notify.
+```
+</Tab>
+<Tab title="Imobiliária">
+```markdown
+# Objetivo
+Qualificar o interesse: compra ou aluguel, bairro, faixa de preço, número de
+quartos. Com tudo isso, agendar a visita.
+
+# Quando usar cada tool
+- @properties_update_faixa_de_preco: assim que o lead disser o valor.
+- @kanban_move_visita_agendada: só com data, horário e endereço confirmados.
+```
+</Tab>
+<Tab title="Advocacia">
+```markdown
+# Regras
+- Não dê parecer jurídico nem diga se a pessoa "tem direito".
+- Colete: área (trabalhista, família, consumidor), resumo do caso e urgência.
+- Prazo correndo (audiência, intimação): @transbordo_notify na hora.
+```
+</Tab>
+<Tab title="SAC">
+```markdown
+# Fluxo de atendimento
+1. Peça o número do pedido.
+2. Consulte com @consultar_pedido.
+3. Se o status for "atrasado" há mais de 5 dias, @tag_add_reclamacao e @transbordo_notify.
+```
+</Tab>
+</Tabs>
+
+## Erros comuns
+
+| Erro | O que acontece | Como corrigir |
+|---|---|---|
+| Prompt gigante com tabelas de preço, FAQ e políticas | Custa mais em toda mensagem e o modelo se perde. | Mova o conhecimento longo para [skills](/engenharia-de-ia/skills). |
+| Regras contraditórias ("seja breve" e "explique tudo em detalhes") | O modelo escolhe uma ao acaso. | Releia o prompt inteiro procurando conflitos. |
+| Tool citada sem dizer quando usar | Tool chamada cedo, tarde ou nunca. | Na seção "Quando usar cada tool", escreva o gatilho. |
+| Regra de negócio só no prompt, e não na descrição da tool | O modelo chama a tool sem cumprir a regra. | Repita a regra na descrição ou na nota da tool. |
+| "Nunca" escondido no meio do texto | A proibição se perde. | Use a seção "O que nunca fazer". |
+| Dados de lead ou data no prompt | Fica desatualizado e quebra o cache. | Use o contexto injetado e o bloco "Agora". |
+| Pedir Markdown, títulos ou tabelas | O WhatsApp não mostra títulos e tabelas. | Peça texto simples e listas curtas. |
+| Instrução em maiúsculas por toda parte | Tudo vira "urgente" e nada se destaca. | Reserve ênfase para uma ou duas regras críticas. |
+| Nenhum caso de transbordo | O lead fica preso com a IA quando ela não sabe. | Escreva quando transferir e o que dizer. |
+| Responder em várias perguntas de uma vez | O lead responde só uma. | "Uma pergunta por vez" na seção Tom. |
+
+## Como testar o prompt
+
+Use o chat de teste do painel antes de publicar. Teste o caminho feliz, um lead
+que foge do assunto, um pedido de humano, uma pergunta fora do escopo e uma
+tentativa de fazer o agente quebrar uma regra. Veja
+[Testar o agente](/engenharia-de-ia/testar).
+
+## Pelo MCP
+
+O prompt fica no bloco `langchain`, em `config.instructions.system_prompt`.
+Escrever cria uma **versão nova, não publicada**; quem publica é uma pessoa, no
+painel. Veja [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona).
+
+<Visibility for="agents">
+```json
+{
+  "langchain": {
+    "config": {
+      "instructions": {
+        "system_prompt": "# Identidade\n...",
+        "inject_context": true
+      }
+    }
+  }
+}
+```
+
+- `system_prompt`: string. Sem limite de tamanho na Zatten; o limite é a janela de
+  contexto do modelo. Padrão do agente quando vazio: `"You are a helpful assistant."`.
+- Citações de tool ficam no texto como `@nome_da_tool`. O formato antigo
+  `@{nome}` ainda é lido pelo editor.
+- Nomes das ações da Zatten: `{entity}_{action}_{slug_do_alvo}`, com o alvo em
+  minúsculas, sem acento, espaços viram `_` (ex.: `kanban_move_visita_agendada`).
+  Ao trocar o alvo, atualize as citações no `system_prompt` na mesma escrita.
+- Tools da Composio: o modelo vê o nome `TOOLKIT_ACTION` em maiúsculas. Ao citar
+  à mão, use esse nome.
+- Não grave dados de lead, data ou hora no `system_prompt`.
+- Antes de propor um prompt novo, leia o atual inteiro e as descrições das tools:
+  a regra pode já estar numa descrição ou numa skill.
+</Visibility>
+
+## Armadilhas
+
+- **Salvar não publica.** O agente continua com o prompt antigo até alguém
+  clicar em **Publicar**.
+- **O prompt não é o único texto que o agente lê.** Uma regra no prompt que
+  contradiz a descrição de uma tool gera comportamento imprevisível. Revise os dois.
+- **Citação de tool que não existe mais.** Mudar o alvo de uma ação ou apagar a
+  tool deixa o `@nome` no prompt apontando para o nada.
+- **Prompt de motor antigo migrado.** Depois de migrar, o prompt continua o mesmo,
+  mas referências a "função", busca na web ou base de arquivos não valem no
+  LangChain Agent. Revise. Veja [Migrar](/engenharia-de-ia/migrar).
+- **Variáveis `{{...}}` dos modelos de nicho.** Elas são preenchidas na criação do
+  projeto. Se sobrar alguma no prompt, o modelo lê o texto literal.
+- **Repetir informação do contexto.** Pedir o nome de um lead que já está no
+  "Contexto do lead atual" irrita o lead. Diga no prompt para usar o que já está lá.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Qual o tamanho ideal do prompt?">
+O menor que cubra as oito seções. Não há limite na Zatten, mas todo o prompt é
+enviado em toda mensagem: prompt longo custa mais e dilui as regras importantes.
+Conhecimento longo vai para skills.
+</Accordion>
+<Accordion title="Escrevo o prompt em inglês ou em português?">
+Em português, no tom que o agente deve usar com o lead. Os modelos atuais seguem
+bem instruções em português, e o exemplo de tom já fica no idioma certo.
+</Accordion>
+<Accordion title="Posso colocar exemplos de conversa no prompt?">
+Sim, poucos e curtos, mostrando o tom e o formato. Exemplos demais fazem o modelo
+copiar as frases ao pé da letra.
+</Accordion>
+<Accordion title="Como faço o agente saber o horário de atendimento?">
+Escreva o horário no prompt ("seg a sex, 8h às 18h") e peça para comparar com o
+bloco "Agora", que traz dia da semana, data e hora de Brasília.
+</Accordion>
+<Accordion title="O agente ignora uma regra. O que faço?">
+Veja no [LangSmith](/engenharia-de-ia/langsmith) o que o modelo recebeu. Em geral:
+a regra está enterrada no meio do texto, conflita com outra, ou deveria estar na
+descrição da tool. Se a regra é crítica, um modelo mais capaz ou com raciocínio
+ligado ajuda. Veja [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado)
+- [Tools: visão geral](/engenharia-de-ia/tools/visao-geral) e [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten)
+- [Skills do agente](/engenharia-de-ia/skills)
+- [Testar o agente](/engenharia-de-ia/testar)
+- OpenAI, guia de prompts: https://developers.openai.com/api/docs/guides/prompt-engineering
+- OpenAI, guia de prompts do GPT-5: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
+- OpenAI, cache de prompt: https://developers.openai.com/api/docs/guides/prompt-caching
+- OpenRouter, cache de prompt: https://openrouter.ai/docs/guides/best-practices/prompt-caching.md
+- Anthropic, engenharia de prompt: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview
+- Anthropic, "Writing tools for agents": https://www.anthropic.com/engineering/writing-tools-for-agents
+- Anthropic, "Effective context engineering for AI agents": https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+- Anthropic, "Building effective agents": https://www.anthropic.com/engineering/building-effective-agents
+
+**Termos para buscar:** "system prompt best practices", "prompt caching static
+prefix", "tool description best practices", "context engineering", "few-shot
+examples", "GPT-5 prompting guide".

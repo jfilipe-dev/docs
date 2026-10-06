@@ -1,0 +1,185 @@
+---
+title: "API de template (REST)"
+description: "Leia para ler e aplicar o template de um projeto por HTTP, sem o MCP: GET e POST em app.zatten.com/api/v1/projects/{id}/template com a chave do projeto em Authorization: Bearer, envio parcial, publish_agent e submit_meta_templates, resposta, erros e as diferenças para o update_template do MCP."
+---
+
+A API de template lê e altera a **configuração** de um projeto (funil, tags,
+propriedades, automações, agente) por HTTP. É o **mesmo motor** do `update_template` do
+MCP: cria o que falta, atualiza o que existe e **nunca apaga**. Use quando um sistema
+seu precisa manter projetos sem passar por um assistente de IA.
+
+| Método | Caminho | O que faz |
+|---|---|---|
+| `GET` | `https://app.zatten.com/api/v1/projects/{project_id}/template` | Devolve o template do projeto inteiro, com a `revision`. |
+| `POST` | `https://app.zatten.com/api/v1/projects/{project_id}/template` | Aplica um template (inteiro ou só alguns blocos). |
+
+<Warning>
+Esta API fica no endereço do **painel** (`app.zatten.com`), não em `api.zatten.com`, e a
+chave vai em outro header: `Authorization: Bearer <chave do projeto>`. O `x-api-key` não
+funciona aqui.
+</Warning>
+
+Antes de escrever, leia [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona):
+envio parcial, órfãos, renomear pelo slug, campos vazios e ligar ou desligar valem igual
+aqui. O formato de cada bloco está na [Referência do template](/trabalhar-com-ia/referencia-do-template).
+
+## Autenticação
+
+| Item | Valor |
+|---|---|
+| Header | `Authorization: Bearer <chave de API do projeto>` |
+| Chave | A mesma de **API Keys**. Ver [Chaves de API do projeto](/produto/chaves-de-api). |
+| `{project_id}` | O id do projeto da chave. Precisa bater com a chave; se não bater, 401. |
+
+O id do projeto aparece em **Configurações → Projetos**, abaixo do nome de cada projeto
+(clique para copiar; tela de Admin). Pelo MCP, vem de `list_projects`.
+
+O token da conexão de IA (MCP) **não** serve aqui, e a chave do projeto não serve no MCP.
+
+## GET: ler o template
+
+```bash
+curl "https://app.zatten.com/api/v1/projects/$PROJECT_ID/template" \
+  -H "Authorization: Bearer $ZATTEN_API_KEY"
+```
+
+**200**
+
+```json
+{
+  "ok": true,
+  "revision": "1a2b3c4d",
+  "template": {
+    "version": "1.0",
+    "meta": { "name": "Clínica Sorriso" },
+    "columns": [ { "name": "Novo lead", "slug": "novo_lead", "order": 0 } ],
+    "tags": [ { "name": "VIP", "slug": "vip", "color": "#8B5CF6" } ],
+    "llm_attendant": { "…": "…" },
+    "langchain": { "…": "…" }
+  }
+}
+```
+
+- Traz **todos** os blocos e todos os templates da Meta do projeto.
+- O agente vem na versão **mais nova**, mesmo se ainda não publicada.
+- A `revision` é a marca do estado lido. Duas leituras sem mudança no meio têm a mesma.
+
+<Warning>
+O template volta com **URLs, headers e chaves preenchidos** (endereços de webhook, chave
+do modelo, credenciais de tools). Nunca mostre, registre em log nem versione esse JSON.
+Guarde cópias só em pastas que estão no `.gitignore`.
+</Warning>
+
+## POST: aplicar
+
+### Corpo
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `template` | objeto | Sim | Os blocos a aplicar. **Só os blocos presentes** são considerados; os outros nem são lidos. |
+| `publish_agent` | boolean | Não | Padrão `false`. `true` publica na hora a versão nova do agente criada pelo bloco `langchain`. |
+| `submit_meta_templates` | boolean | Não | Padrão `false`. `true` envia para aprovação da Meta os templates do bloco `meta_templates` que ainda não existem no projeto. |
+
+Cada bloco enviado é a **lista completa** daquele tipo: o que existe no projeto e não veio
+na lista volta em `orphans`, **sem ser apagado**.
+
+```bash
+curl -X POST "https://app.zatten.com/api/v1/projects/$PROJECT_ID/template" \
+  -H "Authorization: Bearer $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template": {
+      "tags": [
+        { "name": "VIP", "slug": "vip", "color": "#8B5CF6" },
+        { "name": "Retorno", "color": "#10B981" }
+      ]
+    }
+  }'
+```
+
+### Resposta: 200
+
+```json
+{
+  "ok": true,
+  "applied": { "created": 1, "updated": 0 },
+  "changes": [ { "op": "create", "entity": "tag", "key": "Retorno" } ],
+  "orphans": [],
+  "ambiguous": [],
+  "notes": []
+}
+```
+
+| Campo | O que é |
+|---|---|
+| `changes` | O que foi criado ou atualizado, e quais campos. |
+| `notes` | O que não foi feito e por quê, e avisos (por exemplo, "publique a versão nova do agente"). |
+| `orphans` | Itens que existem no projeto e não vieram no bloco. Intocados. |
+| `ambiguous` | Itens com nome repetido sem `slug`. Nenhum foi tocado. |
+| `agent` | Quando o bloco `langchain` gerou versão: o número e se foi publicada. |
+
+A resposta não traz a `revision` nova. Para registrar o estado novo, faça um `GET` de novo.
+
+### Erros
+
+| Código | Corpo | Causa |
+|---|---|---|
+| 401 | `{"ok": false, "message": "Informe a chave do projeto em Authorization: Bearer <chave>."}` | Faltou o header. |
+| 401 | `{"ok": false, "message": "Chave inválida."}` | Chave errada, excluída, ou de outro projeto que não o da URL. |
+| 400 | `{"ok": false, "message": "Corpo inválido: esperado JSON."}` | O corpo não é JSON. |
+| 400 | `{"ok": false, "message": "Template inválido.", "issues": [{"path": "tags.0.name", "message": "…"}]}` | Um bloco fora do formato. `path` diz o campo. |
+| 502 | `{"ok": false, "message": "…"}` | O `GET` não conseguiu montar o template. Tente de novo. |
+
+Os erros desta API usam `ok` e `message`, não o `{ "error" }` da API do dia a dia.
+
+## Diferenças para o MCP
+
+| | MCP (`update_template`) | API de template (REST) |
+|---|---|---|
+| Credencial | Token da conexão de IA, vários projetos | Chave de um projeto |
+| Confere o nome do projeto | Sim (`project_id` + `project_name`) | Não |
+| Confere a `revision` | Sim: recusa se o projeto mudou desde a leitura | **Não**: aplica sobre o estado atual |
+| Publicar o agente | Não | `publish_agent: true` |
+| Enviar templates à Meta | Não | `submit_meta_templates: true` |
+| Motor da escrita | Aditivo | O mesmo |
+
+Não há modo de sobrescrever em nenhum dos dois. Ver
+[Sobrescrever x atualizar](/produto/sobrescrever-x-atualizar).
+
+<Visibility for="agents">
+- Assistentes de IA usam o MCP, não esta API, para configurar projetos. Se usarem esta API, `publish_agent` e `submit_meta_templates` ficam em `false`: publicar o agente e enviar template à Meta são feitos por uma pessoa, no painel.
+- Envio parcial: o conjunto de blocos é lido das chaves do objeto `template` antes da validação; `version`, `meta` e `llm_attendant` entram como preenchimento quando ausentes e não são aplicados.
+- Sem trava de concorrência: faça `GET` logo antes do `POST` e compare a `revision` você mesmo, se precisar.
+- Sem limite de requisições próprio documentado; a chave do projeto atualiza "Último uso".
+</Visibility>
+
+## Armadilhas
+
+- **Endereço e header diferentes da API do dia a dia.** `app.zatten.com` e
+  `Authorization: Bearer`. Com `x-api-key`, a resposta é 401.
+- **Sem conferência de `revision`.** Se alguém mudou o projeto pelo painel entre o seu
+  `GET` e o seu `POST`, o `POST` aplica por cima do que estiver lá. Leia logo antes de
+  escrever.
+- **Bloco com um item só** transforma o resto em órfãos (não apagados, mas fora da sua
+  lista). Devolva sempre a lista inteira do bloco.
+- **`publish_agent: true` põe o agente no ar** para todos os leads, sem teste. Prefira
+  publicar pelo painel depois de testar.
+- **`submit_meta_templates: true` manda conteúdo para revisão da Meta** na conta do
+  cliente final. Template rejeitado pesa na qualidade do número.
+- **Credenciais no `GET`.** O JSON lido tem chaves e URLs preenchidas. Trate como segredo.
+- **Endereço preenchido grava por cima.** Uma `url` de webhook no `POST` troca o endereço
+  do cliente sem pedir confirmação. Campo vazio não grava, **com uma exceção**: no bloco
+  `langchain`, a chave do modelo (`model.api_key`) e a do LangSmith
+  (`settings.tracing.api_key`) só são preservadas quando o campo está **ausente**. Mandar
+  `""` grava vazio e o agente para de responder. Devolva o valor lido no `GET` ou tire o
+  campo; nunca mande `""` nem um texto de exemplo.
+
+## Para saber mais
+
+- [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Sobrescrever x atualizar um projeto por template](/produto/sobrescrever-x-atualizar)
+- [Versões e publicação do agente](/engenharia-de-ia/versoes-e-publicacao)
+- Termos para buscar: "Bearer token", "partial update REST", "optimistic concurrency
+  revision".

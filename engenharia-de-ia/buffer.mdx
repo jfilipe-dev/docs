@@ -1,0 +1,147 @@
+---
+title: "Buffer de mensagens"
+description: "Leia para configurar o Tempo de espera (buffer): quantos segundos o agente espera para juntar mensagens seguidas do lead numa resposta só, como a contagem reinicia, que valor usar para cada público e por que não deixar em 0."
+---
+
+O **buffer** é o tempo, em **segundos**, que a Zatten espera antes de mandar as
+mensagens do lead para o agente. No WhatsApp as pessoas escrevem em pedaços ("oi",
+"tudo bem?", "queria saber o preço"). O buffer junta esses pedaços num lote só, e o
+agente dá **uma** resposta para tudo, em vez de responder a cada pedaço.
+
+A contagem **reinicia a cada mensagem nova**. O agente só é chamado quando o lead
+fica o tempo do buffer sem escrever.
+
+Vale para os dois motores e para as três conexões (oficial, coexistência e não
+oficial), porque quem aplica é o servidor da Zatten.
+
+## Onde fica no painel
+
+Em **Agente**, abra **Configurações avançadas** (no fim da página) e ajuste
+**Tempo de espera**, em segundos. A tela aceita de **1 a 30**.
+
+O valor é gravado quando você sai do campo e vale **na hora**, sem publicar: ele
+não faz parte das versões do agente.
+
+## Como funciona
+
+```text
+14:00:00  Lead: "oi"                 → buffer começa: 8 s
+14:00:03  Lead: "tudo bem?"          → reinicia: 8 s a partir daqui
+14:00:06  Lead: "quanto custa o clareamento?"  → reinicia de novo
+14:00:14  (8 s sem mensagem)         → as 3 mensagens vão juntas para o agente
+14:00:19  Agente responde uma vez
+```
+
+O tempo total até a resposta é: **buffer depois da última mensagem** + o tempo do
+agente (modelo e tools).
+
+### Se o lead escreve enquanto o agente responde
+
+A mensagem não interrompe a resposta em andamento. Ela fica guardada e, assim que
+o agente termina, vira o próximo lote e recebe a sua própria resposta.
+
+### O que é checado quando o buffer termina
+
+Só ao fim da espera o servidor confere se a IA pode responder: lead com IA
+pausada ou desligada, agente inativo, fora do horário de funcionamento. Se não
+pode, o lote é descartado (as mensagens continuam no chat). Veja
+[Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona).
+
+## Que valor usar
+
+O buffer é um equilíbrio: curto demais, o agente responde a cada pedaço; longo
+demais, o lead acha que ninguém está ali.
+
+| Público e uso | Valor sugerido | Por quê |
+|---|---|---|
+| **Uso geral** (clínicas, serviços, imobiliárias) | **6 a 10 s** | Cobre quem manda 2 ou 3 mensagens curtas seguidas. |
+| Público que escreve muito picado ou manda vários áudios seguidos | **10 a 15 s** | Evita resposta no meio do raciocínio do lead. |
+| SAC simples, consultas rápidas (status de pedido) | **3 a 5 s** | O lead costuma mandar uma mensagem só e espera rapidez. |
+| Lead que chega por anúncio com mensagem pronta | **5 a 8 s** | A primeira mensagem vem inteira; as seguintes, picadas. |
+
+Estes valores são recomendações, não regras. Observe as conversas reais na
+primeira semana: se o agente responde duas vezes seguidas a pedaços da mesma
+pergunta, aumente; se os leads reclamam de demora, diminua.
+
+<Tip>
+Acima de 15 segundos raramente compensa. Com a segmentação ligada, o agente ainda
+espera alguns segundos entre as partes da resposta, e as duas esperas se somam.
+Veja [Segmentação e voz](/engenharia-de-ia/segmentacao-e-voz).
+</Tip>
+
+## Não deixe em 0
+
+Com o buffer em **0 ou vazio**, a mensagem do lead é gravada e aparece em
+**Conversas**, os webhooks de interação disparam, mas a mensagem **não vai para o
+agente**: a IA não responde. Use sempre **pelo menos 1 segundo**.
+
+A tela mostra 1 quando o campo está vazio no banco. Se um projeto não responde e
+o campo mostra 1, digite o valor e saia do campo para gravá-lo de fato.
+
+Projeto criado em branco nasce com **1 segundo**, o mínimo. Funciona, mas responde
+a cada pedaço de mensagem: ajuste para o valor da tabela acima. Projetos criados
+de um modelo de nicho trazem o valor do modelo.
+
+## Pelo MCP
+
+O buffer fica no bloco `llm_attendant`, campo `message_buffer`, em segundos. A
+escrita grava na hora (não cria versão do agente).
+
+<Visibility for="agents">
+```json
+{ "llm_attendant": { "message_buffer": 8 } }
+```
+
+- Tipo: número inteiro, **mínimo 1** no template. `null` ou omitido não grava
+  (mantém o atual).
+- Unidade: segundos. A tela limita a 30; o template não tem máximo, mas não
+  recomende acima de 15.
+- `0` ou `null` no banco: o servidor não enfileira a mensagem para o agente (a IA
+  não responde). Se o `get_template` vier com `message_buffer` nulo ou 0, avise o
+  usuário e proponha um valor.
+- Funcionamento: um job atrasado por lead; cada mensagem nova remove o job e cria
+  outro com o atraso cheio, acumulando o lote. Com um job em execução, as novas
+  mensagens ficam numa fila do lead (TTL de 10 minutos) e são processadas quando
+  o job termina.
+- O chat de teste do builder chama o agente direto: não passa pelo buffer.
+</Visibility>
+
+## Armadilhas
+
+- **Buffer 0 ou vazio**: a IA não responde, e nada no painel avisa.
+- **O chat de teste não usa buffer.** No teste, cada mensagem é respondida na hora.
+  Para ver o buffer agindo, teste num WhatsApp de verdade.
+- **Buffer longo com segmentação**: o lead espera o buffer e depois as pausas entre
+  as partes. Some as duas ao avaliar a demora.
+- **Mudar o buffer não passa por publicação.** Vale na hora, inclusive para
+  conversas em andamento.
+- **O buffer não serve para "parecer humano".** Para simular digitação, use a
+  segmentação, que mostra "digitando…" na conexão oficial.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="O agente respondeu duas vezes seguidas. Por quê?">
+O lead mandou a segunda mensagem depois de o buffer terminar, ou enquanto o
+agente já estava respondendo. Aumente o **Tempo de espera**.
+</Accordion>
+<Accordion title="O buffer vale para áudio e imagem?">
+Sim. Áudio, imagem e PDF entram no mesmo lote que o texto. Se o lote tem áudio e a
+voz está ligada, a resposta sai em áudio.
+</Accordion>
+<Accordion title="Mensagem que chega durante a pausa humana fica no buffer?">
+Ela entra no buffer, mas quando a espera termina a IA está pausada e o lote é
+descartado. A IA não responde depois a essas mensagens. Veja
+[Pausa humana](/engenharia-de-ia/pausa-humana).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona)
+- [Pausa humana](/engenharia-de-ia/pausa-humana)
+- [Segmentação e voz](/engenharia-de-ia/segmentacao-e-voz)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+
+**Termos para buscar:** "message debounce chatbot", "WhatsApp message batching",
+"buffer de mensagens WhatsApp IA".

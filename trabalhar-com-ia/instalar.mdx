@@ -1,0 +1,158 @@
+---
+title: "Instalar a skill e o MCP"
+description: "Leia para conectar um assistente de IA à Zatten: criar a conexão no painel, colar o prompt de instalação, instalar a skill, ligar a atualização automática e revogar o acesso."
+---
+
+Conectar um assistente à Zatten leva três peças: a **skill `zatten`**, o **MCP da
+Zatten** e o **MCP da doc**. O jeito mais curto é criar uma conexão no painel e
+colar o prompt de instalação no assistente: ele instala a skill e o MCP da Zatten
+e confirma listando os seus projetos.
+
+## Antes de começar
+
+- **Só o admin da conta** vê **Configurações → Conectar ferramentas de IA**. Uma
+  conexão pode alcançar todos os projetos da conta, por isso os outros papéis não
+  criam conexões.
+- **Assistentes aceitos:** Claude Code, Codex, Cursor e outros que aceitem servidor
+  MCP por HTTP com cabeçalho. O ChatGPT e o Claude Desktop ainda não entram: eles
+  exigem login por OAuth, que está em construção.
+
+## Criar a conexão e instalar
+
+<Steps>
+  <Step title="Abra a tela">
+    No painel, abra o menu do seu usuário e vá em **Configurações → Conectar
+    ferramentas de IA**.
+  </Step>
+  <Step title="Crie uma conexão">
+    Preencha:
+    - **Nome:** só para reconhecer a conexão na lista (por exemplo, "Claude do João").
+    - **Quais projetos esta conexão alcança:** *Todos os projetos da conta,
+      inclusive os futuros*, ou *Apenas os projetos que eu escolher*.
+    - **Permissão:** *Somente leitura* (consulta e não muda nada) ou *Leitura e
+      edição* (também cria e altera, mas nunca apaga, nunca publica o agente e
+      nunca envia template à Meta).
+  </Step>
+  <Step title="Copie o prompt">
+    A tela **Conexão criada** mostra o prompt de instalação já com o endereço do
+    servidor e o token. O token aparece mascarado na tela e vai inteiro ao copiar.
+  </Step>
+  <Step title="Cole no assistente">
+    Peça para ele executar. O prompt manda o assistente instalar a skill,
+    adicionar o servidor MCP chamado `zatten` e chamar `list_projects` para
+    confirmar.
+  </Step>
+  <Step title="Confira a lista de projetos">
+    Se apareceram os projetos que você marcou, está pronto.
+  </Step>
+</Steps>
+
+<Warning>
+**Copie o prompt na hora.** A Zatten guarda só uma assinatura do token. Ele não
+aparece de novo, nem para o suporte. Se perder, crie outra conexão; a antiga
+continua funcionando até ser revogada.
+</Warning>
+
+O endereço do servidor usa o domínio em que você está no painel. Numa conta
+white-label, o prompt já sai com o domínio da agência.
+
+### Instalar à mão
+
+Na mesma tela, **Instalar manualmente** mostra o endereço do servidor e um trecho
+de configuração no formato aceito pela maioria dos assistentes. Use se preferir
+conferir antes de deixar o assistente mexer na própria configuração. O token
+continua vindo só da tela de criação.
+
+## Instalar só a skill
+
+O prompt do painel já instala a skill. Para instalar ou reinstalar sem ele, use
+**um** dos métodos:
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```bash
+    claude plugin marketplace add feliperaitano123/skills
+    claude plugin install zatten@zatten
+    ```
+  </Tab>
+  <Tab title="Outros assistentes">
+    Codex, Cursor, Gemini CLI e outros:
+
+    ```bash
+    npx skills add feliperaitano123/skills --skill zatten
+    ```
+  </Tab>
+</Tabs>
+
+A skill sozinha não acessa nada. Ela precisa do MCP da Zatten, que é quem carrega
+a credencial da conta.
+
+## Conectar o MCP da doc
+
+O MCP da doc é público e não tem segredo: `https://docs.zatten.com/mcp`. Com ele,
+o assistente busca e lê esta doc sem sair da conversa.
+
+No Claude Code, o plugin `zatten` já sobe o MCP da doc sozinho (com o nome
+`zatten-docs`). Nos outros assistentes, ou se você instalou só a skill, adicione:
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http zatten-docs https://docs.zatten.com/mcp
+    ```
+  </Tab>
+  <Tab title="Codex">
+    Em `~/.codex/config.toml`:
+
+    ```toml
+    [mcp_servers.zatten-docs]
+    url = "https://docs.zatten.com/mcp"
+    ```
+  </Tab>
+</Tabs>
+
+Sem o MCP da doc, o assistente lê `https://docs.zatten.com/llms.txt` e as páginas
+em Markdown (acrescentando `.md` ao endereço).
+
+## Manter a skill atualizada
+
+A skill muda pouco, mas muda. Cada método se atualiza de um jeito:
+
+| Método | Atualizar |
+|---|---|
+| Plugin do Claude Code | Ligue a atualização automática do marketplace `zatten`. Ela vem desligada para marketplaces de terceiros. À mão: `claude plugin update zatten@zatten` |
+| `npx skills` | Sempre à mão: `npx skills update` |
+
+
+## Ver e revogar conexões
+
+A tela lista cada conexão numa linha: o nome, se **lê e altera** ou é **somente
+leitura**, quais projetos alcança e quando foi usada pela última vez.
+
+Para revogar, clique na lixeira da conexão. O assistente perde o acesso na hora.
+Não dá para desfazer: para reconectar, crie outra conexão.
+
+Para trocar a permissão ou os projetos de uma conexão, crie uma nova com o alcance
+certo e revogue a antiga.
+
+## Armadilhas
+
+- **"Todos os projetos" inclui os futuros.** Um projeto criado amanhã já fica ao
+  alcance da conexão. Para limitar, escolha os projetos.
+- **Somente leitura recusa toda escrita.** O assistente recebe "Este token é
+  somente leitura". Crie uma conexão com *Leitura e edição* se a agência quiser
+  que ele altere projetos.
+- **Projeto fora do alcance não aparece.** Se `list_projects` não mostra um
+  projeto, não há como lê-lo nem alterá-lo por essa conexão, nem pelo id.
+- **O token é da conta, não de uma pessoa.** Quem tiver o prompt copiado age em
+  nome da conta. Não cole o token em arquivos versionados nem em conversas
+  compartilhadas.
+
+## Para saber mais
+
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Organizar sua agência no computador](/trabalhar-com-ia/organizar-a-agencia)
+- [Usuários e permissões](/comecar/equipe-e-permissoes)
+- Model Context Protocol: [introdução](https://modelcontextprotocol.io/docs/getting-started/intro)
+  e [especificação](https://modelcontextprotocol.io/specification/latest).
+  Termos para buscar: "claude mcp add", "codex mcp_servers", "Claude Code plugin marketplace", "npx skills".

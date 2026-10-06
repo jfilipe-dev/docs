@@ -1,0 +1,107 @@
+---
+title: "Usar o painel pelo navegador"
+description: "Leia antes de o assistente clicar no painel da Zatten pelo navegador (Claude in Chrome e similares): como conferir o projeto na tela, o sim por ação e o que nunca fazer."
+---
+
+Com um navegador controlado por IA (Claude in Chrome e similares), o assistente pode
+fazer no painel da Zatten o que o MCP não faz: publicar a versão do agente, migrar
+de motor, enviar template à Meta, gerenciar membros de departamento e campanhas.
+Cada ação exige **um "sim" da pessoa**, e antes de cada uma o assistente **confere o
+nome do projeto na tela**. Apagar e mexer na conexão do WhatsApp ficam fora: nesses
+casos, o assistente só guia.
+
+A lista de ações e rotas está em [O que só se faz pelo painel](/trabalhar-com-ia/so-pelo-painel).
+
+## Por que conferir o projeto na tela?
+
+O projeto aberto no painel **não aparece na URL**. Ele fica guardado no navegador.
+`/crm/campaigns` é o mesmo endereço para todos os clientes da agência. Só a tela diz
+em qual cliente o assistente está.
+
+O nome do projeto aberto aparece no **seletor de organização e projeto**, na barra
+lateral do painel.
+
+## Como o assistente faz uma ação no navegador
+
+<Steps>
+  <Step title="Conferir o cliente ativo">
+    Ler o nome do projeto em `clientes/<cliente>/CLIENTE.md` (o nome exato, como
+    está na Zatten).
+  </Step>
+  <Step title="Conferir o projeto na tela">
+    Abrir o painel e ler o nome no seletor de projeto. Se for outro, trocar no
+    seletor e ler de novo. Se não bater, parar e avisar.
+  </Step>
+  <Step title="Mostrar o que vai fazer">
+    Dizer em uma frase: o projeto, a tela, o botão e o efeito. Exemplo: "No projeto
+    **Clínica Sorriso**, em `/project`, vou clicar em **Publicar**. A versão 12 do
+    agente passa a atender todos os leads."
+  </Step>
+  <Step title="Esperar o sim">
+    Um "sim" vale para **aquela ação**. A próxima ação pede outro.
+  </Step>
+  <Step title="Fazer e conferir">
+    Clicar, esperar a tela confirmar (aviso de sucesso, status novo) e relatar o que
+    a tela mostrou.
+  </Step>
+</Steps>
+
+Ao final, o resultado entra no relatório e no Histórico da `MEMORIA.md`, como
+qualquer escrita. Ver [Mudanças feitas pelo painel](/trabalhar-com-ia/mudancas-pelo-painel).
+
+## O que o assistente nunca faz pelo navegador
+
+| Nunca | Por quê | O que faz no lugar |
+|---|---|---|
+| Apagar qualquer coisa (coluna, tag, propriedade, automação, departamento, contato, template, projeto) | Irreversível, e a URL não prova qual cliente está aberto. | Guia a pessoa, passo a passo, e espera ela confirmar que fez. |
+| Conectar, trocar ou remover a conexão do WhatsApp (`/meta`, aba **WhatsApp**) | Um erro deixa o cliente final sem atendimento. | Guia a pessoa. |
+| Encadear ações com um "sim" só | O "sim" informado é por ação. | Pede um "sim" por clique que muda algo. |
+| Agir sem ter lido o nome do projeto na tela | Risco de mexer no cliente errado. | Para e confere. |
+| Digitar senha, cartão ou código de verificação | São da pessoa. | Pede que a pessoa digite. |
+
+## Armadilhas
+
+- **Abas compartilham o projeto.** O projeto escolhido fica guardado no navegador. Se
+  alguém troca de projeto em outra aba, a aba do assistente pode abrir no projeto novo
+  ao recarregar. Confira o nome de novo **depois de toda navegação ou recarga**, não
+  só no começo.
+- **Rotas iguais para clientes diferentes.** Não use a URL como prova de nada.
+- **`/project/templates` redireciona para `/meta`.** Os templates da Meta estão na
+  aba **Templates** de `/meta`, ao lado da aba **WhatsApp** (conexão). A aba
+  **WhatsApp** é a que o assistente não mexe.
+- **Campanha roda na aba.** O disparo acontece no navegador. Não feche nem navegue
+  para fora da aba até terminar.
+- **Papel do usuário logado.** O painel mostra só o que o papel permite. Se um botão
+  não aparece, pode ser permissão, não erro. Ver
+  [Montar a equipe: usuários e permissões](/comecar/equipe-e-permissoes).
+- **Aviso de sucesso não é publicação.** Salvar no editor do agente cria rascunho;
+  só **Publicar** põe no ar.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+  <Accordion title="Posso dizer 'pode fazer tudo sem perguntar'?">
+    Vale só para aquele pedido. No pedido seguinte, o assistente volta a pedir um "sim"
+    por ação. Apagar e conexão continuam fora mesmo assim.
+  </Accordion>
+  <Accordion title="E se o navegador não estiver disponível?">
+    O assistente descreve o caminho (rota, aba, botão) e a pessoa faz. O resultado é
+    registrado do mesmo jeito.
+  </Accordion>
+  <Accordion title="O assistente pode usar o navegador para ler o painel?">
+    Pode, para conferir o que não está no template: o status de um template da
+    Meta, se um webhook foi desligado por falhas, quem está em cada departamento.
+    Ler não precisa de "sim", mas a conferência do projeto na tela continua
+    obrigatória.
+  </Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [O que só se faz pelo painel](/trabalhar-com-ia/so-pelo-painel)
+- [As regras que o assistente segue](/trabalhar-com-ia/regras)
+- [Mudanças feitas pelo painel](/trabalhar-com-ia/mudancas-pelo-painel)
+- Claude in Chrome: https://claude.com/chrome
+- Claude in Chrome no Claude Code: https://code.claude.com/docs/en/chrome
+- Termos para buscar: "Claude in Chrome", "browser agent", "computer use",
+  "seletor de projeto Zatten".

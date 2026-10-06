@@ -1,0 +1,99 @@
+---
+title: "API: visão geral"
+description: "Leia antes de chamar a API da Zatten: o endereço base, o formato JSON, a chave do projeto, o mapa de todos os endpoints e quando usar a API (dia a dia de um projeto) e quando usar o MCP (configuração)."
+---
+
+A API da Zatten opera o **dia a dia de um projeto**: mandar mensagem para um lead,
+ler o histórico, mover o lead no funil, pôr tag, preencher propriedade, ligar ou
+desligar a IA, disparar automações e fluxos. Cada chamada age sobre **um** projeto,
+definido pela chave de API que vai no header.
+
+A **configuração** do projeto (colunas, tags, propriedades, automações, agente) não se
+muda pela API do dia a dia: isso é o template, pelo MCP ou pela
+[API de template](/api/template).
+
+## O básico
+
+| Item | Valor |
+|---|---|
+| Endereço base | `https://api.zatten.com/api/v1` |
+| Autenticação | Header `x-api-key` com a chave do projeto. Ver [Autenticação](/api/autenticacao). |
+| Formato | JSON (`Content-Type: application/json`). As rotas de mídia usam `multipart/form-data`. |
+| Erros | `{ "error": "<texto>" }` com o código HTTP. Ver [Erros](/api/erros). |
+| Limite | 600 requisições por minuto por chave, e o mesmo por IP. Ver [Limites](/api/limites). |
+| Lead | Identificado pelo número do WhatsApp, com DDI. Ver [Identificar o lead](/api/identificar-o-lead). |
+
+O endereço da API é sempre esse, mesmo quando a agência usa o painel com
+[white-label](/comecar/white-label).
+
+```bash
+curl "https://api.zatten.com/api/v1/leads/5511999998888" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+## API ou MCP?
+
+| Quero… | Use |
+|---|---|
+| Mandar uma mensagem para **um** lead | API: [Mensagens](/api/mensagens), [Mídia](/api/midia) |
+| Ler um lead, as conversas e o histórico | API: [Leads](/api/leads), [Histórico](/api/historico) |
+| Mover, pôr tag, preencher propriedade, trocar responsável | API: [Leads](/api/leads) |
+| Ligar, pausar ou desligar a IA de um lead | API: [Controle da IA](/api/controle-da-ia) |
+| Disparar automações ou fluxos para um lead | API: [Automações](/api/automacoes), [Fluxos](/api/fluxos-e-webhook-de-entrada) |
+| Receber eventos no meu sistema | [Webhooks de saída](/api/webhooks-de-saida) |
+| Criar ou mudar colunas, tags, propriedades, automações, o agente | MCP (`update_template`) ou [API de template](/api/template) |
+| Mensagem para muitos leads | **Tela de campanhas**, não a API. Ver [Campanhas](/produto/campanhas). |
+
+Assistentes de IA (Claude Code, Codex) seguem regras próprias para usar a API: ler é
+livre, escrever pede um "sim". Ver [A API do dia a dia para agentes](/trabalhar-com-ia/api-do-dia-a-dia).
+
+## Mapa dos endpoints
+
+| Método e caminho | O que faz | Página |
+|---|---|---|
+| `POST /messages/text` | Envia texto | [Mensagens](/api/mensagens) |
+| `POST /messages/template` | Envia template (cria o lead se não existir) | [Mensagens](/api/mensagens) |
+| `POST /messages/image` · `/audio` · `/video` · `/file` | Envia mídia | [Mídia](/api/midia) |
+| `GET /messages/history` | Histórico de uma conversa | [Histórico](/api/historico) |
+| `GET /leads/{numero}` | Dados do lead | [Leads](/api/leads) |
+| `GET /leads/{numero}/threads` | Conversas do lead | [Leads](/api/leads) |
+| `PATCH /leads/{numero}/notes` | Anotação | [Leads](/api/leads) |
+| `PATCH /leads/{numero}/properties` | Propriedade | [Leads](/api/leads) |
+| `POST` · `DELETE /leads/{numero}/tag` | Põe ou tira tag | [Leads](/api/leads) |
+| `PATCH /leads/{numero}/kanban` | Move no funil | [Leads](/api/leads) |
+| `PATCH /leads/{numero}/assignee` | Responsável e departamento | [Leads](/api/leads) |
+| `POST /leads/{numero}/toggle-attendant-response` | Liga, pausa ou desliga a IA | [Controle da IA](/api/controle-da-ia) |
+| `PATCH /leads/{numero}/thread` | Encerra o atendimento | [Controle da IA](/api/controle-da-ia) |
+| `POST /leads/{numero}/notification` | Push para o responsável | [Notificar responsável](/api/notificar-responsavel) |
+| `GET /kanban` · `GET /tags` · `GET /properties` · `GET /properties/{slug}/values` | Catálogos com ids | [Catálogos](/api/catalogos) |
+| `POST /automations/trigger` | Agenda as automações de um lead | [Automações](/api/automacoes) |
+| `POST /flows/trigger` · `POST /hooks/{path}` | Dispara fluxos do Trigger Flow | [Fluxos e webhook de entrada](/api/fluxos-e-webhook-de-entrada) |
+
+<Note>
+**Não existe endpoint para listar leads.** A API sempre age sobre um lead que você já
+conhece pelo número. Para uma lista (todos os leads de uma coluna, por exemplo), use
+a exportação em **Contatos → Exportar**, que traz nome, telefone, coluna e tags. Ver
+[Contatos](/produto/contatos).
+</Note>
+
+## Armadilhas
+
+- **A chave escolhe o projeto.** Não há parâmetro de projeto: uma chave trocada age no
+  cliente errado sem erro nenhum.
+- **A API não lista leads.** Planeje a integração a partir do número do lead (vindo do
+  seu sistema, de um [webhook](/api/webhooks-de-saida) ou da exportação).
+- **Ações pela API não são iguais às do CRM.** Mover pela API não aciona
+  "Disparar automações" da coluna, e texto pela API não pausa a IA. Cada página diz o
+  que muda.
+- **Mensagem em massa não é integração.** Loop de envio derruba a qualidade do número.
+  Use [Campanhas](/produto/campanhas).
+- **A chave nunca vai para o navegador.** Chame a API do seu servidor.
+
+## Para saber mais
+
+- [Autenticação](/api/autenticacao), [Limites](/api/limites), [Erros](/api/erros),
+  [Identificar o lead](/api/identificar-o-lead)
+- [Chaves de API do projeto](/produto/chaves-de-api)
+- [A API do dia a dia para agentes](/trabalhar-com-ia/api-do-dia-a-dia)
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- Termos para buscar: "Zatten API", "x-api-key", "api.zatten.com/api/v1", "REST JSON".

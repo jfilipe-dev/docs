@@ -1,0 +1,175 @@
+---
+title: "Transbordo para humano bem feito"
+description: "Leia para desenhar a passagem do agente para uma pessoa: os quatro caminhos (ação do agente, coluna de transbordo, inatividade e o humano que responde), o departamento antes da transferência, quem é avisado, fora do horário e como devolver o lead para a IA."
+---
+
+Transbordo é o momento em que o agente para e uma pessoa assume. Bem feito, o lead não fica sem resposta, a pessoa certa fica sabendo na hora e com contexto, e a IA não fala por cima de ninguém. Mal feito, o lead espera horas porque ninguém foi avisado.
+
+Três fatos guiam todo o desenho:
+
+- **Transferir desliga a IA do lead.** A ação **Transferir para humano** e a coluna com **Transbordo** desligam a IA, não pausam. Ela só volta quando alguém religa ou encerra o atendimento.
+- **Só o responsável é avisado.** A notificação vai para o **responsável** do lead. Sem responsável, ninguém é avisado.
+- **O departamento escolhe o responsável.** Por isso o lead precisa estar no departamento certo **antes** da transferência.
+
+## Os quatro caminhos para um humano assumir
+
+| Caminho | Quem decide | O que acontece com a IA | Quem é avisado |
+|---|---|---|---|
+| **Ação Transferir para humano** | O agente, pela regra do prompt | Desligada | O responsável, com o motivo escrito pelo agente |
+| **Coluna com Transbordo** | O agente (Mover no funil) ou uma pessoa que move o lead | Desligada | O responsável ("Transbordo: nome do lead") |
+| **[Transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade)** | O relógio: X minutos sem interação | Conforme as chaves da coluna de destino | Conforme as chaves da coluna de destino |
+| **Humano responde pelo chat ou pelo celular** | A pessoa | Pausada pelo tempo da [pausa humana](/engenharia-de-ia/pausa-humana) | Ninguém: a pessoa já está na conversa |
+
+Os três primeiros são transbordo de verdade: a pessoa conduz até o fim. O quarto é **intervenção**: a pessoa resolve algo rápido e a IA volta sozinha.
+
+## As peças do projeto
+
+| Peça | O que criar | Por quê |
+|---|---|---|
+| **Departamentos** | Um por equipe que recebe transbordo: Comercial, Suporte, Financeiro | Cada assunto chega na pessoa certa. O rodízio escolhe o responsável. |
+| **Membros recebendo** | Em cada departamento, quem atende, com **Receber Leads** ligado | Departamento sem ninguém recebendo deixa o lead sem responsável, e ninguém é avisado. |
+| **Coluna** | **Atendimento humano**, com **Desativar IA** (ou **Transbordo**, ver abaixo) | O Kanban mostra quem está com a equipe. |
+| **Ações da Zatten** | Direcionar para departamento (uma por departamento), Transferir para humano | Veja [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten). |
+| **Pausa humana** | 30 a 60 minutos | Para intervenções curtas. Veja [Pausa humana](/engenharia-de-ia/pausa-humana). |
+| **Notificações** | Cada pessoa que recebe leads ativa as notificações no sino **Notificações**, em **Conversas** | Sem isso, o aviso fica só na lista do sino, sem alerta no navegador. |
+
+## Desenho simples: o agente direciona e depois transfere
+
+<Steps>
+<Step title="Crie os departamentos e os membros">
+Em **Departamentos**, crie um por equipe e adicione os membros, com **Receber Leads** ligado. Confira que o **departamento padrão** (onde os leads novos entram) também tem alguém recebendo.
+</Step>
+<Step title="Adicione as ações">
+**Direcionar para departamento**, uma para cada departamento de destino, e **Transferir para humano**. Em "Quando usar" de cada direcionamento, escreva o assunto: "Use quando o assunto for boleto, segunda via ou cobrança".
+</Step>
+<Step title="Escreva a regra no prompt">
+Veja o exemplo abaixo. A ordem importa.
+</Step>
+<Step title="Teste com um responsável real">
+Peça no WhatsApp o que dispara o transbordo e confira: o lead mudou de departamento, o responsável certo recebeu o aviso, a IA ficou desligada no painel do lead.
+</Step>
+</Steps>
+
+```text
+# Quando chamar uma pessoa
+Chame uma pessoa quando:
+- o cliente pedir para falar com alguém;
+- o assunto for reclamação, desconto acima de 10% ou cancelamento;
+- você não souber responder depois de consultar suas ferramentas.
+
+Como fazer, nesta ordem:
+1. Direcione para o departamento do assunto (Financeiro para cobrança,
+   Suporte para problema técnico, Comercial para o resto). Espere a resposta.
+2. Na mesma resposta ao cliente, diga que vai chamar alguém da equipe e que a
+   pessoa vai continuar por aqui. Não prometa prazo.
+3. Transfira para humano. No motivo, resuma o pedido em uma frase.
+```
+
+**Por que esperar a resposta do direcionamento?** O aviso da transferência vai para o responsável **atual**. O modelo pode pedir as duas ações no mesmo passo, e o LangChain Agent as executa ao mesmo tempo. Aí o aviso pode ir para quem era responsável antes.
+
+**Por que não prometer prazo?** A resposta que o modelo recebe da transferência diz que um atendente foi avisado, mesmo quando o lead não tem responsável. O agente não sabe se alguém viu.
+
+## Desenho robusto: o departamento dispara o resto
+
+Para não depender da ordem das ações, deixe o agente fazer **uma** coisa (direcionar) e um fluxo do [Trigger Flow](/produto/trigger-flow/conceitos) fazer o resto, já com o responsável novo:
+
+- **Gatilho:** **Responsável alterado**, filtrado pelo departamento de destino (ex.: Financeiro).
+- **Ação:** **Ligar, desligar ou pausar a IA** → desligar.
+- **Ação:** **Mover no Kanban** → Atendimento humano.
+- **Ação:** **Notificar responsável**, com título "Transbordo financeiro" e a mensagem que a equipe precisa ver.
+
+O fluxo roda depois da atribuição, então o aviso sempre vai para a pessoa escolhida pelo rodízio.
+
+<Warning>
+**Responsável alterado** também dispara quando o lead é distribuído pelo rodízio ao chegar, e quando alguém troca o departamento no painel. Filtre o gatilho por um departamento que **não** seja o padrão. Assim o fluxo só roda nas transferências.
+</Warning>
+
+## Coluna: Desativar IA ou Transbordo?
+
+| Chave | Efeito | Use quando |
+|---|---|---|
+| **Desativar IA** | Desliga a IA do lead ao entrar na coluna. Não avisa ninguém. | O aviso já sai pela ação Transferir para humano ou por um fluxo. Evita aviso em dobro. |
+| **Transbordo** | Desliga a IA e avisa o responsável. | A coluna é o próprio transbordo: o agente só move o lead para ela, ou uma pessoa move pelo Kanban. |
+
+As duas valem quando o lead entra pela movimentação de um lead por vez (CRM, agente, API, fluxo, transbordo por inatividade). **Mover em massa**, em Contatos, não aplica nenhuma chave. Veja [Funil (Kanban)](/produto/funil-kanban).
+
+## Fora do horário da equipe
+
+- **O agente sabe a hora.** O bloco [Agora](/engenharia-de-ia/contexto-injetado) traz dia e hora de Brasília. Escreva no prompt: "Atendimento humano de segunda a sexta, das 9h às 18h. Fora disso, diga que a equipe responde no próximo horário e transfira mesmo assim".
+- **Tire do rodízio quem não está trabalhando:** desligue **Receber Leads** ou libere o autoatendimento do departamento, para cada um sair e entrar sozinho. Veja [Departamentos](/produto/departamentos).
+- **Transbordo por inatividade com horário comercial** manda uma mensagem diferente fora do horário ("Nossa equipe volta amanhã às 9h").
+
+## Rede de segurança: transbordo por inatividade
+
+Use o [transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade) para o lead que parou numa etapa crítica (orçamento enviado, dúvida sobre pagamento) e merece uma pessoa:
+
+- **Sempre** defina as colunas de origem. Sem elas, ele age até em leads que acabaram de ter o atendimento encerrado.
+- Destino: a coluna **Atendimento humano**. A chave da coluna de destino é que desliga a IA e avisa.
+- Na conexão oficial, mantenha o tempo bem abaixo de 24 horas. Com a janela fechada, o lead muda de coluna, mas a mensagem não sai.
+
+## Enquanto a pessoa atende
+
+- Responder pelo chat **assume o lead**, se a pessoa é do departamento dele, e pausa a IA (que já está desligada depois de um transbordo).
+- Com a IA pausada ou desligada, cada nova mensagem do lead gera um aviso para o responsável.
+  {/* A CONFIRMAR: no servidor, esse aviso (LeadInteractionEvent → push) só é disparado quando o campo legado `attendant.webhooks` do projeto está vazio. Confirmar o que é esse campo hoje e se algum projeto ativo o usa. */}
+- **Mensagens rápidas** aceleram respostas repetidas. Veja [Mensagens rápidas](/produto/mensagens-rapidas).
+- **Enviar nome do atendente**, no departamento, mostra ao lead quem está falando.
+- Se a [janela de 24h](/comecar/janela-de-24h) fechar, o chat só manda template.
+- Leads com a IA desligada aparecem no filtro **Status do agente** de **Conversas**. Use para ver o que está com a equipe.
+
+## Como devolver o lead para a IA
+
+| Situação | O que fazer | O que acontece |
+|---|---|---|
+| **O assunto acabou** | **Encerrar atendimento** | IA religada, lead volta à primeira coluna, sem responsável. Tags e propriedades de vínculo conversa vão para o histórico. A próxima mensagem começa uma conversa nova. Veja [Encerrar atendimento](/produto/encerrar-atendimento). |
+| **A IA deve continuar a mesma conversa** | Ligar a chave **Agente IA** do lead e mover para a coluna certa | A IA responde a partir da próxima mensagem do lead. Sair da coluna de transbordo **não** religa sozinho. |
+| **Por integração** | `POST /api/v1/leads/{numero}/toggle-attendant-response` com `{"enabled": true}` | Igual à chave. Veja [Controle da IA por lead](/api/controle-da-ia). |
+
+No LangChain Agent, a IA que volta sabe o que a pessoa combinou: as mensagens do humano entram no histórico como "Atendente humano".
+
+<Warning>
+**Encerrar religa a IA**, mesmo desligada. Se o lead não deve voltar a falar com o agente (cliente sensível, negociação em curso), não encerre: mantenha-o numa coluna com **Desativar IA**.
+</Warning>
+
+## Como medir
+
+| O que | Onde |
+|---|---|
+| Quanto a IA resolve sozinha | Card **Automação** em [Métricas](/produto/metricas): mensagens do agente x do humano. |
+| Leads esperando a equipe | **Conversas**, filtro **Status do agente** = desligado, e **Não lidas**. |
+| Transbordos por motivo | As notificações (o motivo vai nelas) ou um [webhook](/produto/automacoes/webhooks) de Kanban para uma planilha. |
+| Transbordo demais | Leia as conversas transferidas: falta informação ao agente (uma [skill](/engenharia-de-ia/skills) resolve) ou a regra está larga. |
+
+## Pelo MCP
+
+Viajam: departamentos (sem membros), colunas com `shutdown_ai` e `transhipment`, as ações da Zatten, fluxos, transbordos por inatividade e a pausa humana (`llm_attendant.pause_in_human_interaction`). Membros, **Receber Leads** e o autoatendimento ficam no painel.
+
+<Visibility for="agents">
+- Transferir para humano: `_zatten.template = "transbordo.notify"`; o modelo vê `transbordo_notify` com `reason`. Efeito: IA desligada (`ai_response_block_until` = agora + 100 anos) e push ao `assigned_to_user`.
+- Direcionar: `_zatten.template = "department.select"`, `target_name` = nome do departamento. Não mexe na IA.
+- Fluxo robusto: gatilho `lead.assignee_changed` com `config.department_id` do departamento de destino; ações `lead.toggle_ai` (`mode: "off"`), `lead.move_column`, `lead.notify_assignee`. Depois de criar pelo MCP, peça para abrir no editor, **Salvar** e só então ligar.
+- Ligar transbordo por inatividade pede pergunta explícita (regra 4 de [As regras](/trabalhar-com-ia/regras)).
+- Departamento sem membros: avise no relatório da escrita ("Para você fazer no painel").
+</Visibility>
+
+## Armadilhas
+
+- **Transferir sem responsável** desliga a IA e não avisa ninguém. O lead fica mudo até alguém abrir a conversa.
+- **Direcionar não desliga a IA.** Só direcionar deixa o agente respondendo no departamento novo.
+- **A IA não volta ao sair da coluna.** Religue a chave ou encerre o atendimento.
+- **Desligar a IA (ação) não avisa ninguém.** Para pedir ajuda, use Transferir para humano.
+- **Coluna com Transbordo + ação Transferir** geram dois avisos. Use uma das duas, ou a coluna só com Desativar IA.
+- **Pausa humana em 0** faz o agente responder logo depois do humano, por cima da conversa.
+- **Follow-up para quem está com a equipe.** A resposta do humano pelo CRM agenda follow-ups. Deixe a coluna Atendimento humano fora do filtro dos follow-ups.
+- **Responsável sem notificações ativadas** só vê o aviso quando abre o sino.
+
+## Para saber mais
+
+- [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten): Transferir para humano, Direcionar para departamento, Desligar a IA.
+- [Departamentos e distribuição](/produto/departamentos)
+- [Pausa humana](/engenharia-de-ia/pausa-humana)
+- [Conversas e chat ao vivo](/produto/conversas-e-chat)
+- [Transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade)
+- [Trigger Flow: catálogo de blocos](/produto/trigger-flow/blocos)
+- [Encerrar atendimento](/produto/encerrar-atendimento)
+- Termos para buscar: "human handoff", "human in the loop", "round robin", "rodízio de atendimento".

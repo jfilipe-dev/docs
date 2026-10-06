@@ -1,0 +1,469 @@
+---
+title: "Ações da Zatten (tools nativas)"
+description: "Consulte para saber o que cada ação da Zatten faz no CRM (mover no funil, tags, departamento, propriedade, agendar e cancelar mensagem, transferir para humano, desligar a IA, lista de tarefas), o que o modelo vê, quando usar, como instruir no prompt e como acrescentar a regra do negócio."
+---
+
+As **ações da Zatten** são as tools prontas que mexem no CRM do próprio projeto:
+mover o lead no funil, marcar tag, encaminhar a um departamento, gravar uma
+propriedade, agendar um template, passar para um humano. Não há API para
+configurar. Você escolhe a ação, o alvo (qual coluna, qual tag) e escreve quando
+usar.
+
+Cada ação vale para **um alvo**. Para o agente mover para três colunas, adicione
+três ações "Mover no funil", uma por coluna.
+
+## Onde fica no painel
+
+Editor do agente → **Tools** → **Adicionar** → filtro **CRM**. Escolha a ação,
+depois o alvo em **Selecione a opção**. "Lista de tarefas" fica em **Utilidades**.
+
+Ao abrir uma ação já criada, só dois campos são editáveis:
+
+| Campo | O que faz |
+|---|---|
+| **Quando usar no seu atendimento** | A sua regra de negócio. Entra no fim da descrição padrão da ação, que o modelo lê. |
+| **Mensagem para a IA se a chamada falhar** | Instrução que o modelo recebe junto do erro, se a ação falhar. |
+
+O **Nome** é fixo. O endereço e o que é enviado ficam escondidos: são montados
+pela Zatten. Ações da Zatten **não têm botão Testar**, porque rodariam contra um
+lead real. Teste pelo [chat de teste](/engenharia-de-ia/testar).
+
+## Como a descrição é montada
+
+O modelo lê uma descrição em duas partes:
+
+1. **A base**, escrita pela Zatten: o que a ação faz, quando usar e o efeito
+   colateral. Ela é recalculada sempre que a ação é salva.
+2. **A sua regra**, o texto de **Quando usar no seu atendimento**, depois de uma
+   linha em branco.
+
+Use a sua regra para dizer **em que momento da conversa** usar e **quando não
+usar**. Não repita o que a base já diz.
+
+<Tip>
+Bom texto em "Quando usar": "Use assim que o cliente confirmar o orçamento. Não
+use se ele só pediu informação de preço."
+</Tip>
+
+## O que o modelo recebe de volta
+
+Toda ação responde ao modelo em JSON. Se deu certo, em geral
+`{"message": "OK"}`. Se algo falhou do lado da Zatten, a resposta traz uma
+mensagem de erro em texto, por exemplo `{"message": "Erro ao agendar template"}`.
+O modelo lê essa mensagem e decide o que dizer ao lead.
+
+Toda ação localiza o lead sozinha: a Zatten envia o lead, o projeto e a conversa
+atuais. O modelo nunca precisa informar quem é o lead.
+
+---
+
+## Mover no funil
+
+**O que faz no CRM.** Coloca o lead na coluna escolhida. O lead sai da coluna em
+que estava, porque ocupa uma por vez. Ao entrar na coluna, valem as chaves dela:
+
+- **Desativar IA:** a IA fica desligada para esse lead.
+- **Transbordo:** a IA fica desligada e o responsável pelo lead recebe uma
+  notificação. Sem responsável, ninguém é notificado.
+- Dispara os [webhooks](/produto/automacoes/webhooks) de Kanban, as
+  [conversões](/produto/automacoes/conversoes-meta) da coluna e os
+  [fluxos](/produto/trigger-flow/conceitos) com o gatilho "Movido no Kanban".
+- **Não** dispara as automações da coluna (follow-up e outras com **Disparar
+  automações**): essa chave só age quando a pessoa move pelo CRM. Detalhes em
+  [Quando as automações disparam](/produto/automacoes/quando-disparam).
+
+**Parâmetros que o modelo vê.** Nenhum.
+
+**Nome que o modelo vê.** `kanban_move_<coluna>`, por exemplo `kanban_move_ganho`.
+
+**Quando usar.** Para registrar em que coluna o lead está conforme a conversa avança:
+qualificado, proposta enviada, agendado, ganho, perdido.
+
+**Exemplo no prompt.**
+
+```text
+Quando o cliente aceitar a proposta, mova para "Ganho". Se ele disser que
+desistiu, mova para "Perdido" e agradeça.
+```
+
+**Exemplo em "Quando usar".** "Use quando o cliente confirmar o pagamento ou
+enviar o comprovante. Não use só porque ele perguntou a forma de pagamento."
+
+**Armadilhas.**
+
+- Mover para uma coluna com **Desativar IA** ou **Transbordo** faz o agente parar
+  de responder **logo depois**. Mande a última mensagem antes (diga isso no prompt).
+- Se o follow-up depende de "Disparar automações" na coluna, ele não começa quando
+  o agente move. Use um [fluxo](/produto/trigger-flow/conceitos) com o gatilho
+  "Movido no Kanban" ou um follow-up que não dependa da coluna.
+
+---
+
+## Adicionar tag
+
+**O que faz no CRM.** Marca o lead com a tag escolhida. As outras tags continuam.
+Dispara os webhooks de tag e os fluxos com o gatilho de tag adicionada.
+
+**Parâmetros que o modelo vê.** Nenhum.
+
+**Nome que o modelo vê.** `tag_add_<tag>`, por exemplo `tag_add_vip`.
+
+**Quando usar.** Para classificar o lead sem tirar outras classificações:
+interesse em um produto, origem, perfil.
+
+**Exemplo no prompt.**
+
+```text
+Se o cliente mencionar que tem plano de saúde, adicione a tag "Convênio".
+```
+
+**Armadilhas.** Tag com vínculo **conversa** some ao encerrar o atendimento. Para
+marcar o lead para sempre, a tag precisa ter vínculo **contato**. Veja
+[Tags](/produto/tags).
+
+---
+
+## Definir tag única
+
+**O que faz no CRM.** Marca o lead com a tag escolhida e **remove todas as outras
+tags** dele. Dispara os mesmos webhooks e fluxos de tag.
+
+**Parâmetros que o modelo vê.** Nenhum.
+
+**Nome que o modelo vê.** `tag_add_only_<tag>`.
+
+**Quando usar.** Quando a tag é um estado exclusivo, que substitui qualquer
+classificação anterior, como temperatura do lead: "Frio", "Morno", "Quente".
+
+**Exemplo em "Quando usar".** "Use quando o cliente disser que quer fechar ainda
+esta semana."
+
+**Armadilhas.** Apaga **todas** as outras tags, inclusive as que a equipe ou
+outras automações colocaram. Se o projeto usa tags para várias coisas (origem,
+produto, temperatura), use **Adicionar tag** e **Remover tag**.
+
+---
+
+## Remover tag
+
+**O que faz no CRM.** Tira a tag escolhida do lead. As outras continuam. Se ele
+não tiver a tag, nada acontece.
+
+**Parâmetros que o modelo vê.** Nenhum.
+
+**Nome que o modelo vê.** `tag_remove_<tag>`.
+
+**Quando usar.** Quando o que a tag representa deixou de valer: "Aguardando
+documento" depois que o documento chegou.
+
+**Exemplo no prompt.**
+
+```text
+Quando o cliente enviar o documento, remova a tag "Aguardando documento".
+```
+
+---
+
+## Direcionar para departamento
+
+**O que faz no CRM.** Atribui o lead ao departamento escolhido. O
+[rodízio](/produto/departamentos) do departamento escolhe o responsável entre os
+membros. Se o lead já está nesse departamento e tem responsável, nada muda.
+
+**Não pausa nem desliga a IA.** O agente continua respondendo. Para a IA parar,
+combine com **Transferir para humano** ou mova para uma coluna com Transbordo.
+
+**Parâmetros que o modelo vê.** Nenhum.
+
+**Nome que o modelo vê.** `department_select_<departamento>`.
+
+**Quando usar.** Quando o assunto é de uma equipe específica: financeiro, suporte
+técnico, vendas.
+
+**Exemplo no prompt.**
+
+```text
+Se o assunto for boleto, segunda via ou cobrança, direcione para o departamento
+"Financeiro" e depois transfira para humano.
+```
+
+**Armadilhas.** A ordem importa. Direcione **antes** de transferir: assim o
+responsável escolhido pelo rodízio é quem recebe o aviso do transbordo.
+
+---
+
+## Preencher propriedade
+
+**O que faz no CRM.** Grava um valor numa [propriedade](/produto/propriedades) do
+lead. Se já havia valor, troca. O valor é sempre gravado como texto.
+
+**Parâmetros que o modelo vê.** Um parâmetro de texto, obrigatório, cujo nome é o
+**slug** da propriedade. Exemplo: a propriedade "Quantos clientes?" com slug
+`quantos_clientes` aparece para o modelo como o parâmetro `quantos_clientes`.
+
+**Nome que o modelo vê.** `properties_update_<propriedade>`.
+
+**Quando usar.** Para guardar um dado que o lead informou: CPF, cidade, data de
+nascimento, interesse, orçamento.
+
+**Exemplo no prompt.**
+
+```text
+Assim que o cliente disser a cidade, preencha a propriedade "Cidade" com o nome
+da cidade exatamente como ele escreveu.
+```
+
+**Propriedade com lista fechada.** A Zatten só aceita um dos valores da lista. Se
+o modelo mandar outro, a resposta diz que o valor não é aceito e lista os valores
+válidos, e o modelo pode tentar de novo. Para ele acertar de primeira, escreva os
+valores em **Quando usar no seu atendimento**:
+
+```text
+Valores aceitos: "Até 10", "11 a 50", "Mais de 50". Use exatamente um deles.
+```
+
+**Armadilhas.**
+
+- **O parâmetro é sempre o slug, nunca o nome.** Quem cria a ação pelo painel não
+  precisa se preocupar: o painel usa o slug. Quem escreve o JSON à mão (ou pelo
+  MCP) precisa usar o slug como chave do parâmetro. Com o nome, a propriedade é
+  gravada **vazia** e a resposta ainda diz `OK`.
+- **Uma ação por propriedade.** Cinco dados para capturar são cinco ações.
+- **Vínculo conversa** some ao encerrar o atendimento.
+
+---
+
+## Agendar mensagem
+
+**O que faz no CRM.** Programa o envio de um template do WhatsApp para o lead. Na
+hora marcada, a Zatten envia o template, com as variáveis preenchidas com os
+dados do lead, como no [follow-up](/produto/automacoes/follow-up).
+
+Ao criar, escolha o template em **Selecione a opção** e, em **Quando enviar**:
+
+| Modo | Como funciona | O modelo vê |
+|---|---|---|
+| **Tempo fixo** | **Daqui a** N minutos, horas ou dias, contado do momento em que o agente chama a ação. | Nenhum parâmetro. |
+| **A IA decide** | O modelo escolhe a data e a hora. | `scheduled_for` (texto, obrigatório): data e hora em ISO 8601. |
+
+**Nome que o modelo vê.** `schedule_add_<template>`.
+
+**Quando usar.** Lembrete de consulta, retorno combinado ("me chama na
+segunda"), confirmação no dia seguinte.
+
+**Exemplo no prompt (A IA decide).**
+
+```text
+Se o cliente pedir para ser lembrado depois, agende o template
+"lembrete_retorno" para a data e a hora que ele pediu. Use o horário de
+Brasília e escreva o fuso no fim, por exemplo 2026-10-12T14:00:00-03:00.
+Confirme a data com ele antes de agendar.
+```
+
+**Armadilhas.**
+
+- **Fuso horário.** No modo "A IA decide", peça no prompt que o modelo inclua o
+  fuso (`-03:00`). A data e a hora atuais de Brasília já chegam ao modelo no bloco
+  [Agora](/engenharia-de-ia/contexto-injetado).
+- **É template, não texto livre.** Só templates que aparecem em **Templates** podem
+  ser agendados. Na conexão oficial, o template precisa estar aprovado pela Meta.
+- **Para cancelar**, o agente precisa da ação **Cancelar agendamento** do mesmo
+  template.
+
+---
+
+## Cancelar agendamento
+
+**O que faz no CRM.** Cancela o envio agendado do template escolhido para este
+lead. Se não houver nada agendado, a resposta diz "Nenhuma mensagem agendada para
+remover."
+
+**Parâmetros que o modelo vê.** Nenhum.
+
+**Nome que o modelo vê.** `schedule_remove_<template>`.
+
+**Quando usar.** O cliente pediu para não receber, ou o motivo do agendamento
+deixou de existir (ele já confirmou, já pagou).
+
+**Exemplo no prompt.**
+
+```text
+Se o cliente confirmar presença antes do lembrete, cancele o agendamento do
+template "lembrete_consulta".
+```
+
+---
+
+## Transferir para humano
+
+**O que faz no CRM.** Faz o [transbordo](/inicio/glossario):
+
+1. **Desliga a IA** para esse lead. Ela só volta quando alguém religar a chave
+   **Agente IA** do lead ou [encerrar o atendimento](/produto/encerrar-atendimento).
+2. Envia uma notificação ao **responsável** pelo lead, com o motivo que o modelo
+   escreveu.
+
+**Parâmetros que o modelo vê.** `reason` (texto, obrigatório): o motivo da
+transferência. Vai na notificação para a equipe.
+
+**Nome que o modelo vê.** `transbordo_notify`.
+
+**Quando usar.** O agente não consegue resolver, o cliente pede para falar com uma
+pessoa, ou o assunto exige decisão humana (desconto, reclamação, caso jurídico).
+
+**Exemplo no prompt.**
+
+```text
+Se o cliente pedir um desconto acima de 10% ou quiser falar com uma pessoa,
+avise que vai chamar alguém da equipe e transfira para humano. No motivo,
+resuma o pedido em uma frase.
+```
+
+**Armadilhas.**
+
+- **Sem responsável, ninguém é avisado.** A notificação vai só para o responsável
+  pelo lead. Use **Direcionar para departamento** antes, para o rodízio escolher
+  alguém. A resposta para o modelo diz que um atendente foi notificado mesmo
+  assim, então não deixe o prompt prometer prazo de retorno.
+- **Mande a última mensagem antes.** Depois da ação, a IA não responde mais.
+- Esta é a ação que pode ser usada como transbordo automático quando todos os
+  modelos falham. Veja [Resiliência](/engenharia-de-ia/resiliencia).
+
+---
+
+## Desligar a IA
+
+**O que faz no CRM.** Desliga a IA para esse lead, **sem notificar ninguém**. A
+conversa fica com a equipe. A IA só volta quando alguém religar a chave **Agente
+IA** do lead ou encerrar o atendimento.
+
+**Parâmetros que o modelo vê.** Nenhum.
+
+**Nome que o modelo vê.** `attendant_shutdown`.
+
+**Quando usar.** Só quando o cliente pede para não ser mais atendido pela IA, ou
+num fim de conversa em que a IA não deve mais falar (o lead pediu para sair da
+lista).
+
+**Exemplo no prompt.**
+
+```text
+Se o cliente pedir para não receber mais mensagens automáticas, agradeça e
+desligue a IA.
+```
+
+**Armadilhas.** Para pedir ajuda de uma pessoa, use **Transferir para humano**.
+Desligar sem avisar deixa o lead sem resposta até alguém abrir a conversa.
+
+---
+
+## Lista de tarefas
+
+**O que faz.** Não mexe no CRM. Dá ao agente uma lista de etapas que ele mesmo
+cria e atualiza durante um atendimento longo (pendente, em andamento, concluída).
+Ajuda em atendimentos com muitos passos, como um orçamento com vários itens.
+
+**O que o modelo vê.** A tool `write_todos`. Só pode existir uma lista de tarefas
+por agente.
+
+**Campos (opcionais; em branco valem os textos padrão).**
+
+| Campo | O que faz |
+|---|---|
+| **Quando usar a lista** | O que o modelo lê para decidir se abre uma lista. |
+| **Regras permanentes** | Fica na instrução do agente o tempo todo. Ex.: "nunca mostre a lista ao cliente". |
+
+Detalhes em [Lista de tarefas](/engenharia-de-ia/lista-de-tarefas).
+
+---
+
+## Pelo MCP
+
+As ações viajam no bloco `langchain` do template do projeto, como tools
+`type: "http"` com a metadata `_zatten`. O alvo é identificado pelo **nome** em
+`_zatten.target_name`. Ao aplicar, a Zatten procura o alvo pelo nome no projeto e
+monta o endereço. Se o alvo não existe, a ação não entra e a resposta traz nota.
+
+<Visibility for="agents">
+Campos de `_zatten`:
+
+| Campo | Conteúdo |
+|---|---|
+| `template` | A ação: `kanban.move`, `tag.add`, `tag.add_only`, `tag.remove`, `department.select`, `properties.update`, `schedule.add`, `schedule.remove`, `transbordo.notify`, `attendant.shutdown`. Lista de tarefas é `agent.todo_list` (em `type: "builtin"`). |
+| `target_name` | Nome da coluna, tag, departamento ou propriedade. Em agendamento, o nome do template. |
+| `target_slug` | Slug da propriedade (só em `properties.update`). |
+| `target_id` | Id do alvo no projeto. Pode faltar no template; é refeito pelo nome. |
+| `note` | O texto de **Quando usar no seu atendimento**. |
+| `schedule` | Em agendamento: `mode` (`fixed` ou `by_ia`), `seconds` (só `fixed`), `templateName`, `languageCode`. |
+
+Exemplo de ação de propriedade (o parâmetro é o slug):
+
+```json
+{
+  "type": "http",
+  "name": "properties_update_cidade",
+  "description": "Registra no cadastro do lead a informação \"Cidade\". Use assim que o cliente informar este dado na conversa, com o valor exatamente como ele disse.\n\nUse só depois de confirmar a cidade com o cliente.",
+  "method": "POST",
+  "inject_context": true,
+  "parameters": {
+    "type": "object",
+    "properties": { "cidade": { "type": "string", "description": "propriedade a ser atribuída ao lead" } },
+    "required": ["cidade"],
+    "additionalProperties": false
+  },
+  "on_error": "",
+  "_zatten": { "template": "properties.update", "target_name": "Cidade", "target_slug": "cidade", "note": "Use só depois de confirmar a cidade com o cliente." }
+}
+```
+
+**Para mudar a regra de uma ação pelo MCP**, altere `_zatten.note` **e** o fim de
+`description` com o mesmo texto (base, linha em branco, nota). O modelo lê
+`description`; o painel usa `note` para reabrir o campo e recompõe `description`
+quando alguém salva a ação. A escrita pelo MCP (`update_template`) **não** recompõe
+`description` a partir de `note`: mudar só a `note` não muda o que o modelo lê.
+
+Mantenha `inject_context: true`, `method: "POST"` e `require_approval: false` nas
+ações da Zatten. Renomear coluna, tag ou departamento: mande o bloco `langchain`
+junto (veja [Referência do template](/trabalhar-com-ia/referencia-do-template#armadilhas)).
+</Visibility>
+
+## Armadilhas
+
+- **Uma ação por alvo.** "Mover no funil" para três colunas são três ações.
+- **Ações que desligam a IA** (coluna com Desativar IA ou Transbordo, Transferir
+  para humano, Desligar a IA) cortam a conversa na hora. O prompt deve mandar a
+  despedida antes.
+- **Renomear o alvo.** Se a coluna, tag ou departamento mudar de nome, a ação
+  continua funcionando, mas o texto que o modelo lê ainda traz o nome antigo até
+  alguém abrir e salvar a ação (o painel avisa).
+- **Excluir o alvo** (a coluna, a tag) quebra a ação. Remova a ação também.
+- **Escreva a regra do negócio na ação, não só no prompt.** A regra em "Quando
+  usar" chega ao modelo junto da tool, na hora de decidir.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="O agente diz que fez, mas nada mudou no CRM. Por quê?">
+Veja em [Logs](/produto/logs) o que a ação devolveu. Em ação de propriedade, a
+causa comum é a chave do parâmetro com o nome em vez do slug. Em transbordo, o
+lead sem responsável. Em agendamento, o template fora da lista de Templates.
+</Accordion>
+<Accordion title="Posso mudar o endereço de uma ação da Zatten?">
+Não pelo painel: o endereço é montado pela Zatten a partir do alvo. Para chamar
+outro sistema, use uma [tool HTTP](/engenharia-de-ia/tools/http).
+</Accordion>
+<Accordion title="Como o agente encerra o atendimento?">
+Não há ação de encerrar atendimento. O agente pode mover para uma coluna final,
+transferir ou desligar a IA. Encerrar é da equipe, no chat. Veja
+[Encerrar atendimento](/produto/encerrar-atendimento).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Tools: visão geral](/engenharia-de-ia/tools/visao-geral)
+- [Funil (Kanban)](/produto/funil-kanban), [Tags](/produto/tags), [Propriedades](/produto/propriedades), [Departamentos](/produto/departamentos)
+- [Templates do WhatsApp](/produto/templates-whatsapp)
+- [Pausa humana](/engenharia-de-ia/pausa-humana) (pausada x desligada)
+- [Transbordo para humano bem feito](/playbooks/transbordo)
+- Termos para buscar: "tool description", "function calling", "handoff to human".

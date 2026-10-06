@@ -1,0 +1,137 @@
+---
+title: "O que só se faz pelo painel"
+description: "Leia quando o MCP não consegue fazer o que a agência pediu: lista o que só se faz no painel da Zatten, a rota de cada ação e se o assistente pode fazer pelo navegador (com um sim) ou só guiar uma pessoa."
+---
+
+O MCP da Zatten configura o projeto pelo template, mas algumas ações ficam de fora
+**de propósito**, porque têm efeito externo, são irreversíveis ou mexem em dinheiro.
+Elas só se fazem no painel. Para cada uma, esta página diz a rota e quem faz:
+
+- **Navegador, com "sim":** o assistente pode fazer pelo navegador (Claude in Chrome e
+  similares), uma ação por vez, depois de conferir o projeto na tela e receber um
+  "sim" da pessoa.
+- **Só guiar:** o assistente não clica. Ele explica o caminho, passo a passo, e a pessoa
+  faz.
+
+As regras do navegador estão em [Usar o painel pelo navegador](/trabalhar-com-ia/navegador).
+
+## O que fica fora do MCP e por quê?
+
+| Ação | Rota no painel | Quem faz | Por que não vai pelo MCP |
+|---|---|---|---|
+| Publicar a versão do agente | `/project` (botão **Publicar** no editor do agente) | Navegador, com "sim" | Põe a mudança no ar para todos os leads. É decisão de uma pessoa. |
+| Migrar para o LangChain Agent | `/project` (botão **Migrar**) | Navegador, com "sim" | Troca o motor do atendimento; a volta não é feita pela tela. |
+| Enviar template à Meta | `/meta`, aba **Templates** | Navegador, com "sim" | Passa por revisão da Meta e conta para a qualidade do número. |
+| Gerenciar membros de departamento | `/crm/departments` | Navegador, com "sim" | Membros são pessoas com acesso; o template não leva membros. |
+| Criar e disparar campanha | `/crm/campaigns` | Navegador, com "sim" | Mensagem para muitos leads de uma vez. Ver [Campanhas](/produto/campanhas). |
+| Editar o desenho de um fluxo (Trigger Flow) | `/automations/flows/<id>` | Navegador, com "sim" | O MCP não reescreve o grafo do fluxo. |
+| Conectar, trocar ou remover a conexão do WhatsApp | `/meta`, aba **WhatsApp** | **Só guiar** | Pode derrubar o atendimento do cliente final. |
+| Apagar qualquer coisa | Na tela de cada item | **Só guiar** | Irreversível. O MCP nunca apaga. |
+| Reverter a migração de motor | Suporte da Zatten | **Só guiar** | Não existe botão; o suporte faz. |
+| Assinatura e plano | `/project/billing` | **Só guiar** | Envolve pagamento. |
+
+
+<Note>
+O projeto aberto no painel **não aparece na URL**. As rotas acima são as mesmas
+para todos os clientes. Antes de qualquer ação, o assistente confere o nome do projeto
+na tela. Ver [Usar o painel pelo navegador](/trabalhar-com-ia/navegador).
+</Note>
+
+## Como fazer cada uma
+
+### Publicar a versão do agente
+
+Toda escrita no agente feita pelo MCP vira **rascunho**. O atendimento continua na
+versão publicada até alguém publicar.
+
+1. Abra `/project`. Confira o nome do projeto na tela.
+2. No editor do agente, revise o rascunho. Teste no chat de teste se a mudança for
+   de comportamento ([Testar o agente](/engenharia-de-ia/testar)).
+3. Clique em **Publicar**.
+
+Conversas em andamento pegam a versão nova em até 2 minutos. Detalhes em
+[Versões e publicação](/engenharia-de-ia/versoes-e-publicacao).
+
+### Migrar para o LangChain Agent
+
+Projetos no motor antigo devem migrar. O LangChain Agent é o motor da Zatten; o
+antigo é legado.
+
+1. Abra `/project`. Confira o nome do projeto.
+2. Clique em **Migrar**, leia o aviso, marque **Entendi e quero migrar** e confirme.
+3. Ao final, a Zatten roda um teste automático. Se der erro, avise a pessoa antes de
+   seguir.
+
+Só papéis admin e editor migram. Se o botão não aparece, a conta pode não estar
+liberada para migrar: fale com o suporte. A volta para o motor antigo **não é feita
+pela tela**; quem reverte é o suporte. O checklist de antes e depois está em
+[Migrar para o LangChain Agent](/engenharia-de-ia/migrar).
+
+### Enviar template à Meta
+
+O MCP pode deixar o template descrito no projeto, mas não o envia para aprovação.
+
+1. Abra `/meta` e vá à aba **Templates**. Confira o nome do projeto.
+2. Crie ou revise o template e envie.
+3. Acompanhe o status (pendente, aprovado, rejeitado, pausado).
+
+Um follow-up só envia com template **aprovado**. Ver
+[Templates do WhatsApp](/produto/templates-whatsapp).
+
+### Gerenciar membros de departamento
+
+O template cria departamentos, mas não diz quem está em cada um.
+
+1. Abra `/crm/departments`. Confira o nome do projeto.
+2. Adicione ou tire membros e defina quem recebe leads no rodízio.
+
+Remover um membro é tirar o acesso de uma pessoa àqueles leads: mostre quem sai antes
+do "sim". Excluir o departamento inteiro é **apagar**: só guiar. Ver
+[Departamentos e distribuição](/produto/departamentos).
+
+### Campanhas
+
+1. Abra `/crm/campaigns`. Confira o nome do projeto.
+2. Monte a campanha: template aprovado e filtros. Mostre à pessoa a **contagem
+   prévia** de leads antes do "sim".
+3. Dispare. O envio roda no navegador: a aba não pode ser fechada até terminar.
+
+Com conexão não oficial (QR Code), o menu Campanhas não aparece. Ver
+[Campanhas](/produto/campanhas).
+
+### Conexão do WhatsApp (só guiar)
+
+Conectar, trocar de método ou desconectar fica em `/meta`, aba **WhatsApp**. O assistente
+explica o caminho e a pessoa clica. Um erro aqui deixa o cliente final sem
+atendimento. Ver [Conectar o WhatsApp](/comecar/conexoes-whatsapp).
+
+### Apagar (só guiar)
+
+Colunas, tags, propriedades, automações, departamentos, projetos: tudo que se apaga,
+se apaga no painel, por uma pessoa. O MCP nunca apaga; o que sai do template fica
+como "ficou de fora sem ser apagado". Ver
+[Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona).
+
+## Armadilhas
+
+- **Salvar não é publicar.** Depois de uma escrita no agente pelo MCP, o lead ainda
+  conversa com a versão antiga. Sempre inclua "publicar" em **Para você fazer no
+  painel** no relatório.
+- **`/project/templates` só redireciona para `/meta`.** Os templates ficam na aba
+  **Templates** de `/meta`.
+- **A URL não identifica o cliente.** `/crm/campaigns` é a mesma rota para a Clínica A
+  e para a Clínica B.
+- **Campanha não é tarefa para a API.** Mandar mensagem para vários leads em loop pela
+  API é proibido; o caminho é a tela de campanhas. Ver
+  [As regras que o assistente segue](/trabalhar-com-ia/regras).
+
+## Para saber mais
+
+- [Usar o painel pelo navegador](/trabalhar-com-ia/navegador)
+- [As regras que o assistente segue](/trabalhar-com-ia/regras)
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)
+- [LangChain Agent x motor antigo](/engenharia-de-ia/langchain-x-motor-antigo)
+- Templates da Meta, documentação oficial: https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview
+- Termos para buscar: "publicar versão do agente Zatten", "migrar LangChain Agent",
+  "enviar template WhatsApp para aprovação", "WhatsApp template approval".

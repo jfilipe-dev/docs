@@ -1,0 +1,147 @@
+---
+title: "Campanhas"
+description: "Leia para montar e disparar uma campanha (template da Meta para muitos leads filtrados): filtros, contagem prévia, limite de mensagens da Meta, estimativa de custo, envio pelo navegador, pausa, relatório e o que não existe (agendamento)."
+---
+
+Uma **campanha** envia um [template da Meta](/produto/templates-whatsapp) aprovado para todos os leads que passam num filtro (coluna, tags, propriedades). Serve para avisos, reativação de base, lançamentos e lembretes em massa.
+
+Três coisas definem como ela funciona:
+
+- **O envio roda no navegador.** Feche a aba e o envio para.
+- **Não há agendamento.** A campanha sai quando alguém clica em **Iniciar Campanha**.
+- **Só existe na conexão oficial.** Com conexão não oficial (QR Code), o menu **Campanhas** some.
+
+## Onde fica no painel
+
+Menu **Campanhas** (admin, editor e gestor). A tela lista as campanhas com filtros, template e status (**Criada**, **Em andamento**, **Concluída (Nx)**), e os botões executar, editar, ver relatório e excluir.
+
+## Como configurar
+
+**Nova Campanha** abre um assistente em dois passos.
+
+### 1. Nome e template
+
+| Campo | O que faz |
+|---|---|
+| **Nome da Campanha** | Identifica a campanha na lista e no relatório. |
+| **Template** | Só templates **aprovados** aparecem. O painel avisa se o template pede variáveis que não existem no projeto ou se a mídia do cabeçalho não está acessível. |
+
+### 2. Filtros de leads
+
+| Filtro | Regra |
+|---|---|
+| **Filtro Principal (base)** | Obrigatório. Escolha **uma** tag ou **uma** coluna. Define o grupo de partida. |
+| **Filtros Secundários (refinamento)** | Opcionais. Tags e propriedades, todas combinadas com **E**: o lead precisa ter todas. |
+
+- Filtro de **tag**: o lead tem a tag.
+- Filtro de **propriedade**: o lead tem a propriedade **preenchida**, com qualquer valor. Não dá para filtrar por um valor específico.
+- As variáveis do template viram filtros de propriedade sozinhas. Um template com `{{cidade}}` já entra com o filtro "tem cidade", para não mandar a mensagem para quem não tem o valor. `{{nome}}` não precisa: sem nome, vai "Cliente".
+
+A contagem de leads atualiza a cada mudança de filtro. Ao concluir, a campanha fica salva com o status **Criada**. Nada é enviado ainda.
+
+O filtro considera todos os leads do projeto, inclusive os que nunca conversaram (importados por CSV) e os com atendimento encerrado.
+
+## Como executar
+
+Clique em executar (▶) na linha da campanha. Antes de começar, a tela mostra:
+
+| Item | O que é |
+|---|---|
+| **Limite de mensagens do número** | A faixa de limite que a Meta informa para o número (por exemplo, 250/dia, 10.000/dia ou Ilimitado). Se a Meta não informar uma faixa conhecida, aparece "Indisponível" e o painel não corta o envio. |
+| **Total filtrado** | Leads que passam nos filtros agora. |
+| **Já enviados** | Leads que já receberam **esta** campanha. Ficam de fora. |
+| **Faltam enviar** | Total filtrado menos já enviados. |
+| **Estimativa de Custo** | Categoria do template, preço por mensagem e total. É uma referência fixa do painel, em dólar, não a sua cobrança real. Confira na [página de preços da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing). |
+
+Se **Faltam enviar** passa do limite do número, a tela avisa **Limite diário ultrapassado** e só as primeiras mensagens, até o limite, são enviadas.
+
+**Iniciar Campanha** começa o envio:
+
+<Steps>
+<Step title="Conferência da mídia">
+Se o template tem mídia no cabeçalho, a Zatten confere se o arquivo pode ser baixado. Se não puder, a campanha **não começa** e a tela diz o que fazer.
+</Step>
+<Step title="Envio em lotes">
+Os leads saem em lotes de 10 mensagens em paralelo, com uma pausa de 100 milissegundos entre lotes. A **Fila de Envio** mostra cada lead: pendente, processando, enviado ou erro.
+</Step>
+<Step title="Pausar e retomar">
+**Pausar** termina o lote atual e para. **Retomar** continua só com quem ainda não recebeu. Enquanto o envio roda, a janela não fecha: a tela pede "Pause a campanha antes de fechar".
+</Step>
+<Step title="Fim">
+Quando a fila acaba, a campanha vira **Concluída** e não pode ser executada de novo nem editada.
+</Step>
+</Steps>
+
+### Relatório
+
+**Ver relatório** mostra os números da campanha (**Enviadas**, **Entregues**, **Lidas**, **Falhas**) e a lista de mensagens com lead, telefone, status, data e hora, o erro de cada falha (**Ver erro**) e um atalho para o chat do lead. O histórico de execuções mostra cada vez que a campanha rodou (cada pausa e retomada é uma execução), com total e processadas.
+
+## Como funciona por trás
+
+- **Cada mensagem é um envio de template pela API** do projeto, marcado com a campanha. Por isso, as regras do envio de template valem: variável sem valor no lead, template não aprovado ou mídia inacessível fazem aquela mensagem falhar. Veja [Templates do WhatsApp](/produto/templates-whatsapp).
+- **"Já enviado" é quem tem uma mensagem desta campanha registrada.** A mensagem só é registrada depois que a Meta aceita o envio. Lead cujo envio falhou na hora (por exemplo, variável sem valor) volta para a fila numa retomada.
+{/* A CONFIRMAR: se uma mensagem aceita pela Meta e depois marcada como falha na entrega continua contando como "já enviado" (a contagem é feita por uma função do banco que não está nos repositórios). */}
+- **Durante o envio**, a campanha cria uma chave de API temporária ("Campaign … - Auto Generated"), que aparece em [Chaves de API](/produto/chaves-de-api) e é apagada ao pausar ou terminar.
+- **O lead que responde** cai na conversa normal: abre a janela de 24h e o agente responde, se a IA estiver ligada para ele.
+
+<Visibility for="agents">
+- Envio: `POST /api/v1/messages/template` com `lead_number`, `template_name`, `name` (nome do lead) e `campaign_id`. A mensagem é gravada com `campaign_id` só depois de a Meta aceitar.
+- Filtros salvos na campanha: `{ primary: { type: "tag" | "column", id }, secondary: [{ type: "tag", id } | { type: "property", id: "<slug>" }] }`. Propriedade = existe valor para aquele slug no lead.
+- Faixas de limite que o painel reconhece (`messaging_limit_tier`): `TIER_50`, `TIER_250`, `TIER_1K`, `TIER_10K`, `TIER_100K`, `TIER_UNLIMITED`. Faixa não reconhecida aparece como "Indisponível" e não limita o envio.
+- Status de execução: criada (sem status), `in_progress`, `completed`. Campanha `completed` não executa de novo.
+- Campanhas não fazem parte do template do projeto e não são lidas nem escritas pelo MCP.
+</Visibility>
+
+{/* A CONFIRMAR: o painel mapeia TIER_50, TIER_250, TIER_1K, TIER_10K, TIER_100K e TIER_UNLIMITED. A doc da Meta hoje fala em 250, 2.000, 10.000, 100.000 e ilimitado; se a Meta devolver TIER_2K, o painel mostra "Indisponível" e não aplica o corte. Conferir o valor real devolvido pela API. */}
+
+## Pelo MCP e pela API
+
+Campanhas **não viajam no template do projeto**: o MCP não lê nem cria campanhas. Para disparar em massa fora do painel, por exemplo com agendamento, use a API do dia a dia num servidor seu:
+
+- `POST /api/v1/messages/template` para cada lead, com a chave de API do projeto;
+- respeite o limite de requisições da API e o limite de mensagens da Meta;
+- controle você mesmo quem já recebeu.
+
+Veja [Mensagens](/api/mensagens), [Limites](/api/limites) e o playbook [Campanhas](/playbooks/campanhas).
+
+## Armadilhas
+
+- **Fechar a aba, desligar o computador ou perder a internet interrompe o envio.** Deixe a aba aberta até **Concluída**. Se cair no meio, abra a campanha e **Retomar**: quem já recebeu não recebe de novo. Se a chave temporária ficar em **Chaves de API**, exclua.
+- **Sem agendamento.** "Mandar amanhã às 9h" só com alguém clicando às 9h, ou pela API.
+- **Concluída não roda de novo.** Para mandar o mesmo template a quem entrou no filtro depois, crie outra campanha. Atenção: "já enviados" é por campanha; a nova manda de novo para quem recebeu a anterior. Separe o público com uma tag (por exemplo, marque quem recebeu).
+- **Passou do limite, o resto não sai.** Acima do limite do número, só as primeiras mensagens saem e a campanha termina como concluída. Divida o público em campanhas menores que o limite, em dias diferentes.
+- **O limite da Meta é por portfólio de negócios.** Ele é compartilhado por todos os números do mesmo portfólio e conta pessoas diferentes contatadas fora da janela em 24 horas móveis. Outras campanhas, follow-ups e envios pela API do mesmo portfólio gastam o mesmo limite.
+- **Lead sem o valor da variável falha.** Mantenha os filtros de propriedade que o painel adiciona.
+- **Qualidade e bloqueios.** Mandar para quem não pediu derruba a qualidade do template e do número, o que pode pausar o template e travar o aumento de limite. A própria tela recomenda evitar várias campanhas seguidas.
+- **Some na conexão não oficial.** Trocar a conexão do projeto para QR Code esconde o menu e bloqueia a página.
+- **Estimativa não é cobrança.** O valor da tela é uma referência fixa. O preço real depende da categoria, do país e das regras atuais da Meta.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Posso agendar uma campanha?">
+Não pelo painel. Use a API (`POST /api/v1/messages/template`) a partir de um agendador seu.
+</Accordion>
+<Accordion title="Fechei a aba sem querer. Perdi o envio?">
+Não. O que já saiu fica registrado. Abra a campanha e clique em **Retomar**: ela continua só com quem ainda não recebeu.
+</Accordion>
+<Accordion title="Por que a campanha não começou e disse que a mídia expirou?">
+O template foi criado fora da Zatten e a mídia dele está num endereço da Meta que expira. Edite o template em **WhatsApp → Templates** e suba a mídia pelo painel.
+</Accordion>
+<Accordion title="Como aumento o limite de mensagens?">
+A Meta sobe a faixa sozinha quando o negócio é verificado ou manda mensagens de boa qualidade usando pelo menos metade do limite. Veja a página de [limites de mensagens](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits).
+</Accordion>
+<Accordion title="Quem responde quando o lead responde à campanha?">
+O agente, se a IA estiver ligada para aquele lead. Se a campanha pede atendimento humano, filtre por uma coluna com **Desativar IA** ou prepare o agente para o assunto.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Templates do WhatsApp](/produto/templates-whatsapp)
+- [Janela de 24h](/comecar/janela-de-24h) e [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- [Qual conexão escolher](/comecar/conexoes-whatsapp)
+- [Tags](/produto/tags), [Propriedades personalizadas](/produto/propriedades), [Funil (Kanban)](/produto/funil-kanban)
+- Playbook: [Campanhas](/playbooks/campanhas)
+- Meta: [limites de mensagens](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits), [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing), [qualidade de template](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-quality), [categorias](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-categorization), [throughput e limites da plataforma](https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform).
+- Termos para buscar: "messaging limits", "messaging tier", "business portfolio", "template quality", "broadcast WhatsApp API".

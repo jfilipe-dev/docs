@@ -1,0 +1,191 @@
+---
+title: "Como usar os playbooks"
+description: "Leia antes de montar ou reformar o projeto de um cliente final: o caminho do diagnóstico à entrega, o que um playbook decide por você, como adaptá-lo ao cliente e em que ordem aplicar."
+---
+
+Os playbooks são estratégia aplicada: como montar o funil, as tags, as
+propriedades, o prompt, as tools e as automações de um projeto para um objetivo
+de negócio, usando só o que a Zatten oferece hoje. Eles não repetem o manual.
+Quando precisam de um detalhe de tela ou de campo, linkam a página do recurso.
+
+Use um playbook de nicho como ponto de partida e adapte. O cliente final real
+sempre tem uma regra, um horário ou um sistema que o playbook não conhece.
+
+## O que tem aqui
+
+<CardGroup cols={2}>
+<Card title="Arquitetura de um bom projeto" href="/playbooks/arquitetura-de-um-bom-projeto">
+Como funil, tags, propriedades, automações e tools conversam. Padrões e antipadrões. Leia antes de qualquer nicho.
+</Card>
+<Card title="Playbooks por nicho" href="/playbooks/nichos/clinicas">
+Clínicas, imobiliárias, advocacia, academias, cursos e SAC: o projeto inteiro, do funil às métricas.
+</Card>
+<Card title="Playbooks por tema" href="/playbooks/agendamento">
+Agendamento, qualificação, transbordo, follow-up, anúncios, campanhas. Valem para qualquer nicho.
+</Card>
+<Card title="Entregar ao cliente" href="/playbooks/entregar-ao-cliente">
+Onboarding do cliente final, acessos e relatório mensal.
+</Card>
+</CardGroup>
+
+| Nicho | Objetivo do atendimento | Página |
+|---|---|---|
+| Clínicas e saúde | Triar e agendar a consulta | [Clínicas](/playbooks/nichos/clinicas) |
+| Imobiliárias | Qualificar o perfil e agendar a visita | [Imobiliárias](/playbooks/nichos/imobiliarias) |
+| Advocacia | Triar o caso e agendar a consulta, sem parecer | [Advocacia](/playbooks/nichos/advocacia) |
+| Academias | Agendar a aula experimental e matricular | [Academias](/playbooks/nichos/academias) |
+| Cursos e infoprodutos | Vender pelo link de pagamento e recuperar quem não fechou | [Cursos](/playbooks/nichos/cursos) |
+| SAC | Resolver na primeira conversa e escalar o resto | [SAC](/playbooks/nichos/sac) |
+
+Para um nicho sem playbook, parta do mais parecido: serviço com hora marcada
+(estética, pet, oficina) segue Clínicas; venda consultiva de alto valor segue
+Imobiliárias; venda direta segue Cursos.
+
+## Do diagnóstico à entrega
+
+<Steps>
+<Step title="Entender o cliente final">
+Antes de abrir o painel, responda (e registre no `CLIENTE.md`):
+
+- O que o cliente vende e qual é a **conversão**: consulta marcada, visita,
+  matrícula, venda, chamado resolvido.
+- Como é o fluxo hoje, do primeiro "oi" até virar cliente.
+- **Quem atende** quando a IA passa a conversa: nomes, equipes, horário.
+- Se há **agenda** ou outro sistema com API (agenda, ERP, catálogo, checkout).
+- Qual **conexão** o projeto vai usar: oficial, coexistência ou QR Code. Ela
+  decide se há reengajamento, campanhas e conversões. Veja
+  [Qual conexão escolher](/comecar/conexoes-whatsapp).
+- Se o cliente vai rodar **anúncios Click-to-WhatsApp**.
+- As regras que não podem ser quebradas ("nunca falar preço", "não atendemos
+  convênio X").
+</Step>
+<Step title="Escolher o ponto de partida">
+Projeto novo: crie pelo **modelo de nicho** mais próximo, em branco, ou
+duplicando um projeto parecido que já roda. Veja
+[Criar a conta e o primeiro projeto](/comecar/criar-conta-e-projeto). Todo
+projeto novo nasce no **LangChain Agent**.
+
+Projeto que já existe: comece pelo [diagnóstico](/trabalhar-com-ia/diagnostico).
+Se ele estiver no motor antigo, a primeira recomendação é
+[migrar](/engenharia-de-ia/migrar).
+</Step>
+<Step title="Conferir o que o modelo de nicho trouxe">
+O modelo é um rascunho, não um projeto pronto. Veja a seção
+[O que o modelo de nicho traz](#o-que-o-modelo-de-nicho-traz) abaixo.
+</Step>
+<Step title="Adaptar com o playbook">
+Na ordem: funil → tags e propriedades → departamentos → tools → prompt →
+automações → configurações do agente. A ordem importa: as tools apontam para
+colunas, tags e propriedades, e o prompt cita as tools.
+</Step>
+<Step title="Testar">
+No [chat de teste](/engenharia-de-ia/testar): o caminho feliz, um lead que foge
+do assunto, um pedido de humano, uma pergunta fora do escopo, uma tentativa de
+quebrar regra. Depois, num WhatsApp de verdade: o chat de teste não passa pelo
+[buffer](/engenharia-de-ia/buffer) nem pela [pausa humana](/engenharia-de-ia/pausa-humana).
+</Step>
+<Step title="Publicar e ligar as automações">
+Uma pessoa publica a versão do agente no painel. Depois, ligue as automações uma
+a uma, conferindo o template e os filtros de cada uma. Veja
+[Versões e publicação](/engenharia-de-ia/versoes-e-publicacao).
+</Step>
+<Step title="Acompanhar a primeira semana">
+Leia conversas reais todo dia nos primeiros dias. Ajuste o buffer, o prompt e as
+descrições das tools pelo que aparecer. Acompanhe as métricas do playbook. Veja
+[Entregar e operar para o cliente final](/playbooks/entregar-ao-cliente).
+</Step>
+</Steps>
+
+## O que o modelo de nicho traz
+
+Os seis modelos de nicho do painel criam o projeto com funil, tags, um prompt de
+partida, um follow-up, conversões para o Meta Ads (menos SAC) e o departamento
+"Atendimento" como padrão. Alguns trazem propriedades. Confira sempre:
+
+| Item | O que vem | O que fazer |
+|---|---|---|
+| **Funil** | 5 ou 6 colunas, com "Ganho" e "Perdido" com **Desativar IA** | Ajuste ao processo do cliente. Nem todo modelo tem coluna de transbordo: crie uma. |
+| **Tags** | 3 a 5 tags, sem vínculo definido no modelo | Revise o vínculo de cada uma (contato ou conversa). |
+| **Propriedades** | Em Clínicas, Imobiliárias e Advocacia, em texto livre | Troque por **lista** onde as respostas são conhecidas e ligue **enviar para a IA** (só pelo template). |
+| **Prompt** | Um fluxo de atendimento genérico, com o nome da empresa preenchido | Reescreva na [estrutura recomendada](/engenharia-de-ia/prompt), com as regras do cliente. |
+| **Tools** | Só o modelo de Clínicas cria ações da Zatten. Nos outros, o prompt cita ações pelo nome, mas elas não existem em **Tools** | Crie as ações em **Tools** e cite cada uma com `@` no prompt. |
+| **Follow-up** | Um, sem template, por isso **desligado** | Escolha um template aprovado antes de ligar. |
+| **Conversões** | Em todos menos SAC: eventos por coluna, com valor de exemplo | Só servem com anúncios Click-to-WhatsApp na conexão oficial. Ajuste coluna, evento e valor, ou desligue. |
+| **Configurações** | Temperatura entre 0,5 e 0,8; interpretação de imagem ou PDF desligada em alguns modelos | Ajuste pelo playbook do nicho. |
+
+<Warning>
+Depois de criar, abra **Tools** e confira se cada `@` do prompt aponta para uma
+tool que existe. Uma citação para uma tool que não existe faz o modelo "achar"
+que tem uma ação que não tem.
+</Warning>
+
+## Como adaptar um playbook
+
+Mantenha a **estrutura** (o que é coluna, o que é tag, o que é propriedade, quem
+move o lead) e troque o **conteúdo** pelo do cliente.
+
+| Se o cliente… | Então… |
+|---|---|
+| Usa outros nomes para as etapas ("Orçamento" em vez de "Proposta") | Renomeie a coluna. O nome aparece para a equipe todo dia. |
+| Não tem agenda com API | A IA coleta a preferência de data e passa para um humano agendar. Os playbooks mostram as duas versões. |
+| Tem várias unidades ou equipes | Uma propriedade "Unidade" em lista e um departamento por equipe. Não crie um funil por unidade. |
+| Atende fora do horário comercial | Deixe a IA respondendo 24h e diga no prompt o que fazer quando a equipe não está (o bloco "Agora" traz a hora). |
+| Usa conexão por QR Code | Tire do plano o reengajamento, as campanhas e as conversões: não funcionam nessa conexão. |
+| Não roda anúncio | Desligue ou apague as conversões. |
+| Tem regras longas (preços, convênios, políticas) | Vão para [skills](/engenharia-de-ia/skills), não para o prompt. |
+| Quer muitas tags | Cada tag que o agente põe é uma tool a mais. Prefira uma propriedade em lista. Veja [Arquitetura](/playbooks/arquitetura-de-um-bom-projeto). |
+
+Os valores sugeridos nos playbooks (buffer, pausa, atrasos de follow-up) são
+pontos de partida. Confirme com conversas reais.
+
+## Pelo MCP
+
+Um playbook vira um ou mais planos de escrita. Siga as
+[regras](/trabalhar-com-ia/regras): um cliente por vez, plano e "sim" antes de
+escrever, automação nova desligada.
+
+<Visibility for="agents">
+Mapa das seções de um playbook para os blocos do template do projeto:
+
+| Seção do playbook | Bloco | Observação |
+|---|---|---|
+| Funil | `columns` | `order` obrigatório; 0 = entrada. Renomear pelo `slug`. |
+| Tags | `tags` | `color` obrigatório (`#RRGGBB`); `scope` `lead` ou `conversation`. |
+| Propriedades | `properties` | `is_enum` + `values`; `send_to_ai` só se muda por aqui. Não converta texto livre já preenchido. |
+| Departamentos | `attendant_teams` | Exatamente um `default: true`. Membros só pelo painel. |
+| Prompt, tools, skills, modelo | `langchain` | Mande o `config` inteiro. Cria versão **não publicada**. |
+| Buffer, pausa, filtro de mídia | `llm_attendant` | `message_buffer`, `pause_in_human_interaction`, `*_interpretation`. Vale na hora. |
+| Follow-up e reengajamento | `follow_ups` | Sem `status` nasce desligado. Pergunte antes de `ACTIVE`. |
+| Transbordo por inatividade | `inactivity_handovers` | Sempre com `source_column_names`. |
+| Conversões | `conversions` | Só com anúncio CTWA e conexão oficial. |
+
+Ordem num plano só: colunas, tags, propriedades e departamentos **e** o bloco
+`langchain` na mesma escrita (as ações da Zatten resolvem o alvo pelo nome, e um
+alvo criado na mesma escrita já vale). Automações por último, desligadas. Ao
+terminar, lembre a pessoa de **publicar** no painel e de escolher os templates
+dos follow-ups. Detalhes em [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona).
+</Visibility>
+
+## Armadilhas
+
+- **Usar o modelo de nicho sem adaptar.** O prompt é genérico, as propriedades são
+  texto livre e as tools podem não existir. O agente parece funcionar no teste e
+  erra com lead real.
+- **Ligar todas as automações de uma vez.** Um filtro errado manda template para
+  leads que não deviam receber. Ligue uma por vez e confira em conversas reais.
+- **Planejar recurso que a conexão não tem.** Reengajamento, campanhas e
+  conversões não existem na conexão por QR Code.
+- **Prometer ao cliente final o que depende de outro sistema.** "A IA agenda
+  sozinha" só vale com uma agenda que tenha API ou integração.
+- **Esquecer o lado humano.** Transbordo sem departamento com membros recebendo
+  leads não avisa ninguém. Veja [Departamentos](/produto/departamentos).
+
+## Para saber mais
+
+- [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- [Diagnóstico de um projeto](/trabalhar-com-ia/diagnostico)
+- [Criar a conta e o primeiro projeto](/comecar/criar-conta-e-projeto)
+- [Quanto cobrar do cliente final](/comecar/quanto-cobrar)
+- [Organizar sua agência no computador](/trabalhar-com-ia/organizar-a-agencia)
+- Termos para buscar: "playbook de atendimento WhatsApp", "jornada do lead",
+  "onboarding de cliente de agência".

@@ -1,0 +1,142 @@
+---
+title: "Follow-up"
+description: "Leia para configurar follow-ups: template obrigatório, atraso contado do fim da interação, filtros de tag e coluna, variáveis e por que 1h, 1d e 3d se configura como 1h, 24h e 72h."
+---
+
+O follow-up manda um **template** para o lead depois de um tempo sem interação. Serve para retomar quem parou de responder: "Oi, ficou alguma dúvida sobre o orçamento?". Como usa template, funciona mesmo com a janela de 24h fechada.
+
+## Onde fica no painel
+
+**Automações → Automações nativas → criar → Follow-up.** A lista mostra todos os follow-ups e reengajamentos, com a chave de ligar e desligar.
+
+## Como configurar
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Nome do Follow-up** | Nome na lista. Obrigatório. | — |
+| **Tempo de Delay** | Quanto tempo depois do fim da interação o template sai. Número inteiro, mínimo 1, em **Minutos**, **Horas** ou **Dias**. | 1 hora |
+| **Template do WhatsApp** | O template enviado. Na conexão oficial, um template da Meta **aprovado**. Na não oficial, um [template próprio](/comecar/whatsapp-nao-oficial). | — |
+| **Tags (opcional)** | Só leads com **pelo menos uma** das tags marcadas. Nenhuma marcada vale para todos. | Todos |
+| **Colunas (opcional)** | Só leads em **uma** das colunas marcadas. Nenhuma marcada vale para todos. | Todos |
+
+Tags e colunas se combinam em E: o lead precisa bater nos dois filtros.
+
+<Warning>
+**Sem template, o follow-up é salvo desligado**, e não liga enquanto não tiver um. O painel avisa: "Sem template selecionado, o follow-up será criado como inativo".
+</Warning>
+
+O painel também não deixa salvar quando o template tem variável que não existe nas propriedades do CRM ou quando a mídia do cabeçalho não carrega.
+
+## Como funciona por trás
+
+### Quando é agendado
+
+A cada **interação concluída** (o agente respondeu, um humano respondeu pelo CRM, ou o lead foi movido pelo CRM para uma coluna com "Disparar automações"), a Zatten agenda **todos** os follow-ups ligados que batem nos filtros, de uma vez. Uma nova interação concluída refaz tudo do zero. O lead escrevendo com a IA pausada ou desligada cancela. Detalhes em [Quando as automações disparam](/produto/automacoes/quando-disparam).
+
+### Os atrasos não são uma cadeia
+
+Todos os follow-ups contam o tempo **a partir do mesmo instante**: o fim da última interação. O segundo não espera o primeiro sair.
+
+| Você quer | Configure |
+|---|---|
+| 1 hora, depois 1 dia, depois 3 dias | 1 hora · 24 horas · 72 horas |
+| 30 minutos e 2 horas depois disso | 30 minutos · 150 minutos |
+
+Se o lead responder no meio da sequência e o agente responder, todos são reagendados a partir dessa nova resposta. A ordem na lista só decide a ordem em que são agendados; não encadeia nada.
+
+### O que é conferido na hora de enviar
+
+O follow-up só sai se, naquele momento:
+
+- continua ligado;
+- o lead ainda tem uma das tags e está numa das colunas do filtro;
+- a conversa não foi encerrada.
+
+Se algo falhar, ele é descartado em silêncio. Se o envio der erro (template pausado pela Meta, número inválido), a conversa do lead mostra uma mensagem de erro. Não há nova tentativa.
+
+### Variáveis do template
+
+As variáveis são preenchidas **no agendamento**, não no envio. Um follow-up de 3 dias leva o nome e os valores que o lead tinha quando a interação terminou.
+
+| Conexão | Variáveis que o follow-up preenche |
+|---|---|
+| Oficial e coexistência | `nome` (nome do lead; "Cliente" se não houver), `telefone`, `data`, `hora` |
+| Não oficial | O **slug** de qualquer propriedade do lead, mais `nome`, `telefone`, `data` e `hora`. Sem valor, usa o exemplo cadastrado na variável. |
+
+{/* A CONFIRMAR: na conexão oficial, o follow-up hoje não passa as propriedades do lead para o template (só nome, telefone, data e hora). Confirmar se é intencional antes de publicar; se for corrigido, trocar a linha da tabela para incluir propriedades. */}
+
+`data` e `hora` são as do agendamento.
+
+### O que acontece no envio
+
+- **Oficial e coexistência:** sai o template da Meta. Funciona com a janela de 24h fechada. A Meta cobra o envio pela categoria do template (veja [Quanto custa operar um projeto](/comecar/custos-de-operacao)).
+- **Não oficial:** o template próprio sai como texto comum.
+
+A mensagem aparece na conversa do lead e gera o evento `WA_TEMPLATE` nos [webhooks de eventos](/produto/automacoes/webhooks). O envio **não** agenda um novo ciclo: o follow-up não se repete sozinho.
+
+## Pelo MCP
+
+Bloco `follow_ups`, com `method: "FOLLOW_UP"`. Reengajamentos ficam no mesmo bloco.
+
+- O template vai **por nome** (`template_name`). Se ainda não estiver sincronizado no projeto, o follow-up entra sem template, guarda o nome e é amarrado sozinho quando o template sincronizar (nota na resposta).
+- **Conexão não oficial:** o template próprio não viaja. `get_template` traz `template_name: null` e a escrita não mexe no template atual. Escolha o template no painel.
+- `order_follow_up` é obrigatório (número).
+- `template_variables` viaja, mas não é usado no envio: os valores vêm do lead.
+- `columns` e `tags` vão por nome; os que não existem são retirados, com nota.
+- Sem `status`, nasce desligado.
+
+<Visibility for="agents">
+```json
+{
+  "follow_ups": [
+    {
+      "name": "Follow-up 24h",
+      "method": "FOLLOW_UP",
+      "delay": 24,
+      "delay_unit": "HOURS",
+      "order_follow_up": 1,
+      "template_name": "retomada_orcamento",
+      "template_variables": {},
+      "reengagement_message": null,
+      "columns": ["Em negociação"],
+      "tags": null,
+      "status": "ACTIVE"
+    }
+  ]
+}
+```
+`delay_unit`: `MINUTES`, `HOURS` ou `DAYS`. `columns`/`tags` nulos ou vazios = todos os leads. Ligar (`ACTIVE`) sem template válido deixa o follow-up sem efeito.
+</Visibility>
+
+## Armadilhas
+
+- **1h → 1d → 3d configurado como 1h, 1d, 3d** manda o segundo 1 dia depois da interação, não 1 dia depois do primeiro. Use 1h, 24h e 72h.
+- **Humano atendendo também recebe follow-up.** A resposta do humano pelo CRM agenda follow-ups. Deixe a coluna de atendimento humano fora do filtro de colunas.
+- **Ligar não alcança leads antigos.** Só entram leads com interação concluída depois de ligar.
+- **Template com variável que a Zatten não preenche** não é agendado, e os follow-ups seguintes daquele lead (na ordem da lista) também não, naquela interação. Teste com um lead real antes de ligar para todos.
+- **Template não aprovado ou pausado pela Meta** faz o follow-up não sair. Acompanhe o status em [Templates do WhatsApp](/produto/templates-whatsapp).
+- **Mudar o atraso não mexe no que já está agendado.** Vale a partir da próxima interação concluída.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="O follow-up sai fora do horário comercial?">
+Sai no minuto calculado, a qualquer hora. Não há janela de horário no follow-up. Para respeitar horário, use um atraso que caia no horário desejado ou monte um fluxo no [Trigger Flow](/produto/trigger-flow/conceitos).
+</Accordion>
+<Accordion title="Dá para mandar texto livre em vez de template?">
+No follow-up, não. Para texto livre dentro da janela de 24h, use o [Reengajamento](/produto/automacoes/reengajamento).
+</Accordion>
+<Accordion title="Quantos follow-ups posso ter?">
+Não há limite na tela. Cada um é agendado independentemente na mesma interação.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- [Reengajamento](/produto/automacoes/reengajamento)
+- [Templates do WhatsApp](/produto/templates-whatsapp)
+- [Janela de 24h](/comecar/janela-de-24h)
+- [Playbook: follow-up e reengajamento](/playbooks/follow-up-e-reengajamento)
+- Meta: [templates](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview), [categorias de template](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-categorization), [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing).
+- Termos para buscar: "WhatsApp template message", "follow-up cadence", "message template categories".

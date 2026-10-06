@@ -1,0 +1,139 @@
+---
+title: "Erros"
+description: "Leia para tratar erros da API da Zatten: o formato { error }, o que cada código HTTP quer dizer, os erros de envio do WhatsApp (janela de 24h vencida, sem conexão, template não encontrado ou não aprovado, variável sem valor) e o que fazer em cada caso."
+---
+
+Todo erro da API volta com um código HTTP e um corpo JSON com um campo `error`:
+
+```json
+{ "error": "Cannot send message — 24 hour conversation window expired" }
+```
+
+O texto de `error` é em inglês e serve para diagnóstico. Monte a lógica pelo **código
+HTTP** e, quando precisar distinguir casos com o mesmo código, pelo começo do texto
+(listado abaixo).
+
+Duas exceções ao formato:
+
+- **429** (limite de requisições) vem com `message` em vez de `error`. Ver [Limites](/api/limites).
+- **Corpo JSON malformado** ou **rota inexistente** recebem a resposta padrão do
+  servidor web (400 ou 404), que pode não ser JSON. Trate como erro do seu lado.
+
+## Códigos HTTP
+
+| Código | Quer dizer | O que fazer |
+|---|---|---|
+| 200, 201, 202 | Deu certo. 201 nos envios de mensagem, 202 nos disparos de fluxo. | — |
+| 204 | Deu certo e não havia nada a mudar (sem corpo). | Não leia o corpo. |
+| 400 | Corpo inválido, ou o envio não é permitido agora (janela de 24h, template não aprovado). | Corrija e não repita igual. |
+| 401 | Sem chave ou chave inválida. | Confira o `x-api-key`. |
+| 403 | O `attendant_id` enviado não é o projeto da chave. | Tire o `attendant_id` do corpo. |
+| 404 | Lead, tag, coluna, propriedade, template ou conexão não encontrados. | Confira o id ou o número. |
+| 409 | Conflito: o lead já tem a tag, ou não tem a tag que você quer tirar. | Trate como "já está assim". |
+| 413 | Arquivo acima de 50 MB. | Reduza o arquivo. |
+| 429 | Limite de requisições, ou o provedor de WhatsApp limitou o envio. | Espere e tente de novo. |
+| 500 | Erro interno. | Tente de novo mais tarde; se persistir, fale com o suporte. |
+| 502 | O provedor externo falhou (WhatsApp não oficial, notificação push). | Tente de novo mais tarde. |
+| 503 | O provedor de WhatsApp está indisponível. | Tente de novo mais tarde. |
+
+## Erros de validação (400)
+
+O corpo diz qual regra falhou, com o texto da regra. Mais de um problema vem separado
+por `;`.
+
+| Exemplo de `error` | Causa |
+|---|---|
+| `Lead number is required` | Faltou `lead_number`. |
+| `Message is required` | `message` vazio ou ausente. |
+| `Invalid phone number` | `leadNumber` do histórico com menos de 10 ou mais de 15 caracteres. |
+| `Invalid boolean value` | `enabled`, `llm_format` ou `delete_previous_note` não é `true`/`false`. |
+| `pause_minutes only allowed when enabled is false` | `pause_minutes` junto com `enabled: true`. |
+| `Send either user_email or user_id, not both` | Os dois juntos no responsável. |
+| `Content-Type must be multipart/form-data` | Rota de mídia chamada com JSON. |
+| `File is required` | Rota de mídia sem o campo `file`. |
+| `Arquivo de imagem muito grande (…). Tamanho máximo permitido: 5MB` | Acima do limite do tipo. Ver [Mídia](/api/midia). |
+
+## Erros de envio pelo WhatsApp
+
+Aparecem nas rotas de [Mensagens](/api/mensagens) e [Mídia](/api/midia).
+
+| Código | Começo do `error` | Causa | O que fazer |
+|---|---|---|---|
+| 400 | `Cannot send message — 24 hour conversation window expired` | Conexão oficial, e o lead não manda mensagem há mais de 24 horas. Texto e mídia não saem. | Envie um template aprovado. Ver [Janela de 24h](/comecar/janela-de-24h). |
+| 400 | `Lead with number … not found` | Texto e mídia só vão para lead que já existe no projeto. | Envie um template (ele cria o lead) ou importe o contato. |
+| 400 | `Invalid lead number format` | O número não tem dígitos válidos. | Mande só dígitos, com DDI. |
+| 404 | `Could not find access token or phone number ID` | O projeto não tem WhatsApp conectado. | Conecte o número. Ver [Conexões](/comecar/conexoes-whatsapp). |
+| 404 | `Could not find access token, phone number ID or WABA ID` | Mesmo caso, no envio de template pela conexão oficial. | Idem. |
+| 400 | `Could not send message to number … - <motivo>` | A Meta recusou o envio. O motivo vem depois do hífen. | Leia o motivo; não repita sem corrigir. |
+| 404 | `Template … not found` | Não há template com esse nome no projeto. | Confira o `template_name` (minúsculas e `_`). |
+| 400 | `Template "…" is not approved. Current status: …` | O template existe, mas a Meta não aprovou. | Espere a aprovação. Ver [Templates da Meta](/produto/templates-whatsapp). |
+| 400 | `Template variable … value is missing` | O template usa uma propriedade que o lead não tem preenchida. | Preencha a propriedade antes, ou use outro template. |
+| 404 | `Media ID not found for template: …` | Template com cabeçalho de mídia sem o arquivo guardado na Zatten. | Reenvie a mídia do template no painel. |
+
+### Conexão não oficial
+
+Na conexão não oficial (QR Code), a falha do provedor vira um destes códigos, com a
+descrição em `error`:
+
+| Código | Causa |
+|---|---|
+| 404 | Sem conexão ativa, ou template não encontrado. |
+| 400 | Dados inválidos para o provedor. |
+| 409 | Conflito no provedor. |
+| 429 | O provedor limitou os envios. Espere antes de tentar. |
+| 502 | Erro no provedor. |
+| 503 | Provedor indisponível (por exemplo, o celular desconectou). Confira a conexão no painel. |
+
+A conexão não oficial não tem janela de 24h: o erro de janela vencida não acontece
+nela. Ver [WhatsApp não oficial](/comecar/whatsapp-nao-oficial).
+
+## Mídia: o 201 não garante a entrega
+
+As rotas de mídia respondem **201** assim que recebem o arquivo e validam o lead. O
+processamento e o envio acontecem logo depois, em segundo plano. Se o envio falhar
+nesse momento (formato não aceito, recusa do WhatsApp), a resposta HTTP já foi dada: a
+mensagem aparece como falha no chat do painel. Detalhes em [Mídia](/api/midia).
+
+## Repetir ou não?
+
+| Situação | Repetir? |
+|---|---|
+| 429 | Sim, depois do `Retry-After` (ou alguns segundos, se não vier). |
+| 500, 502, 503 | Sim, com espera crescente (por exemplo 2, 4, 8 segundos), poucas vezes. |
+| 400, 404, 409 | Não. Corrija a chamada. |
+| 401, 403 | Não. Corrija a chave. Repetir conta para o bloqueio por IP. |
+| Timeout de rede num envio de mensagem | Cuidado: a mensagem pode ter saído. Confira o histórico antes de reenviar. |
+
+<Visibility for="agents">
+Envelope: `{"error": string}` em todos os erros, exceto 429 (`{"message": string}`).
+Não há campo `code` no envelope da API v1; o código do provedor da conexão não oficial
+só aparece no status HTTP (PROVIDER_CONFLICT→409, NO_ACTIVE_CONNECTION→404,
+TEMPLATE_NOT_FOUND→404, CONVERSATION_WINDOW_EXPIRED→400, VALIDATION_ERROR→400,
+PROVIDER_ERROR→502, PROVIDER_RATE_LIMITED→429, PROVIDER_UNAVAILABLE→503).
+
+Diferença de status para lead inexistente:
+- rotas `/leads/{numero}/…` e `GET /messages/history`: **404** `Lead with number … not found` (histórico: `Lead with phone number … not found`);
+- `POST /messages/text|image|audio|video|file`: **400** `Lead with number … not found`;
+- `POST /messages/template`: cria o lead;
+- `POST /automations/trigger`: **404** `Lead <id> not found`;
+- `POST /flows/trigger`: **404** `Lead … not found for this attendant`.
+</Visibility>
+
+## Armadilhas
+
+- **Lead inexistente nem sempre é 404.** No envio de texto e mídia é 400. Veja a tabela
+  acima antes de tratar "não encontrado".
+- **Não faça parse do texto inteiro de `error`.** Ele pode mudar de redação. Use o código
+  e, no máximo, o começo do texto.
+- **201 de mídia não é entrega.** Confira o status no chat ou pelo
+  [webhook](/api/webhooks-de-saida) (`API_KEY_INTERACTION` quando sai, `ERROR` quando
+  falha).
+- **Reenviar depois de um timeout** pode duplicar a mensagem para o lead.
+
+## Para saber mais
+
+- [Mensagens](/api/mensagens), [Mídia](/api/midia), [Identificar o lead](/api/identificar-o-lead)
+- [Janela de 24h](/comecar/janela-de-24h), [Templates da Meta](/produto/templates-whatsapp)
+- Meta: [janela de atendimento](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages)
+- Termos para buscar: "WhatsApp 24 hour customer service window", "template not approved",
+  "HTTP status codes REST API", "retry with exponential backoff".

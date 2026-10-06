@@ -1,0 +1,438 @@
+---
+title: "Webhooks de eventos"
+description: "Leia para receber eventos da Zatten num sistema externo: os eventos e o payload completo de cada um (incluindo adsData), sem retry e sem assinatura, o desligamento automático após 10 falhas e como montar o endpoint que recebe."
+---
+
+O webhook de eventos faz a Zatten mandar um `POST` com JSON para um endereço seu **na hora** em que algo acontece com um lead: lead criado, mensagem recebida, resposta do agente, mudança de coluna, tag, erro. Serve para alimentar um CRM externo, uma planilha, um painel ou uma automação no n8n, Make ou Zapier.
+
+<Warning>
+Não há nova tentativa nem assinatura. Se o seu endpoint estiver fora do ar, o evento se perde. Depois de **10 falhas seguidas**, o webhook é **desligado sozinho**. Leia [Como montar o endpoint que recebe](#como-montar-o-endpoint-que-recebe) antes de ligar em produção.
+</Warning>
+
+## Onde fica no painel
+
+**Automações → Automações nativas → criar → Webhook.** Um projeto pode ter vários webhooks, cada um com seu endereço e seus eventos.
+
+## Como configurar
+
+| Campo | O que faz |
+|---|---|
+| **Nome do Webhook** | Nome na lista. Obrigatório. |
+| **URL do Webhook** | O endereço que recebe o `POST`. Precisa ser uma URL válida. Use `https`. |
+| **Notificações de Leads Criados** | Envia `LEAD_CREATED`. |
+| **Notificações de Conversas** | Envia `LEAD_INTERACTION`, `AI_RESPONSE`, `HUMAN_INTERACTION`, `CRM_INTERACTION`, `API_KEY_INTERACTION` e `WA_TEMPLATE`. |
+| **Notificações de Kanban** | Envia `LEAD_KANBAN_UPDATED`. |
+| **Notificações de Tags** | Envia `LEAD_TAG_ADDED` e `LEAD_TAG_REMOVED`. |
+| **Notificações de Erros** | Envia `ERROR`. |
+
+Todas as chaves começam desligadas. A chave **ligada / desligada** fica na lista de automações.
+
+## Os eventos
+
+| Evento | Chave | Quando sai | Conexões |
+|---|---|---|---|
+| `LEAD_CREATED` | Leads Criados | Um lead novo nasce: primeira mensagem de um número desconhecido, ou template enviado (pela API ou pelo CRM) para um número novo. Importação de CSV não gera. | Todas. `adsData` só na oficial. |
+| `LEAD_INTERACTION` | Conversas | O lead manda uma mensagem. Um evento por mensagem, antes do agente responder. | Todas |
+| `AI_RESPONSE` | Conversas | O agente respondeu ao lead. | Todas |
+| `HUMAN_INTERACTION` | Conversas | Um humano respondeu **pelo app WhatsApp Business** no mesmo número. | Só coexistência |
+| `CRM_INTERACTION` | Conversas | Um humano mandou mensagem (texto, mídia ou template) **pelo CRM** e ela saiu. | Todas |
+| `API_KEY_INTERACTION` | Conversas | Uma mensagem foi enviada **pela API** com a chave do projeto e saiu. | Todas |
+| `WA_TEMPLATE` | Conversas | Um template foi enviado: follow-up, mensagem agendada, API ou CRM. | Todas |
+| `ERROR` | Erros | Algo falhou: o agente não conseguiu responder depois das tentativas, a Meta recusou uma entrega, chegou uma mídia que não é processada, ou uma mensagem não pôde ser exibida. | Todas |
+| `LEAD_KANBAN_UPDATED` | Kanban | O lead mudou de coluna: pelo CRM (um lead por vez), pela API, pelo agente ou pelo transbordo por inatividade. | Todas |
+| `LEAD_TAG_ADDED` / `LEAD_TAG_REMOVED` | Tags | Uma tag entrou ou saiu do lead: pelo CRM, pela API ou pelo agente. | Todas |
+
+"Saiu" quer dizer: na conexão oficial, a Meta confirmou a entrega; na não oficial, o status de enviado chegou. Por isso `CRM_INTERACTION` e `API_KEY_INTERACTION` chegam alguns segundos depois do envio. Um template enviado pelo CRM ou pela API gera os dois: `WA_TEMPLATE` no envio e `CRM_INTERACTION` ou `API_KEY_INTERACTION` na entrega.
+
+Não geram evento: ações em massa no CRM, encerrar o atendimento (o lead volta para a primeira coluna sem `LEAD_KANBAN_UPDATED`), importação de CSV e as mensagens do reengajamento, do transbordo e da resposta para mensagens não visíveis.
+
+## Como a requisição chega
+
+- **Método e corpo:** `POST`, `Content-Type: application/json`.
+- **Sem assinatura:** não há header de assinatura nem segredo. Quem conhece a URL pode mandar dados para ela. Veja como se proteger abaixo.
+- **Sem nova tentativa:** cada evento é enviado uma vez. Falhou, perdeu.
+- **Tempo limite:** 20 segundos para os eventos de lead, conversas e erros; 10 segundos para Kanban e tags.
+- **Sucesso** é qualquer resposta 2xx ou 3xx. O corpo da resposta é ignorado.
+- **Sem garantia de ordem:** eventos saem de lugares diferentes e podem chegar fora de ordem. `LEAD_INTERACTION` pode chegar depois do `AI_RESPONSE` da mesma conversa, em casos de lentidão.
+- **Sem id de evento:** use os campos indicados em [idempotência](#como-montar-o-endpoint-que-recebe).
+- **Dois formatos:** os eventos de lead, conversas e erros trazem o tipo em `type`; os de Kanban e tags trazem em `event`. Leia os dois campos para saber qual chegou.
+
+## Formato 1: lead, conversas e erros
+
+Todos estes eventos têm a mesma forma: `type`, `lead`, `attendant`, `message` (quando há mensagem ou erro) e `timestamp`. Exemplo de `LEAD_INTERACTION`:
+
+```json
+{
+  "type": "LEAD_INTERACTION",
+  "lead": {
+    "id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d",
+    "name": "Maria Souza",
+    "wa_id": "5511999998888",
+    "thread_id": "zt_8d7c6b5a",
+    "last_interaction": "2026-10-06T14:03:21.000+00:00",
+    "conversation_expires_in": "2026-10-07T14:03:21+00:00",
+    "created_at": "2026-10-01T09:12:44.512+00:00",
+    "ai_response_block": false,
+    "tags": ["b2c1d0e9-0000-4000-8000-000000000001"],
+    "tenant_id": "a1b2c3d4-0000-4000-8000-000000000002",
+    "unread_messages": 1,
+    "column_id": "c0l00000-0000-4000-8000-000000000003",
+    "notes": "Pediu orçamento de clareamento.",
+    "metadata": [
+      { "prop_name": "cidade", "prop_value": "Campinas" }
+    ],
+    "assigned_to_user": "u5e7r000-0000-4000-8000-000000000004",
+    "assigned_to_team": "d3p70000-0000-4000-8000-000000000005",
+    "zatten_thread_id": "zt_8d7c6b5a"
+  },
+  "attendant": {
+    "id": "p40j3t00-0000-4000-8000-000000000006",
+    "meta_number_id": "102030405060708"
+  },
+  "message": {
+    "messages": [
+      {
+        "messageId": "wamid.HBgMNTUxMTk5OTk5ODg4OBUCABIYIDNBMEQ",
+        "messageType": "text",
+        "message": "Oi, queria saber o valor do clareamento"
+      }
+    ]
+  },
+  "timestamp": "2026-10-06T14:03:22.000Z"
+}
+```
+
+{/* A CONFIRMAR: o `timestamp` deste formato é montado a partir do relógio do servidor, com precisão de segundos. Conferir em produção se sai em UTC (esperado) antes de publicar. */}
+
+### Campos
+
+| Campo | O que é |
+|---|---|
+| `type` | O evento. |
+| `lead.id` | Id do lead na Zatten. É o `lead_id` da API. |
+| `lead.name` | Nome do lead. Pode ser `null`. |
+| `lead.wa_id` | Número do WhatsApp, só dígitos, com DDI. |
+| `lead.thread_id`, `lead.zatten_thread_id` | Id da conversa atual. Os dois têm o mesmo valor. Muda quando o atendimento é encerrado. |
+| `lead.last_interaction` | Data e hora da última interação. |
+| `lead.conversation_expires_in` | Fim da [janela de 24h](/comecar/janela-de-24h). Só vale na conexão oficial. |
+| `lead.created_at` | Quando o lead foi criado. |
+| `lead.ai_response_block_until` | Até quando a IA está parada para este lead. Data no passado = IA ligada; menos de 50 anos à frente = pausada; 50 anos ou mais = desligada. |
+| `lead.ai_response_block` | `true` sempre que há uma data em `ai_response_block_until`, **mesmo vencida**. Para saber se a IA está parada agora, compare a data com o horário atual. |
+| `lead.tags` | **Ids** das tags do lead (não os nomes). Use `GET /tags` da API para traduzir. |
+| `lead.tenant_id` | Id da conta da agência. |
+| `lead.unread_messages` | Mensagens não lidas no CRM. |
+| `lead.column_id` | Id da coluna atual. Use `GET /kanban` da API para o nome. |
+| `lead.notes` | Anotação do lead. |
+| `lead.metadata` | Propriedades do lead: lista de `{ prop_name, prop_value }`, em que `prop_name` é o **slug** da propriedade. Lista vazia quando não há. |
+| `lead.assigned_to_user` | Id do usuário responsável. |
+| `lead.assigned_to_team` | Id do departamento. |
+| `attendant.id` | Id do projeto. |
+| `attendant.meta_number_id` | Na conexão oficial, o id do número na Meta. Na não oficial, um identificador interno da conexão. |
+| `attendant.name` | Nome do projeto. Só vem em `LEAD_CREATED` e `ERROR`. |
+| `message` | Só vem quando há mensagens ou erro. Formato por evento abaixo. |
+| `adsData` | Só em `LEAD_CREATED` de lead que veio de anúncio. Veja abaixo. |
+| `timestamp` | Quando o evento foi montado, em ISO 8601. |
+
+<Note>
+**Campo sem valor não vem.** Em vez de `null`, campos vazios do lead (`last_interaction`, `tags`, `column_id`, `notes`, `assigned_to_user`…) simplesmente não aparecem no JSON. Trate ausência como vazio.
+</Note>
+
+### `message` em cada evento
+
+| Evento | `message.messages` |
+|---|---|
+| `LEAD_INTERACTION`, `HUMAN_INTERACTION` | Lista com um objeto: `messageId` (id da mensagem no WhatsApp), `messageType` (`text`, `image`, `audio`, `document`, `button`…), `message` (o texto, ou a legenda), e quando há mídia, `zattenMediaUrl` (link do arquivo guardado pela Zatten), `metaMediaId` e `openaiMediaId`. |
+| `AI_RESPONSE` | Lista de **textos**: a resposta do agente, por exemplo `["Claro! O clareamento custa…"]`. |
+| `CRM_INTERACTION`, `API_KEY_INTERACTION` | Lista com um objeto: `messageId` (id da mensagem na Zatten), `messageType` (`TEXT`, `IMAGE`, `AUDIO`, `VIDEO`, `DOCUMENT`, `TEMPLATE`), `message` e, com mídia, `zattenMediaUrl`. |
+| `WA_TEMPLATE` | Lista com um objeto: `messageId` (id na Zatten), `messageType: "TEMPLATE"` e `message` com o texto do template já preenchido. Na conexão oficial, `message` é um JSON em texto com as partes: `{"header": "…", "body": "…", "footer": "…", "buttons": "[button] Sim"}`. |
+| `ERROR` | Sem `messages`. Traz `message.error` (a descrição do erro) e `message.code` (o tipo). |
+
+### LEAD_CREATED e adsData
+
+```json
+{
+  "type": "LEAD_CREATED",
+  "adsData": {
+    "source_id": "120212345678900123",
+    "ctwa_clid": "ARAkLkA8rmlFeiCktEJQ-QTwRiyYHAFDLMNDBH0CD3qpjd0HR4irJ6LEkR7JwFF4XvnO2E4Nx0-eM-GABDLOPaOdRMv-_zfUQ2a"
+  },
+  "lead": {
+    "id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d",
+    "name": "Maria Souza",
+    "wa_id": "5511999998888",
+    "thread_id": "zt_8d7c6b5a",
+    "created_at": "2026-10-06T14:03:20.811+00:00",
+    "ai_response_block": false,
+    "tenant_id": "a1b2c3d4-0000-4000-8000-000000000002",
+    "unread_messages": 0,
+    "column_id": "c0l00000-0000-4000-8000-000000000003",
+    "metadata": [],
+    "zatten_thread_id": "zt_8d7c6b5a"
+  },
+  "attendant": {
+    "id": "p40j3t00-0000-4000-8000-000000000006",
+    "meta_number_id": "102030405060708",
+    "name": "Clínica Sorriso"
+  },
+  "timestamp": "2026-10-06T14:03:21.000Z"
+}
+```
+
+`adsData` só vem quando o lead nasceu de uma mensagem de anúncio **Click-to-WhatsApp** na conexão oficial:
+
+| Campo | O que é |
+|---|---|
+| `adsData.source_id` | Id do anúncio que levou o lead ao WhatsApp. |
+| `adsData.ctwa_clid` | Id do clique no anúncio. É o que a Meta usa para atribuir conversões. |
+
+Lead orgânico, lead criado por template e qualquer lead da conexão não oficial chegam sem `adsData`. Os dados completos do anúncio também alimentam as [conversões para o Meta Ads](/produto/automacoes/conversoes-meta).
+
+### ERROR
+
+```json
+{
+  "type": "ERROR",
+  "lead": { "id": "6f1c2b9e-…", "wa_id": "5511999998888", "ai_response_block": false, "tenant_id": "a1b2c3d4-…", "metadata": [] },
+  "attendant": { "id": "p40j3t00-…", "meta_number_id": "102030405060708", "name": "Clínica Sorriso" },
+  "message": {
+    "error": "[{\"code\":131026,\"title\":\"Message undeliverable\"}]",
+    "code": " ERROR_META_UNDELIVERABLE - 131026"
+  },
+  "timestamp": "2026-10-06T14:05:02.000Z"
+}
+```
+
+`code` é um texto livre de diagnóstico, por exemplo `ERROR_META_UNDELIVERABLE - 131026`, `ERROR_META_UNAVAILABLE - 131060` ou `ERROR_UNSUPPORTED_MEDIA`. Pode vir com espaço no começo. Use para alertar e registrar; não monte lógica que dependa do formato exato.
+
+## Formato 2: Kanban e tags
+
+Estes eventos têm o tipo em `event` e os campos do lead "achatados".
+
+### LEAD_KANBAN_UPDATED
+
+```json
+{
+  "event": "LEAD_KANBAN_UPDATED",
+  "lead_id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d",
+  "lead_name": "Maria Souza",
+  "lead_phone": "5511999998888",
+  "previous_column_id": "c0l00000-0000-4000-8000-000000000003",
+  "previous_column_name": "Novo lead",
+  "previous_column_description": null,
+  "new_column_id": "c0l00000-0000-4000-8000-000000000009",
+  "new_column_name": "Orçamento enviado",
+  "new_column_description": "Lead recebeu o valor",
+  "timestamp": "2026-10-06T14:10:45.123Z",
+  "attendant_id": "p40j3t00-0000-4000-8000-000000000006",
+  "attendant_name": "Clínica Sorriso",
+  "current_tags": [
+    { "id": "b2c1d0e9-0000-4000-8000-000000000001", "name": "Clareamento", "description": null }
+  ],
+  "lead_metadata": [
+    { "prop_name": "cidade", "prop_value": "Campinas" }
+  ]
+}
+```
+
+### LEAD_TAG_ADDED e LEAD_TAG_REMOVED
+
+```json
+{
+  "event": "LEAD_TAG_ADDED",
+  "lead_id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d",
+  "lead_name": "Maria Souza",
+  "lead_phone": "5511999998888",
+  "tag_id": "b2c1d0e9-0000-4000-8000-000000000001",
+  "tag_name": "Clareamento",
+  "tag_description": null,
+  "current_tags": [
+    { "id": "b2c1d0e9-0000-4000-8000-000000000001", "name": "Clareamento", "description": null }
+  ],
+  "timestamp": "2026-10-06T14:11:02.456Z",
+  "attendant_id": "p40j3t00-0000-4000-8000-000000000006",
+  "attendant_name": "Clínica Sorriso",
+  "kanban_column_id": "c0l00000-0000-4000-8000-000000000009",
+  "kanban_column_name": "Orçamento enviado",
+  "kanban_column_description": "Lead recebeu o valor",
+  "lead_metadata": [
+    { "prop_name": "cidade", "prop_value": "Campinas" }
+  ]
+}
+```
+
+Aqui `current_tags` traz id, nome e descrição (no formato 1, `lead.tags` traz só ids). `lead_metadata` usa o slug da propriedade em `prop_name`. Os campos vazios vêm como `null`.
+
+<Visibility for="agents">
+Resumo para parser:
+
+- Discriminador: `body.type ?? body.event`.
+- Formato 1 (`type`): `LEAD_CREATED`, `LEAD_INTERACTION`, `AI_RESPONSE`, `HUMAN_INTERACTION`, `CRM_INTERACTION`, `API_KEY_INTERACTION`, `WA_TEMPLATE`, `ERROR`. Raiz: `type`, `lead`, `attendant`, `message?`, `adsData?` (só `LEAD_CREATED`), `timestamp`. Campos nulos do lead são omitidos. `lead.tags`: ids. `lead.metadata`: `[{prop_name: slug, prop_value: string}]`.
+- Formato 2 (`event`): `LEAD_KANBAN_UPDATED`, `LEAD_TAG_ADDED`, `LEAD_TAG_REMOVED`. Raiz achatada (`lead_id`, `lead_phone`…), nulos explícitos, `current_tags: [{id, name, description}]`, `lead_metadata: [{prop_name, prop_value}]`.
+- `message.messages`: objetos (`messageId`, `messageType`, `message`, `zattenMediaUrl?`, `metaMediaId?`, `openaiMediaId?`) em todos os eventos de conversa, **exceto** `AI_RESPONSE`, que traz strings.
+- Projetos muito antigos do tipo "Assistente OpenAI" recebem um formato legado em camelCase (`event`, `leadId`, `number`, `threadId`, `metaNumberId`, `messages`, `lastInteraction`, `conversationExpiresIn`, `created_at`, `attendantId`, `adsData?`).
+</Visibility>
+
+## Desligamento automático após 10 falhas
+
+Um webhook que falha **10 vezes seguidas** é desligado sozinho. Um sucesso no meio zera a contagem. A sequência também é esquecida 7 dias depois da última falha.
+
+**Conta como falha:** resposta 4xx (inclusive 401, 403, 404, 410), 5xx, 429, tempo limite estourado, erro de DNS, conexão recusada ou interrompida.
+
+**Não conta:** resposta 2xx ou 3xx (zera a contagem).
+
+Quando desliga:
+
+- o webhook fica **desligado**, com o selo vermelho **Desligado automaticamente** ao lado da chave;
+- passando o mouse no selo: quantas falhas, quando desligou e o **último erro** (por exemplo `HTTP 503 Service Unavailable` ou `ECONNABORTED: timeout of 20000ms exceeded`);
+- ninguém é avisado por e-mail ou push. O selo é o único aviso.
+
+Vale para os eventos de lead, conversas e erros e para o [webhook por inatividade](/produto/automacoes/webhook-por-inatividade). Os eventos de Kanban e tags não contam falhas.
+
+### Como religar
+
+<Steps>
+<Step title="Descubra o que falhou">
+Leia o último erro no selo. 404 ou 410: o endereço mudou. 401 ou 403: a autenticação do seu endpoint mudou. Tempo limite: o endpoint está lento demais (veja abaixo).
+</Step>
+<Step title="Conserte o endpoint ou a URL">
+Se a URL mudou, edite o webhook e salve a nova.
+</Step>
+<Step title="Ligue a chave">
+Na lista, ligue a chave do webhook. O painel pergunta **Religar webhook?** e lembra que, se o destino ainda estiver com problema, ele será desligado de novo. Confirme em **Religar**. A contagem de falhas recomeça do zero.
+</Step>
+</Steps>
+
+Os eventos do período em que o webhook ficou desligado **não são reenviados**. Para recuperar, consulte a API (`GET /leads/{numero}`, histórico de mensagens).
+
+## Como montar o endpoint que recebe
+
+<Steps>
+<Step title="Responda 2xx rápido e processe depois">
+Grave o corpo numa fila (ou numa tabela) e responda `200` imediatamente. Não chame outra API, não escreva em planilha, não rode IA antes de responder. Mire em menos de 2 segundos: o limite é 20 segundos (10 para Kanban e tags), e cada estouro conta para o desligamento automático.
+</Step>
+<Step title="Responda 2xx mesmo para o que você ignora">
+Evento que você não usa, ou payload que não entendeu: responda `200` e descarte. Um 400 ou 422 conta como falha e, repetido 10 vezes, desliga o webhook inteiro.
+</Step>
+<Step title="Torne o processamento idempotente">
+Não há id de evento e, em casos raros, o mesmo fato pode chegar duas vezes. Monte uma chave e ignore repetidos:
+
+| Evento | Chave sugerida |
+|---|---|
+| Conversas (`LEAD_INTERACTION`, `HUMAN_INTERACTION`, `CRM_INTERACTION`, `API_KEY_INTERACTION`, `WA_TEMPLATE`) | `type` + `message.messages[0].messageId` |
+| `AI_RESPONSE` | `type` + `lead.id` + `timestamp` + o texto |
+| `LEAD_CREATED` | `lead.id` |
+| `ERROR` | `lead.id` + `message.code` + `timestamp` |
+| `LEAD_KANBAN_UPDATED` | `lead_id` + `new_column_id` + `timestamp` |
+| `LEAD_TAG_ADDED` / `REMOVED` | `event` + `lead_id` + `tag_id` + `timestamp` |
+</Step>
+<Step title="Não dependa da ordem">
+Os eventos podem chegar fora de ordem. Guarde o `timestamp` e não deixe um evento mais antigo sobrescrever um mais novo. Quando precisar do estado atual de verdade (coluna, tags, responsável), consulte a API: `GET /leads/{numero}`.
+</Step>
+<Step title="Proteja o endereço">
+Sem assinatura, a URL é o segredo. Use `https`, coloque um token longo e aleatório no caminho ou na query (`https://seu-sistema.com/zatten/hook/7f3a…`) e rejeite chamadas sem ele. Confira se `attendant.id` (ou `attendant_id`) é um projeto seu. Para ações sensíveis (cobrar, cancelar), não confie só no payload: confirme pela API.
+</Step>
+</Steps>
+
+Exemplo mínimo em Node.js (Express):
+
+```javascript
+import express from "express";
+
+const app = express();
+app.use(express.json({ limit: "1mb" }));
+
+const TOKEN = process.env.ZATTEN_HOOK_TOKEN; // o mesmo que está na URL
+
+app.post("/zatten/hook/:token", async (req, res) => {
+  if (req.params.token !== TOKEN) return res.sendStatus(404);
+
+  // 1. Responde já. Tudo o mais acontece depois.
+  res.sendStatus(200);
+
+  // 2. Enfileira para processar fora da requisição.
+  const body = req.body;
+  const tipo = body.type ?? body.event;
+  await fila.adicionar({ tipo, body, recebidoEm: Date.now() });
+});
+
+app.listen(3000);
+```
+
+No processamento, calcule a chave de idempotência da tabela acima e ignore o que já foi visto.
+
+## Diferenças por conexão
+
+| | Oficial | Coexistência | Não oficial |
+|---|---|---|---|
+| `adsData` em `LEAD_CREATED` | Sim, em leads de anúncio | Sim, em leads de anúncio | Nunca |
+| `HUMAN_INTERACTION` | Não ocorre | Sim (resposta pelo app) | Não ocorre |
+| `attendant.meta_number_id` | Id do número na Meta | Id do número na Meta | Identificador interno da conexão |
+| `lead.conversation_expires_in` | Fim da janela | Fim da janela | Pode vir, mas não vale (não há janela) |
+| `CRM_INTERACTION` / `API_KEY_INTERACTION` | Na entrega | Na entrega | No envio |
+| `ERROR` com código da Meta | Sim | Sim (inclui mensagens de anúncio não visíveis) | Não |
+
+## Pelo MCP
+
+Bloco `webhooks` do template.
+
+- Item identificado por `name`. Mudar o nome cria outro webhook.
+- Webhook criado sem `url` nasce desligado e sem endereço; só liga com endereço. `url` vazia não grava por cima da atual.
+- Os eventos são as chaves `lead_created`, `conversations`, `kanban`, `tags`, `errors`.
+- **O motivo do desligamento não viaja.** Um webhook desligado automaticamente aparece em `get_template` só como `status: "INACTIVE"`. Antes de religar com `status: "ACTIVE"`, pergunte se o endpoint foi consertado; religar um endpoint quebrado faz ele cair de novo em 10 falhas.
+- `get_template` traz a URL preenchida. Não mostre a URL inteira ao cliente se ela tiver token.
+
+<Visibility for="agents">
+```json
+{
+  "webhooks": [
+    {
+      "name": "CRM externo",
+      "url": "https://crm.exemplo.com/zatten/hook/7f3a9c...",
+      "lead_created": true,
+      "conversations": true,
+      "kanban": true,
+      "tags": false,
+      "errors": true,
+      "status": "ACTIVE"
+    }
+  ]
+}
+```
+</Visibility>
+
+## Armadilhas
+
+- **Desligar o webhook não para Kanban e tags.** Os eventos `LEAD_KANBAN_UPDATED`, `LEAD_TAG_ADDED` e `LEAD_TAG_REMOVED` continuam saindo para webhooks desligados, inclusive os desligados automaticamente. Para parar, desmarque **Kanban** e **Tags** ou exclua o webhook.
+- **Resposta lenta desliga o webhook.** Processar tudo antes de responder (planilha, IA, outra API) estoura os 20 segundos em horário de pico, e 10 estouros seguidos desligam.
+- **Responder 4xx para evento desconhecido desliga o webhook.** Responda 2xx e ignore.
+- **`AI_RESPONSE` traz texto; os outros eventos de conversa trazem objetos.** Um parser único para `message.messages` quebra.
+- **`ai_response_block: true` não quer dizer IA parada agora.** Compare `ai_response_block_until` com o horário atual.
+- **Tags e colunas chegam como ids** no formato 1. Traduza com `GET /tags` e `GET /kanban`, ou use os eventos de Kanban e tags, que trazem nomes.
+- **Campo legado do motor antigo.** Se o bloco `llm_attendant` tiver o campo `webhooks` preenchido, os eventos `LEAD_CREATED`, `LEAD_INTERACTION` e `AI_RESPONSE` vão **só** para esse endereço, e não para os webhooks configurados aqui. Esvazie esse campo ao migrar.
+- **Mudança em massa não gera evento.** Mover ou etiquetar vários leads de uma vez pelo CRM não envia nada.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Dá para receber os eventos de novo depois de uma falha?">
+Não. A Zatten não guarda nem reenvia eventos. Recupere o estado pela API (`GET /leads/{numero}` e o histórico de mensagens).
+</Accordion>
+<Accordion title="Dá para mandar um header de autenticação?">
+Não no webhook de eventos: ele não tem campo de headers. Use um token na URL. As [ações personalizadas](/produto/automacoes/acoes-personalizadas) e as tools HTTP do agente aceitam headers.
+</Accordion>
+<Accordion title="Como saber de qual cliente final veio o evento?">
+Pelo `attendant.id` (formato 1) ou `attendant_id` (formato 2), que é o id do projeto. Se você usa um endpoint para vários projetos, mapeie esse id para o cliente.
+</Accordion>
+<Accordion title="Posso usar o webhook para responder ao lead?">
+Pode, chamando a API de mensagens a partir do seu sistema. Lembre que o agente também vai responder, a não ser que você pause a IA do lead pela API.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Webhooks de saída: referência](/api/webhooks-de-saida)
+- [Webhook por inatividade](/produto/automacoes/webhook-por-inatividade)
+- [API: leads](/api/leads) e [catálogos](/api/catalogos)
+- [Trigger Flow](/produto/trigger-flow/conceitos): para reagir a eventos com condição e várias ações.
+- Meta: [anúncios Click-to-WhatsApp](https://developers.facebook.com/documentation/ads-commerce/marketing-api/ad-creative/messaging-ads/click-to-whatsapp).
+- Termos para buscar: "webhook idempotency", "webhook receiver best practices", "respond 200 then process async", "ctwa_clid".

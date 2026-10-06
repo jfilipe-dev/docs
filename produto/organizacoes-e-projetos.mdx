@@ -1,0 +1,214 @@
+---
+title: "Organizações e projetos"
+description: "Consulte para criar, renomear, mover, exportar, duplicar ou excluir organizações e projetos, e para saber o que bloqueia a exclusão de um projeto."
+---
+
+A **organização** é uma pasta de projetos dentro da conta da agência. O **projeto** é
+1 número de WhatsApp + 1 agente, com funil, tags, propriedades, automações e
+assinatura próprios. Esta página é a referência das operações sobre os dois: criar,
+editar, mover, exportar, duplicar, trocar a conexão de projeto e excluir.
+
+O porquê dessa estrutura (uma organização por cliente final, um projeto por número)
+está em [Agência, cliente final e projeto](/comecar/agencia-cliente-e-projeto).
+
+## Onde fica no painel
+
+| O quê | Onde | Quem |
+|---|---|---|
+| Lista de organizações e projetos | **Configurações → Projetos** | Admin |
+| Trocar de projeto | Seletor de projetos, no topo da barra lateral | Todos (só os projetos que a pessoa vê) |
+| Novo projeto | **Novo Projeto** no seletor de projetos (só no endereço principal, app.zatten.com) ou em **Configurações → Projetos** | Admin em Configurações; o botão do seletor aparece no endereço principal |
+| Exportar o template | **Agente → Exportar** (só no motor antigo) | Admin e Editor |
+| Trocar a conexão de projeto | **WhatsApp → Trocar projeto** | Admin |
+
+Em **Configurações → Projetos**, cada organização é uma linha que se expande para
+mostrar os projetos dela. A busca aceita o nome ou o ID do projeto.
+
+{/* A CONFIRMAR: o botão "Novo Projeto" do seletor aparece para qualquer papel no endereço principal (app.zatten.com) e a criação não confere o papel no servidor. Confirmar se Visualizador e Gestor devem poder criar projetos. */}
+
+## Organizações
+
+### Criar
+
+**Configurações → Projetos → Nova Organização**. O único campo é o **Nome**. Também
+dá para criar uma organização no meio do assistente de **Novo Projeto**. Admin, Editor e
+Gestor podem criar.
+
+A conta já nasce com uma organização chamada **Principal**.
+
+### Renomear
+
+Ícone de lápis na linha da organização (**Editar Organização**). Só o nome muda.
+
+### Excluir
+
+Ícone de lixeira na linha da organização. **Só é possível com a organização vazia**:
+com projetos dentro, o botão fica desabilitado com o aviso "Não é possível excluir
+organizações com projetos ativos". Mova ou exclua os projetos antes.
+
+## Projetos
+
+### Criar
+
+As quatro formas (modelo de nicho, em branco, importar JSON e duplicar) e o passo de
+assinatura estão em [Criar a conta e o primeiro projeto](/comecar/criar-conta-e-projeto).
+O que vale saber aqui:
+
+- **Todo projeto nasce desligado e pendente de pagamento.** O agente só liga depois
+  da assinatura. Quem já tem outro projeto pago pode clicar em **Deixar para depois** e
+  assinar mais tarde em **Assinatura**.
+- **O arquivo JSON importado tem limite de 1 MB.**
+- **Motor:** todo projeto novo nasce no LangChain Agent, qualquer que seja a forma de
+  criar. Projetos antigos que ainda estão no motor antigo devem ser migrados. Veja
+  [Migrar para o LangChain Agent](/engenharia-de-ia/migrar).
+- **Quem cria entra em todos os departamentos do projeto novo**, já recebendo leads.
+  Os demais membros são adicionados depois, em **Departamentos**.
+
+### Editar (renomear e mover de organização)
+
+Em **Configurações → Projetos**, o ícone de lápis do projeto abre **Editar Projeto**,
+com dois campos: **Nome** e **Organização**. Trocar a organização move o projeto, com
+tudo o que ele tem, para outra organização da mesma conta.
+
+### Copiar o ID
+
+O ID aparece abaixo do nome do projeto. Clique nele para copiar ("ID copiado!"). É o
+`project_id` que o MCP e a API usam.
+
+### Exportar o template
+
+O template do projeto é um JSON com tudo: funil, tags, propriedades, automações,
+fluxos e agente.
+
+- **No motor antigo:** página **Agente → Exportar**. A janela deixa escolher quais
+  templates do WhatsApp entram no arquivo.
+- **No LangChain Agent:** não há botão de exportar no painel. Leia o template pelo
+  MCP (`get_template`) ou pela [API de template](/api/template).
+
+<Warning>
+O arquivo exportado leva tudo, inclusive chaves de API, URLs e headers das
+integrações. Guarde e compartilhe com cuidado, e nunca o coloque num repositório.
+</Warning>
+
+### Duplicar
+
+**Novo Projeto → Duplicar projeto** e escolha um projeto da mesma conta. A cópia:
+
+- leva o funil, as tags, as propriedades, as automações, os fluxos e o agente;
+- leva **todos** os templates do WhatsApp, que entram como pendentes de
+  sincronização (nada é enviado à Meta até alguém sincronizar);
+- mantém a chave do modelo e os headers das tools, porque a origem é da mesma conta;
+- nasce no LangChain Agent, como todo projeto novo.
+
+A cópia **não** leva a conexão do WhatsApp, os leads, as conversas nem os membros dos
+departamentos.
+
+### Trocar a conexão de projeto
+
+O admin pode passar a conexão oficial **e a assinatura** de um projeto para outro da
+mesma conta, em **WhatsApp → Trocar projeto**. O projeto de origem fica desligado e sem
+assinatura. O passo a passo está em
+[WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia).
+
+### Excluir
+
+Em **Configurações → Projetos**, a lixeira na linha do projeto. Só o **admin** exclui.
+A exclusão é recusada quando:
+
+| Situação | O que aparece | O que fazer |
+|---|---|---|
+| É o único projeto da conta | "Não é possível excluir o único projeto" | Crie outro antes, ou fale com o suporte |
+| A assinatura está ativa | "Não é possível excluir projetos com assinatura vinculada" | Cancele em **Assinatura** e espere o fim do período pago |
+| Há conexão oficial do WhatsApp | Pede para remover a conexão com o Facebook | **WhatsApp → Remover** e tente de novo |
+
+Um projeto pendente (nunca assinado) pode ser excluído direto.
+
+## Como funciona por trás
+
+- **Excluir apaga o projeto inteiro**, em cascata: leads, conversas, colunas, tags,
+  propriedades, automações, fluxos, departamentos, chaves de API e o agente. Não há
+  lixeira nem como desfazer. A janela de confirmação diz "Remover projeto da
+  organização", mas o efeito é a exclusão.
+- **Excluir não mexe na assinatura.** A cobrança só para se a assinatura for cancelada
+  em **Assinatura**.
+- **Quem vê qual projeto** fica gravado no acesso de cada usuário, por organização e
+  projeto. O admin vê todos. Veja [Montar a equipe](/comecar/equipe-e-permissoes).
+
+## Pelo MCP
+
+O MCP não cria, duplica, move nem exclui projetos. Ele lista os projetos que a
+conexão de IA alcança (`list_projects`) e lê e escreve o template de um projeto.
+
+O bloco `meta` do template guarda o nome e a descrição do projeto. Trocar
+`meta.name` numa escrita **renomeia o projeto**; a partir daí, o MCP exige o nome novo
+no par `project_id` + `project_name`.
+
+<Visibility for="agents">
+| Campo de `meta` | Tipo | Notas |
+|---|---|---|
+| `name` | string | Obrigatório no arquivo completo. Mudar renomeia o projeto |
+| `description` | string ou null | |
+| `icon` | string ou null | Ignorado na escrita |
+
+O `project_id` é o ID copiado em **Configurações → Projetos**. Organização não viaja no
+template: mover de organização é só pelo painel.
+</Visibility>
+
+## Armadilhas
+
+- **Excluir um projeto com pagamento vencido não cancela a assinatura.** O botão de
+  excluir libera para assinatura que não está ativa, mas a cobrança continua até
+  alguém cancelar em **Assinatura**. Cancele antes de excluir.
+- **Mover o projeto de organização pode tirar o acesso de quem o via.** O acesso de
+  cada usuário é gravado por organização. Depois de mover, confira em **Configurações →
+  Gerenciar Acessos** se a equipe do cliente final continua vendo o projeto.
+- **Projeto novo não aparece sozinho para a equipe.** O acesso de quem não é admin
+  lista os projetos um a um, mesmo dentro da organização que a pessoa já vê. Depois de
+  criar um projeto, inclua-o no acesso de cada pessoa em **Gerenciar Acessos**.
+- **O JSON exportado tem segredos.** Chaves, URLs e headers vão preenchidos.
+- **Templates do WhatsApp duplicados não chegam aprovados.** Eles entram pendentes
+  e precisam ser sincronizados no projeto novo. Veja
+  [Templates do WhatsApp](/produto/templates-whatsapp).
+- **Projeto duplicado nasce sem conexão.** Conecte o WhatsApp (ou use **Trocar
+  projeto**) e assine o plano antes de ligar o agente.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Como levo um projeto para outra conta?">
+Exporte o template (ou leia pelo MCP) e crie um projeto na outra conta com
+**Importar JSON**. A conexão do WhatsApp, os leads e as conversas não vão junto. A
+duplicação só funciona dentro da mesma conta.
+</Accordion>
+<Accordion title="Como recomeço um projeto do zero sem perder o número?">
+Crie um projeto novo (modelo, em branco ou JSON), use **WhatsApp → Trocar projeto** no
+projeto antigo para passar a conexão e a assinatura para o novo e, depois, exclua o
+antigo. Veja [Sobrescrever x atualizar](/produto/sobrescrever-x-atualizar).
+</Accordion>
+<Accordion title="Excluir uma organização exclui os projetos dela?">
+Não. Uma organização com projetos não pode ser excluída.
+</Accordion>
+</AccordionGroup>
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://youtube.com/embed/qVEJlONsqOk"
+  title="Vídeo: organizacoes e projetos"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Agência, cliente final e projeto](/comecar/agencia-cliente-e-projeto)
+- [Criar a conta e o primeiro projeto](/comecar/criar-conta-e-projeto)
+- [Sobrescrever x atualizar um projeto por template](/produto/sobrescrever-x-atualizar)
+- [Assinatura e limites (referência)](/produto/assinatura-e-limites)
+- [Referência do template (JSON)](/trabalhar-com-ia/referencia-do-template)
+- Termos para buscar: "multi-tenant", "exclusão em cascata", "template de projeto Zatten".
