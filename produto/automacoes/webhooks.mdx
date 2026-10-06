@@ -102,7 +102,9 @@ Todos estes eventos têm a mesma forma: `type`, `lead`, `attendant`, `message` (
 }
 ```
 
-{/* A CONFIRMAR: o `timestamp` deste formato é montado a partir do relógio do servidor, com precisão de segundos. Conferir em produção se sai em UTC (esperado) antes de publicar. */}
+O `timestamp` está em **UTC** (o `Z` no fim é verdadeiro): `14:03:22.000Z` são
+11:03:22 em Brasília. Neste formato a precisão é de segundos; os milissegundos saem
+sempre `.000`.
 
 ### Campos
 
@@ -131,7 +133,7 @@ Todos estes eventos têm a mesma forma: `type`, `lead`, `attendant`, `message` (
 | `attendant.name` | Nome do projeto. Só vem em `LEAD_CREATED` e `ERROR`. |
 | `message` | Só vem quando há mensagens ou erro. Formato por evento abaixo. |
 | `adsData` | Só em `LEAD_CREATED` de lead que veio de anúncio. Veja abaixo. |
-| `timestamp` | Quando o evento foi montado, em ISO 8601. |
+| `timestamp` | Quando o evento foi montado, em ISO 8601 e UTC (subtraia 3 horas para Brasília). |
 
 <Note>
 **Campo sem valor não vem.** Em vez de `null`, campos vazios do lead (`last_interaction`, `tags`, `column_id`, `notes`, `assigned_to_user`…) simplesmente não aparecem no JSON. Trate ausência como vazio.
@@ -402,13 +404,14 @@ Bloco `webhooks` do template.
 
 ## Armadilhas
 
+- **`timestamp` é UTC, não Brasília.** Quem grava o valor numa planilha como se fosse hora local vê tudo 3 horas adiantado. Converta antes de mostrar.
 - **Desligar o webhook não para Kanban e tags.** Os eventos `LEAD_KANBAN_UPDATED`, `LEAD_TAG_ADDED` e `LEAD_TAG_REMOVED` continuam saindo para webhooks desligados, inclusive os desligados automaticamente. Para parar, desmarque **Kanban** e **Tags** ou exclua o webhook.
 - **Resposta lenta desliga o webhook.** Processar tudo antes de responder (planilha, IA, outra API) estoura os 20 segundos em horário de pico, e 10 estouros seguidos desligam.
 - **Responder 4xx para evento desconhecido desliga o webhook.** Responda 2xx e ignore.
 - **`AI_RESPONSE` traz texto; os outros eventos de conversa trazem objetos.** Um parser único para `message.messages` quebra.
 - **`ai_response_block: true` não quer dizer IA parada agora.** Compare `ai_response_block_until` com o horário atual.
 - **Tags e colunas chegam como ids** no formato 1. Traduza com `GET /tags` e `GET /kanban`, ou use os eventos de Kanban e tags, que trazem nomes.
-- **Campo legado do motor antigo.** Se o bloco `llm_attendant` tiver o campo `webhooks` preenchido, os eventos `LEAD_CREATED`, `LEAD_INTERACTION` e `AI_RESPONSE` vão **só** para esse endereço, e não para os webhooks configurados aqui. Esvazie esse campo ao migrar.
+- **Campo legado do motor antigo.** Se o bloco `llm_attendant` tiver o campo `webhooks` preenchido, os eventos `LEAD_CREATED`, `LEAD_INTERACTION` e `AI_RESPONSE` vão **só** para esse endereço, e não para os webhooks configurados aqui. Esvazie esse campo ao migrar; se não conseguir, peça ao [suporte da Zatten pelo WhatsApp](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0).
 - **Mudança em massa não gera evento.** Mover ou etiquetar vários leads de uma vez pelo CRM não envia nada.
 
 ## Perguntas frequentes

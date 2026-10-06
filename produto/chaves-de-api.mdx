@@ -63,9 +63,8 @@ autenticação dá **400**.
 - **Último uso:** atualizado quando a chave é usada nas rotas da API. As ações
   executadas pelos fluxos do Trigger Flow não contam: o fluxo roda sem usar a
   chave.
-- **Limite de requisições:** cada chave tem o próprio limite, e o IP de origem
-  outro. Ao estourar, a API responde 429 com `Retry-After`. Valores em
-  [Limites](/api/limites).
+- **Limite de requisições:** não há limite fixo publicado. Se a API responder 429,
+  espere o `Retry-After`. Ver [Limites](/api/limites).
 - **Não há permissão parcial:** toda chave lê e altera tudo o que a API do projeto
   permite.
 

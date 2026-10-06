@@ -20,7 +20,7 @@ muda pela API do dia a dia: isso é o template, pelo MCP ou pela
 | Autenticação | Header `x-api-key` com a chave do projeto. Ver [Autenticação](/api/autenticacao). |
 | Formato | JSON (`Content-Type: application/json`). As rotas de mídia usam `multipart/form-data`. |
 | Erros | `{ "error": "<texto>" }` com o código HTTP. Ver [Erros](/api/erros). |
-| Limite | 600 requisições por minuto por chave, e o mesmo por IP. Ver [Limites](/api/limites). |
+| Limite | Sem limite fixo publicado. Se vier 429, espere o `Retry-After`. Ver [Limites](/api/limites). |
 | Lead | Identificado pelo número do WhatsApp, com DDI. Ver [Identificar o lead](/api/identificar-o-lead). |
 
 O endereço da API é sempre esse, mesmo quando a agência usa o painel com

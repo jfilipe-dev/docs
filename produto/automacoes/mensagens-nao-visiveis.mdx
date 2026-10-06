@@ -43,8 +43,9 @@ O envio não conta como interação concluída: não agenda follow-up nem transb
 
 ## Por que isso acontece
 
-Na coexistência, o número continua no app WhatsApp Business e também na API da Meta. Alguns tipos de mensagem, em especial as que vêm de anúncios, a Meta não repassa à API com o conteúdo. A Zatten recebe só o aviso de que a mensagem existe. O texto pode ser visto no app WhatsApp Business do celular.
-{/* A CONFIRMAR: que a mensagem indisponível na API aparece no app WhatsApp Business do celular (não verificado no código; vem da descrição do painel e do comportamento da coexistência). */} Veja [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia).
+Na coexistência, o número continua no app WhatsApp Business e também na API da Meta. Às vezes a Meta não repassa a mensagem à API e avisa só que ela existe, como "mensagem indisponível" (erro 131060). Segundo a Meta, isso acontece principalmente quando a pessoa escreve para o negócio **pela primeira vez**, em especial logo depois de tocar num anúncio que leva ao WhatsApp, e também quando o lead usa um aparelho vinculado que a coexistência não suporta. Costuma se resolver em poucos segundos, e as mensagens seguintes chegam normalmente.
+
+A orientação da Meta é **conferir a mensagem no app WhatsApp Business do celular**: é lá que o conteúdo aparece. Veja [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia) e, na Meta, [mensagens não suportadas](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/messages/unsupported).
 
 ## Pelo MCP
 

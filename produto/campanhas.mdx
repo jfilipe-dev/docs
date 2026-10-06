@@ -47,7 +47,7 @@ Clique em executar (▶) na linha da campanha. Antes de começar, a tela mostra:
 
 | Item | O que é |
 |---|---|
-| **Limite de mensagens do número** | A faixa de limite que a Meta informa para o número (por exemplo, 250/dia, 10.000/dia ou Ilimitado). Se a Meta não informar uma faixa conhecida, aparece "Indisponível" e o painel não corta o envio. |
+| **Limite de mensagens do número** | A faixa de limite que a Meta informa para o número (por exemplo, 250/dia, 10.000/dia ou Ilimitado). Se a Meta não informar uma faixa que o painel conhece (é o caso da faixa de 2.000), aparece "Indisponível" e o painel não corta o envio. |
 | **Total filtrado** | Leads que passam nos filtros agora. |
 | **Já enviados** | Leads que já receberam **esta** campanha. Ficam de fora. |
 | **Faltam enviar** | Total filtrado menos já enviados. |
@@ -86,19 +86,18 @@ Quando a fila acaba, a campanha vira **Concluída** e não pode ser executada de
 <Visibility for="agents">
 - Envio: `POST /api/v1/messages/template` com `lead_number`, `template_name`, `name` (nome do lead) e `campaign_id`. A mensagem é gravada com `campaign_id` só depois de a Meta aceitar.
 - Filtros salvos na campanha: `{ primary: { type: "tag" | "column", id }, secondary: [{ type: "tag", id } | { type: "property", id: "<slug>" }] }`. Propriedade = existe valor para aquele slug no lead.
-- Faixas de limite que o painel reconhece (`messaging_limit_tier`): `TIER_50`, `TIER_250`, `TIER_1K`, `TIER_10K`, `TIER_100K`, `TIER_UNLIMITED`. Faixa não reconhecida aparece como "Indisponível" e não limita o envio.
+- Faixas de limite que o painel reconhece (lidas do campo `messaging_limit_tier` do número): `TIER_50`, `TIER_250`, `TIER_1K`, `TIER_10K`, `TIER_100K`, `TIER_UNLIMITED`. Faixa não reconhecida aparece como "Indisponível" e não limita o envio.
+- Na referência da Meta, as faixas possíveis são `TIER_50`, `TIER_250`, `TIER_2K`, `TIER_10K`, `TIER_100K`, `TIER_UNLIMITED` e `UNTIERED` (campo `whatsapp_business_manager_messaging_limit`, veja a [referência da conta do WhatsApp Business](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/); o `messaging_limit_tier` está descontinuado). `TIER_2K` e `UNTIERED` não estão na lista do painel: nesses casos aparece "Indisponível" e o envio não é cortado.
 - Status de execução: criada (sem status), `in_progress`, `completed`. Campanha `completed` não executa de novo.
 - Campanhas não fazem parte do template do projeto e não são lidas nem escritas pelo MCP.
 </Visibility>
-
-{/* A CONFIRMAR: o painel mapeia TIER_50, TIER_250, TIER_1K, TIER_10K, TIER_100K e TIER_UNLIMITED. A doc da Meta hoje fala em 250, 2.000, 10.000, 100.000 e ilimitado; se a Meta devolver TIER_2K, o painel mostra "Indisponível" e não aplica o corte. Conferir o valor real devolvido pela API. */}
 
 ## Pelo MCP e pela API
 
 Campanhas **não viajam no template do projeto**: o MCP não lê nem cria campanhas. Para disparar em massa fora do painel, por exemplo com agendamento, use a API do dia a dia num servidor seu:
 
 - `POST /api/v1/messages/template` para cada lead, com a chave de API do projeto;
-- respeite o limite de requisições da API e o limite de mensagens da Meta;
+- espace as chamadas (a API não tem limite fixo publicado, mas respeite o `Retry-After` se vier 429) e respeite o limite de mensagens da Meta;
 - controle você mesmo quem já recebeu.
 
 Veja [Mensagens](/api/mensagens), [Limites](/api/limites) e o playbook [Campanhas](/playbooks/campanhas).

@@ -38,11 +38,13 @@ A Zatten usa **variáveis nomeadas**: `{{nome}}`, `{{cidade}}`, nunca `{{1}}`. N
 |---|---|
 | `{{nome}}` | Nome do lead. Sem nome, "Cliente". |
 | `{{telefone}}` | Número do lead. |
-| `{{data}}` | Data do envio (dd/mm/aaaa). |
-| `{{hora}}` | Hora do envio (hh:mm). |
+| `{{data}}` | Data do envio no horário de Brasília (dd/mm/aaaa). Ex.: `06/10/2026`. |
+| `{{hora}}` | Hora do envio no horário de Brasília (hh:mm, sem fuso escrito). Ex.: `14:30`. |
 | `{{slug-da-propriedade}}` | Valor daquela [propriedade](/produto/propriedades) no lead. |
 
-{/* A CONFIRMAR: fuso horário de {{data}} e {{hora}} no envio pelo servidor (formatado com o relógio do servidor, sem fuso explícito no código). */}
+Se o lead tiver uma propriedade com o slug `data` ou `hora`, o valor dela vale no lugar
+da data e da hora do envio. Cliente final em outro fuso: o template mostra a hora de
+Brasília; escreva isso no texto (por exemplo, "14:30, horário de Brasília").
 
 Se o template pede uma variável que não existe no projeto, o painel avisa ao escolher o template e oferece criar a propriedade com aquele slug.
 

@@ -150,7 +150,7 @@ Não há modo de sobrescrever em nenhum dos dois. Ver
 - Assistentes de IA usam o MCP, não esta API, para configurar projetos. Se usarem esta API, `publish_agent` e `submit_meta_templates` ficam em `false`: publicar o agente e enviar template à Meta são feitos por uma pessoa, no painel.
 - Envio parcial: o conjunto de blocos é lido das chaves do objeto `template` antes da validação; `version`, `meta` e `llm_attendant` entram como preenchimento quando ausentes e não são aplicados.
 - Sem trava de concorrência: faça `GET` logo antes do `POST` e compare a `revision` você mesmo, se precisar.
-- Sem limite de requisições próprio documentado; a chave do projeto atualiza "Último uso".
+- Sem limite fixo de requisições publicado; a chave do projeto atualiza "Último uso".
 </Visibility>
 
 ## Armadilhas

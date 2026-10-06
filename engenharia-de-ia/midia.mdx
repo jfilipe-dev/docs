@@ -7,7 +7,8 @@ O agente da Zatten entende **texto, áudio, imagem e PDF** enviados pelo lead. O
 áudio é **transcrito** antes de chegar ao modelo. Imagem e PDF vão para o modelo
 como arquivo, e só são entendidos se o **modelo escolhido** aceitar esse tipo de
 entrada. Vídeo, figurinha, localização e outros documentos não chegam ao agente
-na conexão oficial.
+na conexão oficial. Na não oficial, vídeo e figurinha chegam, e o resultado depende
+do modelo.
 
 O que chega ao agente depende de duas coisas: a **conexão** (o servidor filtra a
 mídia ao receber) e o **motor** (como a mídia é entregue ao modelo). Esta página
@@ -22,10 +23,16 @@ descreve o **LangChain Agent**; o motor antigo aparece só no fim, como legado.
 | **Imagem** | Vai ao agente. Entendida se o modelo aceita imagem. | Vai ao agente. Entendida se o modelo aceita imagem. |
 | **PDF** | Vai ao agente. Entendido se o modelo aceita arquivo. | Vai ao agente (reconhecido pela extensão ou pelo tipo do arquivo). |
 | **Outros documentos** (Word, planilha, imagem enviada como documento) | Gravado no chat com erro. **Não vai ao agente.** | Gravado no chat com erro. **Não vai ao agente.** |
-| **Vídeo** | Gravado no chat com erro. **Não vai ao agente.** | Vai ao agente como mídia. |
-| **Figurinha, localização, reação** | Descartadas antes de gravar: não aparecem no chat e a IA não responde. | Figurinha vai ao agente como mídia. |
+| **Vídeo** | Gravado no chat com erro. **Não vai ao agente.** | Vai ao agente como vídeo. O resultado depende do modelo: só é entendido se o modelo aceita **Vídeo**. |
+| **Figurinha** | Descartada antes de gravar: não aparece no chat e a IA não responde. | Vai ao agente como arquivo de imagem (webp). O resultado depende do modelo: só é entendida se o modelo aceita **Arquivo**. |
+| **Localização** | Descartada antes de gravar. | Gravada no chat, mas sem texto: **o agente não a vê**. |
+| **Reação** | Descartada antes de gravar. | Gravada no chat com erro. **Não vai ao agente.** |
 
-{/* A CONFIRMAR: na conexão não oficial, o que o modelo faz com vídeo e figurinha (o servidor os encaminha como mídia; o provider pode recusar). Localização e reação na conexão não oficial não foram conferidas. */}
+Na conexão não oficial, o servidor não converte nem descreve vídeo e figurinha: só
+repassa o arquivo. Se o modelo escolhido não aceita esse tipo de entrada, o provider
+pode recusar a chamada e o agente fica sem responder àquela mensagem. Para leads que
+mandam muito vídeo, escolha um modelo que aceite **Vídeo** ou peça no prompt que o
+lead descreva em texto.
 
 Quando uma mídia é gravada com erro, a IA não responde a ela, a mensagem fica no
 chat com o aviso de erro para um humano ver, e o webhook de erro dispara. Figurinha,
@@ -183,10 +190,20 @@ Só com a voz da ElevenLabs configurada e quando o lead mandou áudio. Veja
 [Segmentação e voz](/engenharia-de-ia/segmentacao-e-voz).
 </Accordion>
 <Accordion title="Existe limite de tamanho?">
-Valem os limites do WhatsApp para a mídia recebida e os do provider para o que o
-modelo aceita (tamanho de arquivo, páginas de PDF). Confira na documentação do
-provider.
-{/* A CONFIRMAR: na conexão oficial, arquivo acima de 15 MB dispara o evento de falha FILE_TOO_LARGE (webhook de erro), mas o código segue o processamento; não está claro se a mídia ainda chega ao agente. Na não oficial não há limite próprio no código. */}
+Há três camadas:
+
+- **Meta (conexão oficial):** a mídia que o lead manda pode ter até **100 MB**.
+  Acima disso a Meta não entrega o arquivo e avisa com o erro 131052. Para o que a
+  empresa envia, os limites são por tipo: imagem 5 MB, áudio e vídeo 16 MB,
+  documento 100 MB, figurinha 100 KB (animada 500 KB). Veja
+  [mídia na documentação da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/media).
+- **Zatten (conexão oficial):** arquivo recebido acima de **15 MB** dispara o
+  [webhook de erro](/produto/automacoes/webhooks) com o código `FILE_TOO_LARGE`,
+  mas o arquivo **continua sendo processado** e chega ao agente normalmente. Trate
+  esse webhook como aviso, não como perda da mensagem. Na conexão não oficial não
+  há limite próprio.
+- **Provider do modelo:** tamanho de arquivo e número de páginas de PDF que o modelo
+  aceita. Confira na documentação do provider.
 </Accordion>
 <Accordion title="E no motor antigo?">
 No motor antigo, a Zatten transcreve o áudio e envia imagem e PDF à OpenAI antes

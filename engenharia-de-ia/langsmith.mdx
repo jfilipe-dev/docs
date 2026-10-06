@@ -88,9 +88,11 @@ Cada resposta do agente é **um trace**. Dentro dele:
   exato que voltou para o modelo.
 - **Os passos internos:** resumo do histórico, transcrição de áudio, troca para um
   modelo de reserva, tratamento de erro.
-- **Metadados:** entre eles o `thread_id`, acrescentado automaticamente. É o
-  identificador interno da conversa no serviço do agente (não o da API da Zatten) e
-  agrupa as respostas de uma mesma conversa na aba **Threads**.
+- **Metadados:** acrescentados automaticamente. Entre eles: `wa_id` (número do
+  lead), `lead_id`, `lead_name`, `lead_kanban_stage` (coluna), `zatten_thread_id`
+  (id da conversa na Zatten, o mesmo da API e dos webhooks), `attendant_id` (o
+  projeto), `agent_version` e `thread_id` (id interno do serviço do agente, que
+  agrupa as respostas na aba **Threads**).
 
 <Warning>
 O trace leva **dados pessoais do lead**: nome, WhatsApp, notas, propriedades e o texto
@@ -107,21 +109,25 @@ versão testada tiver o monitoramento ligado.
 Abra o projeto no LangSmith e vá na aba **Threads**: cada linha é uma conversa, com a
 primeira e a última mensagem, número de respostas, tokens e custo.
 
-Para achar uma conversa específica:
+Para achar uma conversa específica, **filtre pelos metadados** do trace (em
+**Filter** → **Metadata**). Os mais úteis:
 
-1. **Pelo número do lead.** Com **Enviar dados** ligado no agente, o número do lead
-   está no bloco de contexto enviado ao modelo. Busque o número no projeto.
-2. **Pela hora e pelo texto.** Filtre o período em que o lead escreveu e procure o
-   texto da mensagem dele na entrada dos traces.
+| Metadado | O que é | Exemplo fictício |
+|---|---|---|
+| `wa_id` | Número do WhatsApp do lead, com DDI | `5511999998888` |
+| `lead_id` | Id do lead na Zatten | `8f2c…` |
+| `zatten_thread_id` | Id da conversa na Zatten. É o **mesmo** `thread_id` que a API e os webhooks devolvem | `zt-thread-3kQ9xV2mB7pL1sR8tY4wZa` |
+| `attendant_id` | Id do projeto na Zatten | `a1b2…` |
 
-O `thread_id` que aparece no metadado do trace **não é** o identificador da
-conversa que a API da Zatten devolve (`GET /leads/{numero}/threads`) nem o
-`threadId` dos webhooks e das tools HTTP. É o identificador interno da conversa
-no serviço do agente, calculado a partir do da Zatten. Ele serve para agrupar as
-respostas de uma conversa na aba **Threads**, mas não dá para filtrar pelo valor
-que a API da Zatten mostra.
+Comece pelo `wa_id` quando você só tem o número do lead. Use o `zatten_thread_id`
+quando já tem a conversa vinda da API (`GET /leads/{numero}/threads`) ou de um
+webhook.
 
-{/* A CONFIRMAR: se o trace no LangSmith traz algum metadado com o id da conversa da Zatten (zatten_thread_id) ou o id do lead, que permitiria filtrar direto. Pelo código, o thread_id do metadado é o UUID interno do serviço do agente; não verificado num trace real. */}
+<Note>
+O metadado `thread_id` (sem o prefixo `zatten_`) **não é** o id da conversa da
+Zatten: é um identificador interno do serviço do agente. Ele agrupa as respostas na
+aba **Threads**, mas para cruzar com a API e os webhooks use `zatten_thread_id`.
+</Note>
 
 ## Ler um trace passo a passo
 
@@ -203,15 +209,22 @@ from langsmith import Client
 
 client = Client()
 
-# Todas as respostas de uma conversa, pelo thread_id interno visto num trace dela
-# (não é o id da conversa devolvido pela API da Zatten)
+# Todas as respostas de uma conversa, pelo id da conversa da Zatten
+# (o mesmo thread_id devolvido pela API e pelos webhooks)
 runs = client.list_runs(
     project_name="zatten-clinica-sorriso",
     is_root=True,
-    filter='and(eq(metadata_key, "thread_id"), eq(metadata_value, "<thread_id>"))',
+    filter='and(eq(metadata_key, "zatten_thread_id"), eq(metadata_value, "zt-thread-3kQ9xV2mB7pL1sR8tY4wZa"))',
 )
 for r in runs:
     print(r.start_time, r.total_tokens, r.total_cost, r.error)
+
+# Todas as respostas para um lead, pelo número
+runs = client.list_runs(
+    project_name="zatten-clinica-sorriso",
+    is_root=True,
+    filter='and(eq(metadata_key, "wa_id"), eq(metadata_value, "5511999998888"))',
+)
 
 # Respostas com erro no projeto
 for r in client.list_runs(project_name="zatten-clinica-sorriso", is_root=True, error=True):
@@ -276,7 +289,7 @@ uma versão não publicada.
 | `project` | string | `"default"` | Criado no LangSmith no primeiro envio |
 | `endpoint` | string | `"https://api.smith.langchain.com"` | Troque para a região da conta. Sem tela |
 | `tags` | lista de strings | `[]` | Sem tela |
-| `metadata` | objeto de strings | `{}` | Valores só string. Sem tela. `thread_id` (id interno do serviço do agente) é acrescentado sozinho |
+| `metadata` | objeto de strings | `{}` | Valores só string. Sem tela. O agente acrescenta sozinho, entre outros: `wa_id`, `lead_id`, `lead_name`, `lead_kanban_stage`, `lead_notes`, `lead_created_at`, `zatten_thread_id`, `attendant_id`, `agent_version`, `thread_id` (id interno do serviço do agente) |
 
 Não existe campo `provider`: o envio é sempre para o LangSmith. Chave desconhecida
 dentro de `tracing` é ignorada (e o painel avisa).

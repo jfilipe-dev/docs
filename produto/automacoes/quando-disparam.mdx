@@ -26,8 +26,11 @@ Não contam:
 - Mensagens das próprias automações (follow-up, reengajamento, transbordo).
 - Mover o lead **pela API, pelo agente ou pelo transbordo**: a chave "Disparar automações" da coluna só vale para movimentação feita no CRM.
 - Ações em massa no CRM.
+- Mensagem que um humano digita **direto no celular**, na conexão **não oficial**. Ela aparece no chat, mas não agenda nada.
 
-{/* A CONFIRMAR: mensagem que um humano manda pelo celular (coexistência ou conexão não oficial) conta como interação concluída? Pelo código, depende de chegar um status de envio/entrega para essa mensagem; não testado. */}
+Na **coexistência**, a mensagem que um humano manda pelo app WhatsApp Business do celular só conta se a Meta mandar a confirmação de entrega dela para a API. A Meta não documenta se faz isso. Não conte com essa mensagem para agendar follow-up: quando um humano assumir pelo celular, use o CRM ou mova o lead de coluna pelo CRM.
+
+{/* A CONFIRMAR: na coexistência, se a Meta envia status "delivered" para mensagens enviadas pelo app WhatsApp Business (ecos). Se enviar, essa mensagem conta como interação concluída (o código trata o eco como mensagem de humano). Conferir num log real. */}
 
 <Note>
 "A mensagem saiu" depende da conexão. Na **oficial**, a Zatten espera a Meta confirmar a **entrega**. Na **não oficial**, basta o status **enviado**. Uma mensagem do humano que nunca é entregue (número inválido, por exemplo) não agenda nada na oficial.

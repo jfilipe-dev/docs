@@ -99,7 +99,7 @@ Eventos `LEAD_CREATED`, `LEAD_INTERACTION`, `AI_RESPONSE`, `HUMAN_INTERACTION`,
 | `attendant` | objeto | Sempre |
 | `message` | objeto | Quando há mensagem ou erro |
 | `adsData` | objeto | Só em `LEAD_CREATED` de lead vindo de anúncio (conexão oficial) |
-| `timestamp` | string ISO 8601 | Sempre |
+| `timestamp` | string ISO 8601 em UTC (`Z`), precisão de segundos (`.000`) | Sempre |
 
 ### `lead`
 

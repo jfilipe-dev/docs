@@ -223,7 +223,7 @@ um servidor, e adiciona todas as tools que ele expõe.
 |---|---|---|---|
 | `tools[].type` | `"mcp"` | `"mcp"` | ativo |
 | `tools[].name` | string | obrigatório | ativo. Nome do servidor |
-| `tools[].transport` | `"http"` \| `"sse"` \| `"stdio"` | `"http"` | ativo |
+| `tools[].transport` | `"http"` \| `"sse"` \| `"stdio"` | `"http"` | ativo. `"http"` é o HTTP atual do MCP (streamable). `"stdio"` é aceito, mas o ambiente não tem `npx` nem `uvx`: use `"http"` |
 | `tools[].url` | string | `""` | ativo. Para `http` e `sse` |
 | `tools[].headers` | objeto de strings | `{}` | ativo. Para `http` e `sse` |
 | `tools[].command` | string | `""` | ativo. Para `stdio` |

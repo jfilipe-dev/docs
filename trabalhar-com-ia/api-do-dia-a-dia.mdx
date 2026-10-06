@@ -60,8 +60,8 @@ Regras da chave:
 - **Formato:** JSON. Erros vêm como `{ "error": "<texto>" }`.
 - **Lead na URL:** o número do WhatsApp, com DDI, com ou sem o 9º dígito
   (ex.: `5511999998888`). Lead inexistente dá 404.
-- **Limite:** 600 requisições a cada 60 segundos por chave (e o mesmo por IP). Ao
-  passar, a resposta é 429 com o header `Retry-After`. Ver [Limites de requisição](/api/limites).
+- **Limite:** não há limite fixo de requisições publicado. Espace chamadas em lote
+  (2 a 5 por segundo) e, se vier 429, espere o header `Retry-After`. Ver [Limites de requisição](/api/limites).
 
 ```bash
 set -a; . clientes/clinica-sorriso/.env; set +a

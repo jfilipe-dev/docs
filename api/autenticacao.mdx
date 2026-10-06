@@ -26,7 +26,7 @@ na criação. Guarde num cofre ou no `.env` do sistema que vai usá-la. Passo a 
 | Validade | A chave do painel vale até ser excluída. |
 | Permissões | Não há permissão parcial: toda chave lê e altera tudo o que a API permite no projeto. |
 | Último uso | O painel mostra quando a chave foi usada pela última vez. |
-| Limite | Cada chave tem um limite de requisições próprio. Ver [Limites](/api/limites). |
+| Limite | Não há limite fixo publicado. Se vier 429, espere o `Retry-After`. Ver [Limites](/api/limites). |
 
 A [API de template](/api/template) usa a mesma chave, mas em outro header
 (`Authorization: Bearer`). É a única exceção.
@@ -41,8 +41,8 @@ A [API de template](/api/template) usa a mesma chave, mas em outro header
 | 403 | `{"error": "attendant_id does not match the authenticated attendant"}` | Só em `/flows/trigger`: o `attendant_id` do corpo não é o projeto da chave. |
 
 <Warning>
-Respostas 401 e 403 contam para o limite por IP. Um sistema que insiste com uma chave
-inválida acaba bloqueado com 429. Ver [Limites](/api/limites).
+Não insista com uma chave inválida: 401 em loop não muda de resultado. Confira a chave
+antes de tentar de novo. Ver [Limites](/api/limites).
 </Warning>
 
 ## Como saber de qual projeto é a chave?

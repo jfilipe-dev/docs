@@ -1,83 +1,60 @@
 ---
 title: "Limites de requisição"
-description: "Leia para não ser bloqueado pela API da Zatten: o limite por chave e por IP (600 requisições por minuto), o que conta, a resposta 429 com Retry-After e como espaçar chamadas em lote."
+description: "Leia antes de chamar a API da Zatten em volume: não há limite fixo publicado, o que fazer se vier 429 com Retry-After e como espaçar chamadas em lote."
 ---
 
-A API aceita até **600 requisições por minuto por chave de API** e, ao mesmo tempo,
-**600 por minuto por IP de origem**. Passou de um dos dois, a resposta é **429** com o
-header `Retry-After` dizendo quantos segundos esperar.
+A API da Zatten **não tem um limite fixo de requisições publicado**. Mesmo assim,
+chame com moderação: se um dia a resposta vier **429**, espere o tempo do header
+`Retry-After` e repita a mesma chamada.
 
-## Os limites
-
-| Balde | Limite | O que conta |
-|---|---|---|
-| Por chave | 600 requisições a cada 60 segundos | Toda requisição feita com aquela chave, com sucesso ou erro. |
-| Por IP (com chave) | 600 requisições a cada 60 segundos | Toda requisição com chave vinda daquele IP, somando todas as chaves. |
-| Por IP (falhas de autenticação) | 600 a cada 60 segundos | Só respostas 401 e 403. |
-
-Esses são os valores padrão da plataforma.
-{/* A CONFIRMAR: os limites vêm de variáveis de ambiente com padrão 600 por 60 s; conferir se a produção usa o padrão. */}
-
-O IP conta à parte da chave. Se você usa várias chaves (vários projetos) a partir do
-mesmo servidor, todas dividem os 600 por minuto daquele IP.
-
-## A resposta 429
+## Se vier 429
 
 ```http
 HTTP/1.1 429 Too Many Requests
 Retry-After: 23
-RateLimit-Limit: 600
-RateLimit-Remaining: 0
-RateLimit-Reset: 23
 Content-Type: application/json
 
 { "message": "Too many requests. Try again in 23 second(s)." }
 ```
 
-- `Retry-After`: segundos até a janela abrir de novo. Espere isso antes de tentar.
+- `Retry-After`: segundos até poder tentar de novo. Espere isso antes de repetir.
 - O corpo do 429 usa `message`, não `error` como os outros erros.
-- As respostas normais também trazem `RateLimit-Limit`, `RateLimit-Remaining` e
-  `RateLimit-Reset`. Use para desacelerar antes de bater no limite.
+- Se as respostas trouxerem os headers `RateLimit-Remaining` e `RateLimit-Reset`,
+  use-os para desacelerar antes de chegar no 429.
 
-## Como chamar em lote sem ser bloqueado
+## Como chamar em lote
 
 <Steps>
 <Step title="Espace as chamadas">
-600 por minuto dá 10 por segundo. Para uma ação em muitos leads, mire em bem menos
-(2 a 5 por segundo) e deixe folga para o resto da integração.
-</Step>
-<Step title="Leia o RateLimit-Remaining">
-Quando ele chegar perto de zero, pare até o `RateLimit-Reset`.
+Para uma ação em muitos leads, faça poucas chamadas por segundo (2 a 5) e uma de
+cada vez. É rápido o bastante para centenas de leads e não sobrecarrega nada.
 </Step>
 <Step title="Respeite o Retry-After">
-Ao receber 429, espere o tempo do header e repita a mesma chamada. Não repita na hora:
-cada tentativa conta.
+Ao receber 429, espere o tempo do header e repita a mesma chamada. Não repita na hora.
 </Step>
 <Step title="Não insista com chave inválida">
-401 em loop esgota o balde do IP e bloqueia também as chamadas boas daquele servidor.
+401 em loop não resolve nada: confira a chave antes de tentar de novo.
+Ver [Autenticação](/api/autenticacao).
 </Step>
 </Steps>
 
 <Warning>
-O limite da API não é o limite do WhatsApp. A Meta tem os próprios limites de envio por
-número, e mandar mensagem em loop para muitos leads derruba a qualidade do número.
+A API sem limite fixo não quer dizer WhatsApp sem limite. A Meta tem os próprios limites
+de envio, e mandar mensagem em loop para muitos leads derruba a qualidade do número.
 Mensagem para muitos leads é [campanha](/produto/campanhas), não API.
 </Warning>
 
-## O que não tem limite próprio aqui
+## Outros 429
 
-- A [API de template](/api/template) fica no painel e não passa por estes baldes.
-- O 429 que vem do **provedor de WhatsApp** é outro caso: aparece num envio de mensagem
-  e não traz `Retry-After` da Zatten. Ver [Erros](/api/erros).
+O 429 que vem do **provedor de WhatsApp** é outro caso: aparece num envio de mensagem
+na conexão não oficial e não traz `Retry-After` da Zatten. Ver [Erros](/api/erros).
 
 ## Armadilhas
 
-- **Vários projetos no mesmo servidor dividem o limite do IP.** Uma integração que roda
-  para 20 clientes finais a partir de um servidor tem 600 por minuto no total, não por
-  cliente.
-- **Erro também conta.** 400 e 404 gastam o balde da chave. Corrija o corpo antes de
-  repetir.
-- **Repetir o 429 na hora** só alonga o bloqueio. Espere o `Retry-After`.
+- **Sem limite publicado não é convite a rajada.** Espace as chamadas em lote.
+- **Repetir o 429 na hora** só alonga a espera. Use o `Retry-After`.
+- **Erro também é chamada.** 400 e 404 em loop não mudam de resultado: corrija o corpo
+  antes de repetir.
 
 ## Para saber mais
 

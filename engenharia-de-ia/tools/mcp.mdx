@@ -1,6 +1,6 @@
 ---
 title: "Servidores MCP no agente"
-description: "Leia para ligar um servidor MCP ao agente do LangChain Agent: o que é, os tipos de conexão (HTTP, SSE, stdio), cabeçalhos de autenticação, os servidores prontos (Context7, DeepWiki, Firecrawl), por que os filtros de tools não filtram e por que a aprovação fica desligada."
+description: "Leia para ligar um servidor MCP ao agente do LangChain Agent: o que é, os tipos de conexão (HTTP, SSE; stdio não roda no ambiente do agente), cabeçalhos de autenticação, os servidores prontos (Context7, DeepWiki, Firecrawl), por que os filtros de tools não filtram e por que a aprovação fica desligada."
 ---
 
 Um **servidor MCP** é um serviço que entrega **várias tools de uma vez** ao
@@ -23,7 +23,7 @@ servidores prontos e a opção **Servidor customizado**.
 | Campo | O que faz |
 |---|---|
 | **Nome** | Identifica o servidor na lista (`meu_servidor`). Não é o nome das tools: essas vêm do servidor. |
-| **Conexão** | **HTTP** (recomendado), **SSE** ou **Processo local (stdio)**. |
+| **Conexão** | **HTTP** (recomendado), **SSE** ou **Processo local (stdio)**, que não funciona no ambiente do agente (veja abaixo). |
 | **Endereço** | URL do servidor, em HTTP e SSE. Ex.: `https://mcp.exemplo.com/mcp`. |
 | **Cabeçalhos** | Em HTTP e SSE. É onde vai a autenticação: `Authorization` = `Bearer <chave>`. |
 | **Comando**, **Argumentos**, **Variáveis de ambiente** | Só em stdio: o programa que o agente inicia, os argumentos separados por espaço e as variáveis. |
@@ -34,10 +34,12 @@ servidores prontos e a opção **Servidor customizado**.
   servidor oferecer.
 - **SSE:** formato anterior de servidor remoto. Use só se o servidor não tiver
   HTTP.
-- **Processo local (stdio):** o agente inicia um programa no servidor onde ele
-  roda. Só funciona se o comando existir lá. Para o agente de um cliente final,
-  prefira um servidor remoto.
-  {/* A CONFIRMAR: se stdio é suportado no ambiente de produção do agente e quais comandos (npx, uvx) estão disponíveis. */}
+- **Processo local (stdio):** não use. O config aceita, mas o ambiente onde o
+  agente roda não tem `npx` (Node) nem `uvx`, que são os comandos que quase todo
+  servidor stdio usa. O comando não é encontrado, a lista de tools não é montada
+  e o agente **não responde** naquela mensagem. Se o servidor que você quer só
+  existe em stdio, rode-o num serviço seu que o exponha por HTTP e cadastre esse
+  endereço com a conexão **HTTP**.
 
 ## Servidores prontos
 
@@ -126,6 +128,7 @@ servidores ficam no bloco `langchain`.
 ## Armadilhas
 
 - **Servidor com muitas tools** enche o contexto e confunde o modelo.
+- **stdio não roda.** O ambiente do agente não tem `npx` nem `uvx`: o agente fica sem resposta. Use HTTP.
 - **Filtros não filtram.** `allowed_tools` e `blocked_tools` são ignorados.
 - **Aprovação ligada trava a conversa.** Confira depois de migrar do motor antigo.
 - **Servidor fora do ar** deixa o agente sem resposta. Use servidores estáveis e

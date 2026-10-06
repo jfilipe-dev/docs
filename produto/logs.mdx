@@ -90,9 +90,17 @@ motivo para [migrar](/engenharia-de-ia/migrar) e ligar o LangSmith.
 | `ERROR_META_UNKNOWN` | Tipo de mensagem não suportado pela Meta (código 131051) | Envie em outro formato |
 | `ERROR_META_UNAVAILABLE` | Mensagem que a Meta não mostra no CRM (ex.: de anúncio na coexistência) | Ver [Mensagens não visíveis](/produto/automacoes/mensagens-nao-visiveis) |
 | `ERROR_META_UNSUPPORTED_MESSAGE` | Mensagem que a API não exibe | Abra o WhatsApp no celular para ver |
-| `ERROR_META`, `ERROR`, `UNKNOWN` | Outro erro; o código e a mensagem estão em Detalhes | Leia o detalhe; se persistir, fale com o suporte |
+| `ERROR_META`, `ERROR`, `UNKNOWN` | Outro erro; o código e a mensagem estão em Detalhes | Leia o detalhe; se persistir, fale com o [suporte pelo WhatsApp](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0) |
 
-{/* A CONFIRMAR: no LangChain Agent, conferir em que tipo cai um erro do modelo (provavelmente `ERROR_OPENAI` genérico, com o detalhe do provider) e se `ERROR_OPENAI_*` vale também para OpenRouter. O prefixo OPENAI é histórico. */}
+<Note>
+**No LangChain Agent, todo erro do agente é gravado como `ERROR_OPENAI`**, qualquer
+que seja o provider (OpenAI ou OpenRouter): modelo que recusou ou caiu, tempo
+esgotado, servidor MCP fora do ar. O prefixo OPENAI é histórico. O motivo real está em
+**Detalhes**, num texto que começa com "LangGraph error:" ou "LangGraph request
+failed:". Os tipos específicos (`ERROR_OPENAI_KEY`, `_RATE_LIMIT`, `_TIMEOUT` e os
+outros da tabela) só aparecem em projetos no motor antigo. Para ver o passo exato que
+falhou, abra o trace no [LangSmith](/engenharia-de-ia/langsmith).
+</Note>
 
 <Visibility for="agents">
 Tipos por filtro:
