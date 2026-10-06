@@ -1,0 +1,171 @@
+---
+title: "Follow-up e reengajamento que não queimam o número"
+description: "Leia para montar a cadência de retomada de leads parados: reengajamento antes de a janela fechar, follow-ups com template depois, quais leads tirar, a categoria certa de template e como a qualidade e os limites da Meta decidem quantas mensagens o número aguenta."
+---
+
+Lead que para de responder é o lead mais barato de recuperar. Mas cada mensagem que ninguém pediu é uma chance de bloqueio ou denúncia, e isso derruba a **qualidade** do número e dos templates na Meta. Com a qualidade baixa, a Meta pausa templates e trava o aumento do limite de envio. A cadência certa recupera leads sem gastar a reputação do número.
+
+Este playbook usa duas automações:
+
+- **[Reengajamento](/produto/automacoes/reengajamento):** texto livre, alguns minutos antes de a janela de 24h fechar. Só na conexão oficial (e na coexistência).
+- **[Follow-up](/produto/automacoes/follow-up):** template, um tempo depois da última interação. Funciona com a janela fechada e em todas as conexões.
+
+## Como o relógio funciona
+
+Dois fatos mudam a cadência inteira:
+
+1. **Os follow-ups contam todos do mesmo instante:** o fim da última interação concluída (o agente ou um humano respondeu). O segundo não espera o primeiro sair. Para 1 hora, depois 1 dia, depois 3 dias, configure **1 hora, 24 horas e 72 horas**.
+2. **Toda nova interação refaz tudo do zero.** O lead que responde e recebe resposta do agente volta ao começo da cadência. Quem conversa sem parar nunca recebe follow-up.
+
+O reengajamento segue outro relógio: conta para trás a partir do **fim da janela**, que é a última mensagem **do lead** + 24 horas. Sai no máximo uma vez por janela. Veja [Quando as automações disparam](/produto/automacoes/quando-disparam).
+
+## Uma cadência que funciona
+
+Exemplo para um lead que pediu orçamento e sumiu. Ajuste os tempos ao ciclo de venda do cliente final.
+
+| # | Automação | Configuração | Sai em (aprox.) | Mensagem |
+|---|---|---|---|---|
+| 1 | Reengajamento | 120 minutos antes de a janela fechar | ~22 horas depois da última mensagem do lead | "Oi! Conseguiu ver o orçamento? Se tiver alguma dúvida, posso ajudar por aqui." |
+| 2 | Follow-up | 48 horas | 2 dias depois | Template: retomada do orçamento, com `{{nome}}`. |
+| 3 | Follow-up | 120 horas | 5 dias depois | Template: um conteúdo útil (prazo, condição, depoimento), não um "e aí?". |
+| 4 | Follow-up | 240 horas | 10 dias depois | Template: encerramento ("vou deixar de te escrever; se precisar, é só chamar"). |
+
+Os três follow-ups ficam no **mesmo filtro de colunas** (ex.: Em atendimento, Orçamento enviado). Cada lead recebe a cadência uma vez por interação.
+
+**Por que parar no terceiro template?** Depois de três tentativas sem resposta, a chance de retorno cai e a de bloqueio sobe. A mensagem de encerramento fecha a porta com educação e deixa o caminho aberto para o lead voltar.
+
+**Por que o reengajamento vem primeiro?** É a última mensagem possível sem template. Se o lead responder, a janela reabre e o agente continua a conversa normalmente. Desde 01/10/2026, a Meta cobra também as mensagens de serviço; compare o preço dela com o do template de marketing na [página de preços da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing). Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+## Quem **não** deve receber
+
+Os filtros de follow-up e reengajamento só **incluem** (tags e colunas); não existe filtro de exclusão. Então a exclusão se faz **pela coluna**: o lead que não deve receber precisa estar numa coluna fora do filtro.
+
+| Quem | Como tirar |
+|---|---|
+| **Quem está com um humano** | Coluna Atendimento humano fora do filtro. A resposta do humano pelo CRM agenda follow-ups, e o reengajamento sai mesmo com a IA desligada. |
+| **Quem já comprou ou agendou** | Colunas Ganho, Agendado fora do filtro. |
+| **Quem pediu para parar** | No prompt: "Se o cliente pedir para não receber mais mensagens, agradeça e mova para 'Não contatar'". Coluna **Não contatar** com **Desativar IA**, fora de todos os filtros. |
+| **Desqualificados** | Coluna Desqualificado fora do filtro principal. Se quiser nutrir, uma cadência própria, mais espaçada. |
+
+<Warning>
+Atender o pedido de parar **só** com a ação Desligar a IA não basta: a resposta do agente antes de desligar já agendou os follow-ups, e eles saem se o lead estiver numa coluna do filtro. Mova para uma coluna fora do filtro.
+</Warning>
+
+## Escolher a categoria do template
+
+A Meta cobra e julga o template pela **categoria**. Escolha pela intenção da mensagem, não pelo preço.
+
+| Categoria | Para quê | Exemplos |
+|---|---|---|
+| **Utilitário** | Algo que o lead pediu ou uma transação em andamento | Confirmação e lembrete de agendamento, status de pedido, aviso de documento pendente |
+| **Marketing** | Tudo que promove, oferece ou tenta reativar | Retomada de orçamento, oferta, novidade, "sentimos sua falta" |
+
+- Retomada de lead parado é, em geral, **Marketing**. Criar como Utilitário leva a Meta a recategorizar ou a rejeitar.
+- Utilitário com cupom ou oferta vira Marketing.
+- O Marketing tem um limite **por usuário** do lado da Meta: quem recebe muitos templates de marketing de várias empresas pode deixar de receber os seus por um tempo (erro 131049). Não reenvie em seguida: a Meta recomenda esperar pelo menos 24 horas.
+
+Veja [Templates do WhatsApp](/produto/templates-whatsapp) e as páginas da Meta em "Para saber mais".
+
+## Escrever templates que não são bloqueados
+
+- **Diga quem é e por que está escrevendo** na primeira linha: `Oi, {{nome}}! Aqui é a Clínica Sorriso, sobre o orçamento de clareamento.`
+- **Uma pergunta fácil de responder.** Botão de resposta rápida ("Quero retomar", "Agora não") facilita e mede interesse.
+- **Use só variáveis que todo lead tem.** Na conexão oficial, o follow-up preenche `nome`, `telefone`, `data` e `hora`. Variável sem valor impede o agendamento daquele follow-up e dos seguintes do lead, naquela interação.
+- **Sem urgência falsa** ("última chance!") na retomada. Isso gera denúncia.
+
+## Qualidade e limites da Meta
+
+**Qualidade das mensagens.** A Meta mede como os usuários receberam as mensagens do número nos últimos 7 dias, com peso maior para os mais recentes: bloqueios, denúncias, silenciamentos, arquivamentos e os motivos dados ao bloquear. Números com volume alto mudam de qualidade em minutos.
+
+**Qualidade do template.** Cada template tem nota: verde (alta), amarela (média), vermelha (baixa) ou pendente. Um template que chega à nota baixa é **pausado** automaticamente: 3 horas na primeira vez, 6 horas na segunda, e **desativado** na terceira. Na Zatten, template pausado aparece como **Pendente**, e o follow-up que depende dele não sai.
+
+**Limite de mensagens.** É o número de pessoas **diferentes** que o negócio pode contatar **fora da janela de 24h** em 24 horas móveis. Vale para o **portfólio de negócios** inteiro, somando todos os números dele. Portfólio novo começa em 250; sobe para 2.000 com a verificação do negócio (ou com 2.000 envios de boa qualidade em 30 dias), e depois para 10.000, 100.000 e ilimitado, automaticamente, quando a qualidade é alta e pelo menos metade do limite foi usada nos últimos 7 dias.
+
+Follow-ups contam para esse limite, junto com [campanhas](/produto/campanhas) e envios de template pela API. Um projeto com muitos leads parados e uma cadência agressiva pode gastar o limite que a campanha do mês precisava.
+
+### Onde acompanhar
+
+| O que | Onde |
+|---|---|
+| Qualidade do número | **WhatsApp** no painel: o **Checklist da Conexão** mostra se a qualidade do número está saudável. No WhatsApp Manager da Meta, o detalhe. |
+| Status do template | **WhatsApp → Templates**. Um template que saía e parou: confira a nota no WhatsApp Manager. |
+| Limite atual | Tela de execução da [campanha](/produto/campanhas) ou WhatsApp Manager → Ferramentas da conta → Limites de mensagens. |
+| Envios que falharam | A conversa do lead mostra a mensagem de erro. Veja [Logs](/produto/logs). |
+
+### Sinais de que a cadência está pesada
+
+- Template ficou amarelo depois de ligar um follow-up novo.
+- Muitas respostas "pare", "quem é?", "não pedi".
+- Taxa de resposta do terceiro follow-up perto de zero.
+
+Reduza: um follow-up a menos, intervalo maior, filtro mais estreito.
+
+## Na conexão não oficial
+
+Não há janela, reengajamento nem aprovação de template: o follow-up manda um [template próprio](/comecar/whatsapp-nao-oficial) como texto comum. Também não há nota de qualidade visível, e o risco de bloqueio do número é maior. Seja **mais conservador**: dois follow-ups, intervalos longos, só para quem conversou de verdade.
+
+## Passo a passo
+
+<Steps>
+<Step title="Crie e aprove os templates">
+Em **WhatsApp → Templates**, com a categoria certa. Espere **Aprovado** (até 24 horas, segundo a Meta).
+</Step>
+<Step title="Organize as colunas">
+Separe as colunas que recebem follow-up (atendimento em andamento) das que não recebem (humano, ganho, não contatar).
+</Step>
+<Step title="Ensine o agente a tirar quem pede para parar">
+Ação **Mover no funil** para **Não contatar**, com a regra no prompt.
+</Step>
+<Step title="Crie o reengajamento e os follow-ups">
+Em **Automações → Automações nativas**, com o mesmo filtro de colunas. Atrasos contados do mesmo instante.
+</Step>
+<Step title="Teste com um lead real antes de ligar para todos">
+Converse com o agente, espere a resposta e confira o agendamento. Para testar sem esperar dias, crie um follow-up de teste com poucos minutos, filtrado por uma tag que só o seu número tem.
+</Step>
+<Step title="Acompanhe a primeira semana">
+Respostas, pedidos para parar e a nota dos templates.
+</Step>
+</Steps>
+
+## Pelo MCP
+
+O bloco `follow_ups` traz follow-ups (`method: "FOLLOW_UP"`) e reengajamentos (`method: "RE_ENGAGEMENT"`). Tudo nasce desligado sem `status`. Templates não são criados pelo MCP.
+
+<Visibility for="agents">
+```json
+{
+  "follow_ups": [
+    { "name": "Reengajamento 2h antes", "method": "RE_ENGAGEMENT", "delay": 120, "delay_unit": "MINUTES", "order_follow_up": 1,
+      "reengagement_message": "Oi! Conseguiu ver o orçamento? Se tiver alguma dúvida, posso ajudar por aqui.",
+      "template_name": null, "columns": ["Em atendimento", "Orçamento enviado"], "tags": null, "status": "INACTIVE" },
+    { "name": "Follow-up 48h", "method": "FOLLOW_UP", "delay": 48, "delay_unit": "HOURS", "order_follow_up": 2,
+      "template_name": "retomada_orcamento", "template_variables": {}, "reengagement_message": null,
+      "columns": ["Em atendimento", "Orçamento enviado"], "tags": null, "status": "INACTIVE" }
+  ]
+}
+```
+
+- Os atrasos dos follow-ups são todos contados do fim da última interação: some os intervalos.
+- Antes de ligar (`ACTIVE`), pergunte explicitamente (regra 4 de [As regras](/trabalhar-com-ia/regras)) e confira se o template existe em `meta_templates` e está aprovado.
+- Na conexão não oficial, `RE_ENGAGEMENT` não deve ser criado, e o template do follow-up é escolhido no painel.
+</Visibility>
+
+## Armadilhas
+
+- **Atrasos como cadeia.** 1h, 1d, 3d configurado como 1h, 1d, 3d manda o segundo um dia depois da interação, não do primeiro.
+- **Humano atendendo recebe follow-up e reengajamento.** Tire a coluna do humano do filtro.
+- **Ligar não alcança leads antigos.** Só entra quem tiver interação concluída depois de ligar.
+- **Variável sem valor** impede o agendamento daquele follow-up e dos seguintes do lead.
+- **Template de retomada como Utilitário** é recategorizado ou rejeitado.
+- **Reengajamento com 1.440 minutos ou mais** nunca sai.
+- **Trocar para a conexão não oficial não desliga o reengajamento** já criado. Desligue antes.
+- **Follow-up e campanha dividem o limite** do portfólio na Meta.
+
+## Para saber mais
+
+- [Follow-up](/produto/automacoes/follow-up) e [Reengajamento](/produto/automacoes/reengajamento)
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- [Janela de 24h](/comecar/janela-de-24h) e [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- [Templates do WhatsApp](/produto/templates-whatsapp) e [Campanhas](/playbooks/campanhas)
+- Meta: [limites de mensagens](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits), [qualidade das mensagens](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages#message-quality), [qualidade de template](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-quality), [pausa de template](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-pausing), [categorias](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-categorization), [limite de marketing por usuário](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/marketing-templates/per-user-limits), [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing).
+- Termos para buscar: "messaging limits", "business portfolio", "template quality rating", "template pausing", "error 131049", "follow-up cadence".

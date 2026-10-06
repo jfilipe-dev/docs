@@ -1,0 +1,117 @@
+---
+title: "Visão geral das automações"
+description: "Leia para saber quais automações a Zatten tem (as 4 abas e os 7 tipos nativos), o que cada conexão libera e em que momento cada tipo é avaliado."
+---
+
+Automações são regras que agem sozinhas sobre o lead: mandam mensagem depois de um tempo, avisam um sistema externo, movem o lead para um humano ou informam conversões ao Meta Ads. Ficam em **Automações**, no menu do projeto, divididas em quatro abas. Esta página mostra o mapa; cada tipo tem página própria.
+
+## Onde fica no painel
+
+**Automações**, no menu do projeto. A aba aberta fica no endereço (`?tab=`), então voltar do editor de fluxos cai na mesma aba.
+
+| Aba | O que tem | Quem acessa |
+|---|---|---|
+| **Automações nativas** | Os 7 tipos prontos desta seção (tabela abaixo). | Admin e editor |
+| **Trigger Flow** | Fluxos desenhados no editor: gatilho, condição e ações. Veja [Trigger Flow](/produto/trigger-flow/conceitos). | Admin e editor |
+| **Ações personalizadas** | Botões no lead que chamam um endereço HTTP. Veja [Ações personalizadas](/produto/automacoes/acoes-personalizadas). | Admin e editor |
+| **Mensagens rápidas** | Textos e mídias prontos para o humano mandar com `/comando`. Veja [Mensagens rápidas](/produto/mensagens-rapidas). | Admin, editor e gestor |
+
+O gestor só vê a aba **Mensagens rápidas**. O visualizador não acessa Automações.
+
+## Os 7 tipos nativos
+
+Em **Automações nativas**, o botão de criar abre a escolha do tipo e depois o formulário.
+
+| Tipo (nome no painel) | O que faz | Página |
+|---|---|---|
+| **Webhook** | Avisa um sistema externo, na hora, quando algo acontece: lead criado, mensagens, Kanban, tags, erros. | [Webhooks de eventos](/produto/automacoes/webhooks) |
+| **Webhook por Inatividade** | Manda os dados do lead para um sistema externo depois de um tempo sem interação. | [Webhook por inatividade](/produto/automacoes/webhook-por-inatividade) |
+| **Follow-up** | Manda um template depois de um tempo sem interação. | [Follow-up](/produto/automacoes/follow-up) |
+| **Reengajamento** | Manda um texto livre alguns minutos antes de a janela de 24h fechar. | [Reengajamento](/produto/automacoes/reengajamento) |
+| **Meta ADS - API de Conversão** | Informa ao Meta Ads um evento (Lead, Compra…) quando um lead que veio de anúncio entra numa coluna. | [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta) |
+| **Resposta Automática para mensagens não visíveis** | Responde mensagens de anúncio que não aparecem no CRM, na coexistência. Só uma por projeto. | [Mensagens não visíveis](/produto/automacoes/mensagens-nao-visiveis) |
+| **Transbordo por Inatividade** | Depois de X minutos sem resposta, manda uma mensagem e move o lead para uma coluna de atendimento humano. | [Transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade) |
+
+Cada automação tem uma chave **ligada / desligada** na lista. Desligada, ela não agenda nem dispara nada.
+
+## O que cada conexão libera
+
+| Tipo | Oficial | Coexistência | Não oficial (QR Code) |
+|---|---|---|---|
+| Webhook | Sim | Sim | Sim |
+| Webhook por Inatividade | Sim | Sim | Sim |
+| Follow-up | Sim, com template da Meta aprovado | Sim, com template da Meta aprovado | Sim, com [template próprio](/comecar/whatsapp-nao-oficial) |
+| Reengajamento | Sim | Sim | **Não aparece** (não há janela de 24h) |
+| Conversões para o Meta Ads | Sim | Sim | **Não aparece** |
+| Mensagens não visíveis | Aparece, mas só age na coexistência | Sim | Aparece, mas nunca dispara |
+| Transbordo por Inatividade | Sim (a mensagem só sai com a janela aberta) | Sim (idem) | Sim |
+
+Veja [Qual conexão escolher](/comecar/conexoes-whatsapp).
+
+## Quando cada tipo é avaliado
+
+Os tipos não disparam todos pelo mesmo motivo. Isto explica a maior parte dos "por que não disparou".
+
+| Tipo | Agenda ou dispara quando | Cancela quando |
+|---|---|---|
+| Follow-up | Uma **interação termina** (o agente respondeu, um humano respondeu pelo CRM, ou o lead foi movido para uma coluna com "Disparar automações"). | O lead manda mensagem com a IA pausada ou desligada. Uma nova interação substitui o agendamento. |
+| Webhook por Inatividade | Igual ao follow-up. | Igual ao follow-up. |
+| Transbordo por Inatividade | Igual ao follow-up, menos a coluna com "Disparar automações". | Igual ao follow-up. |
+| Reengajamento | A janela de 24h é renovada (o lead mandou mensagem). | Uma nova mensagem do lead reagenda. Não é cancelado pela IA pausada. |
+| Webhook | Na hora do evento (lead criado, mensagem, mudança de coluna, tag, erro). | Não se aplica. |
+| Conversões para o Meta Ads | O lead que veio de anúncio entra na coluna configurada. | Não se aplica. |
+| Mensagens não visíveis | Chega uma mensagem de anúncio que o CRM não consegue mostrar. | Não se aplica. |
+
+O ciclo completo está em [Quando as automações disparam](/produto/automacoes/quando-disparam).
+
+## Automações nativas ou Trigger Flow?
+
+- **Nativas:** para os casos comuns (follow-up, reengajamento, transbordo, avisar um sistema). Configuram em um formulário e têm regras prontas.
+- **Trigger Flow:** quando você precisa de condição ("se a propriedade X for Y"), de várias ações em sequência ou de reagir a eventos que as nativas não cobrem (tag adicionada, responsável alterado, conversa encerrada, webhook recebido). Veja [Trigger Flow: conceitos](/produto/trigger-flow/conceitos).
+
+## Pelo MCP
+
+Todas as automações nativas e as ações personalizadas viajam no template do projeto, cada tipo num bloco:
+
+| Tipo | Bloco |
+|---|---|
+| Follow-up e Reengajamento | `follow_ups` (diferenciados por `method`) |
+| Webhook | `webhooks` |
+| Webhook por Inatividade | `integration_webhooks` |
+| Conversões para o Meta Ads | `conversions` |
+| Mensagens não visíveis | `unseen_message` (objeto, não lista) |
+| Transbordo por Inatividade | `inactivity_handovers` |
+| Ações personalizadas | `custom_actions` |
+| Mensagens rápidas | `quick_messages` |
+| Fluxos | `flows` |
+
+Regras comuns: automação criada pelo MCP nasce **desligada** quando `status` não vem; colunas e tags vão **por nome**; endereço vazio não grava por cima do atual. Campos e regras de cada bloco em [Referência do template](/trabalhar-com-ia/referencia-do-template).
+
+## Armadilhas
+
+- **Gestor não configura automações nativas.** Se o cliente final precisa mexer em follow-up ou webhooks, o papel é editor.
+- **Trocar a conexão para não oficial não apaga reengajamentos e conversões.** Os tipos só somem da tela de criação. Desligue os que ficaram.
+- **Ações em massa no CRM não disparam automações.** Mudar coluna ou tags de vários leads de uma vez não agenda follow-up, não envia webhooks de Kanban e tags e não informa conversões.
+- **Não há tela de agendamentos.** O painel não mostra quais follow-ups estão na fila de um lead. Para saber se algo saiu, olhe a conversa do lead e os [Logs](/produto/logs).
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://youtube.com/embed/WyapyVEXKfs"
+  title="Vídeo: visao geral"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- [Funil (Kanban)](/produto/funil-kanban): a chave "Disparar automações" da coluna.
+- [Janela de 24h](/comecar/janela-de-24h)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- Termos para buscar: "follow-up WhatsApp", "webhook de eventos", "Click-to-WhatsApp conversões", "transbordo para humano".

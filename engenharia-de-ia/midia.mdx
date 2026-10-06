@@ -1,0 +1,228 @@
+---
+title: "Mídia: áudio, imagem e PDF"
+description: "Leia para saber que mídias do lead o agente entende em cada conexão e em cada motor, como funciona a transcrição de áudio (provider, modelo, chave), a armadilha do nome do modelo Whisper na OpenAI direta e o que acontece com vídeo, figurinha e outros arquivos."
+---
+
+O agente da Zatten entende **texto, áudio, imagem e PDF** enviados pelo lead. O
+áudio é **transcrito** antes de chegar ao modelo. Imagem e PDF vão para o modelo
+como arquivo, e só são entendidos se o **modelo escolhido** aceitar esse tipo de
+entrada. Vídeo, figurinha, localização e outros documentos não chegam ao agente
+na conexão oficial. Na não oficial, vídeo e figurinha chegam, e o resultado depende
+do modelo.
+
+O que chega ao agente depende de duas coisas: a **conexão** (o servidor filtra a
+mídia ao receber) e o **motor** (como a mídia é entregue ao modelo). Esta página
+descreve o **LangChain Agent**; o motor antigo aparece só no fim, como legado.
+
+## O que o agente entende, por conexão
+
+| Mídia do lead | Conexão oficial e coexistência | Conexão não oficial |
+|---|---|---|
+| **Texto** | Vai ao agente. | Vai ao agente. |
+| **Áudio** | Vai ao agente e é transcrito. | Vai ao agente e é transcrito. |
+| **Imagem** | Vai ao agente. Entendida se o modelo aceita imagem. | Vai ao agente. Entendida se o modelo aceita imagem. |
+| **PDF** | Vai ao agente. Entendido se o modelo aceita arquivo. | Vai ao agente (reconhecido pela extensão ou pelo tipo do arquivo). |
+| **Outros documentos** (Word, planilha, imagem enviada como documento) | Gravado no chat com erro. **Não vai ao agente.** | Gravado no chat com erro. **Não vai ao agente.** |
+| **Vídeo** | Gravado no chat com erro. **Não vai ao agente.** | Vai ao agente como vídeo. O resultado depende do modelo: só é entendido se o modelo aceita **Vídeo**. |
+| **Figurinha** | Descartada antes de gravar: não aparece no chat e a IA não responde. | Vai ao agente como arquivo de imagem (webp). O resultado depende do modelo: só é entendida se o modelo aceita **Arquivo**. |
+| **Localização** | Descartada antes de gravar. | Gravada no chat, mas sem texto: **o agente não a vê**. |
+| **Reação** | Descartada antes de gravar. | Gravada no chat com erro. **Não vai ao agente.** |
+
+Na conexão não oficial, o servidor não converte nem descreve vídeo e figurinha: só
+repassa o arquivo. Se o modelo escolhido não aceita esse tipo de entrada, o provider
+pode recusar a chamada e o agente fica sem responder àquela mensagem. Para leads que
+mandam muito vídeo, escolha um modelo que aceite **Vídeo** ou peça no prompt que o
+lead descreva em texto.
+
+Quando uma mídia é gravada com erro, a IA não responde a ela, a mensagem fica no
+chat com o aviso de erro para um humano ver, e o webhook de erro dispara. Figurinha,
+localização e reação na conexão oficial nem chegam a ser gravadas. Se a
+mesma mídia veio com outras mensagens no mesmo lote do
+[buffer](/engenharia-de-ia/buffer), o agente responde às outras.
+
+## O que o modelo entende
+
+O builder mostra, ao lado de cada modelo, as entradas que ele aceita: **Texto**,
+**Imagem**, **Áudio**, **Vídeo**, **Arquivo**. Use isso para escolher.
+
+| Para o agente entender… | O modelo precisa mostrar |
+|---|---|
+| Imagem (foto de documento, print, produto) | **Imagem** |
+| PDF (orçamento, exame, boleto) | **Arquivo** |
+| Áudio | Qualquer modelo: a Zatten transcreve antes. O selo **Áudio** aparece em todos por isso. |
+
+Com um modelo só de texto, o agente não entende a imagem nem o PDF. Dependendo do
+provider, a chamada ao modelo falha e entra o
+[tratamento de erro](/engenharia-de-ia/resiliencia). Se o
+público manda muita foto ou PDF, escolha um modelo com **Imagem** e **Arquivo**.
+Veja [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo).
+
+## Transcrição de áudio
+
+No LangChain Agent, todo áudio do lead é transcrito antes de o modelo ver. A
+transcrição é ligada sempre e não aparece na tela: ao salvar no builder, o painel
+a deixa ligada, com o modelo Whisper certo para o provider e o idioma detectado
+automaticamente.
+
+| Item | Como funciona |
+|---|---|
+| **Provider** | O mesmo do modelo do agente (OpenAI ou OpenRouter). |
+| **Chave** | A mesma chave do modelo. A transcrição é cobrada pelo provider, na sua conta (BYOK). |
+| **Modelo** | Whisper: `whisper-1` na OpenAI direta, `openai/whisper-1` no OpenRouter. |
+| **Idioma** | Detectado sozinho. |
+| **O que o modelo recebe** | O texto, com o prefixo `[Áudio transcrito]:`. |
+
+Se a transcrição falha (chave sem crédito, nome de modelo errado), o áudio segue
+para o modelo sem texto. Um modelo que não entende áudio falha, e entra o
+tratamento de erro.
+
+### A armadilha do nome do modelo na OpenAI direta
+
+O padrão do config é `openai/whisper-1`, que é o nome no **OpenRouter**. A OpenAI
+direta só aceita **`whisper-1`**, sem o prefixo. Com o nome errado, toda
+transcrição falha.
+
+O painel corrige isso ao salvar o agente no builder. O nome errado fica quando o
+config é gravado **sem passar pelo botão Salvar do builder**:
+
+- escrito pelo assistente (MCP ou API de template) com o provider `openai` e sem
+  `settings.transcription.model`, ou com `openai/whisper-1`;
+- criado pela migração do motor antigo com provider `openai` e ainda não salvo no
+  builder.
+
+Como corrigir: grave `"model": "whisper-1"` em `settings.transcription` (provider
+`openai`), ou abra o agente no builder, salve e publique.
+
+<Tip>
+Teste sempre com um áudio de verdade depois de criar ou migrar um agente na OpenAI
+direta. Se o agente responde como se não tivesse entendido o áudio, confira o nome
+do modelo de transcrição.
+</Tip>
+
+## Interpretação desligada vinda do motor antigo
+
+O motor antigo tinha chaves para desligar a interpretação de áudio, imagem e PDF.
+O builder do LangChain Agent não mostra essas chaves, mas, na **conexão oficial e
+na coexistência**, o servidor ainda as respeita: se um projeto migrado estava com
+"Interpretação de imagem" desligada, a imagem é gravada com erro e não vai ao
+agente.
+
+Para liberar, grave `true` em `audio_interpretation`, `image_interpretation` ou
+`pdf_interpretation`, no bloco `llm_attendant` (veja "Pelo MCP"). Na conexão não
+oficial, só a chave de PDF vale.
+
+## Pelo MCP
+
+<Visibility for="agents">
+```json
+{
+  "llm_attendant": {
+    "audio_interpretation": true,
+    "image_interpretation": true,
+    "pdf_interpretation": true
+  },
+  "langchain": {
+    "config": {
+      "model": { "provider": "openai", "name": "…" },
+      "settings": {
+        "transcription": {
+          "enabled": true,
+          "provider": null,
+          "model": "whisper-1",
+          "language": null
+        }
+      }
+    }
+  }
+}
+```
+
+- `settings.transcription.model`: `whisper-1` quando o provider efetivo é
+  `openai`; `openai/whisper-1` quando é `openrouter`. O provider efetivo é
+  `transcription.provider` ou, se `null`, `model.provider`. Sempre que escrever o
+  bloco `langchain`, confira e grave o `model` de transcrição de acordo.
+- `transcription.provider` aceita também `google` e `custom` (este exige
+  `base_url`). `api_key` nula herda a chave do modelo.
+- `transcription.enabled`: padrão `true`. O save do builder força `true`, o
+  modelo por provider e `language: null`.
+- `audio_interpretation` / `image_interpretation` / `pdf_interpretation` em
+  `false`: na conexão oficial, a mídia vira `ERROR_MEDIA_INTERPRETATION` e não vai
+  ao agente. Na conexão não oficial, só `pdf_interpretation` é conferido.
+  `video_interpretation` não tem efeito no LangChain Agent.
+- Filtro do servidor na conexão oficial: documento só com mime PDF (senão
+  `ERROR_UNSUPPORTED_MEDIA`); vídeo vira `ERROR_UNSUPPORTED_MEDIA`; sticker,
+  location e reaction são descartados antes de gravar.
+- Entrega ao agente: áudio como bloco `audio` em base64; imagem como bloco
+  `image` com URL; PDF como bloco `file` com URL; vídeo como bloco `video` com URL.
+- No histórico reconstruído (backfill), áudio entra como texto (a transcrição já
+  gravada) e imagem/PDF como bloco com URL.
+</Visibility>
+
+## Armadilhas
+
+- **Modelo só de texto com público que manda foto.** O agente não entende a foto,
+  e a chamada pode falhar com a mensagem de erro ao lead. Escolha um modelo com
+  **Imagem**.
+- **`openai/whisper-1` na OpenAI direta.** Toda transcrição falha. Use `whisper-1`.
+- **Interpretação desligada herdada do motor antigo.** A tela do LangChain Agent
+  não mostra, mas a conexão oficial continua bloqueando a mídia.
+- **PDF não é "documento".** Word, Excel e outros arquivos não vão ao agente. Peça
+  no prompt que o lead envie em PDF ou foto.
+- **Vídeo não vai ao agente na conexão oficial.** Se o fluxo depende de vídeo
+  (vistoria, sinistro), peça fotos.
+- **A transcrição custa.** Cada áudio é cobrado pelo provider, além dos tokens do
+  modelo.
+- **Imagem enviada como documento** não é PDF: é gravada com erro. Peça ao lead
+  que envie como foto.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="O agente consegue ler um comprovante ou uma receita?">
+Sim, se o modelo aceitar **Imagem** (foto) ou **Arquivo** (PDF). A qualidade da
+leitura depende do modelo; teste com exemplos reais do cliente final.
+</Accordion>
+<Accordion title="Dá para desligar a transcrição?">
+Não pela tela. Todo agente no LangChain Agent transcreve áudio.
+</Accordion>
+<Accordion title="O agente responde em áudio?">
+Só com a voz da ElevenLabs configurada e quando o lead mandou áudio. Veja
+[Segmentação e voz](/engenharia-de-ia/segmentacao-e-voz).
+</Accordion>
+<Accordion title="Existe limite de tamanho?">
+Há três camadas:
+
+- **Meta (conexão oficial):** a mídia que o lead manda pode ter até **100 MB**.
+  Acima disso a Meta não entrega o arquivo e avisa com o erro 131052. Para o que a
+  empresa envia, os limites são por tipo: imagem 5 MB, áudio e vídeo 16 MB,
+  documento 100 MB, figurinha 100 KB (animada 500 KB). Veja
+  [mídia na documentação da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/media).
+- **Zatten (conexão oficial):** arquivo recebido acima de **15 MB** dispara o
+  [webhook de erro](/produto/automacoes/webhooks) com o código `FILE_TOO_LARGE`,
+  mas o arquivo **continua sendo processado** e chega ao agente normalmente. Trate
+  esse webhook como aviso, não como perda da mensagem. Na conexão não oficial não
+  há limite próprio.
+- **Provider do modelo:** tamanho de arquivo e número de páginas de PDF que o modelo
+  aceita. Confira na documentação do provider.
+</Accordion>
+<Accordion title="E no motor antigo?">
+No motor antigo, a Zatten transcreve o áudio e envia imagem e PDF à OpenAI antes
+de chamar o modelo, e a tela tem chaves de interpretação por tipo de mídia. Ele é
+legado: [migre para o LangChain Agent](/engenharia-de-ia/migrar).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo)
+- [Providers: OpenAI e OpenRouter](/engenharia-de-ia/providers)
+- [Resiliência: retry, fallback e erro](/engenharia-de-ia/resiliencia)
+- [Conexões do WhatsApp](/comecar/conexoes-whatsapp)
+- OpenAI, transcrição (speech to text): https://developers.openai.com/api/docs/guides/speech-to-text
+- OpenAI, imagens e visão: https://developers.openai.com/api/docs/guides/images-vision
+- OpenAI, arquivos PDF: https://developers.openai.com/api/docs/guides/pdf-files
+- OpenRouter, entradas multimodais: https://openrouter.ai/docs/guides/overview/multimodal/overview
+- OpenRouter, catálogo de modelos (filtre por entrada): https://openrouter.ai/models
+
+**Termos para buscar:** "whisper-1 transcription", "input modalities image file",
+"vision model PDF input", "WhatsApp supported media types".

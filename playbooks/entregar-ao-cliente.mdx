@@ -1,0 +1,159 @@
+---
+title: "Entregar e operar para o cliente final"
+description: "Leia para levar um cliente final do contrato ao dia a dia: o onboarding em etapas, a marca da agência, quem recebe qual acesso, o treinamento da equipe, o relatório mensal pelas Métricas e o que a agência entrega e cobra."
+---
+
+Entregar um projeto não é ligar o agente. É deixar o cliente final operando sozinho no dia a dia (a equipe dele atende, recebe os transbordos e sabe devolver o lead para a IA) enquanto a agência cuida do que é técnico e prova, todo mês, o valor entregue. A Zatten some: o cliente vê só a marca da agência.
+
+## O que a agência entrega, e o que cobra
+
+Defina isso **antes** do onboarding. Muda quem cria contas, quem paga a Meta e a IA, e o que entra no relatório.
+
+| Item | Quem costuma cuidar |
+|---|---|
+| Plano da Zatten (por projeto) | A agência, que repassa no preço ([zatten.com/planos](https://www.zatten.com/planos)) |
+| Conta Meta Business, forma de pagamento da conta do WhatsApp Business | O **cliente final**, no nome dele: a Meta cobra cada mensagem |
+| Chave da IA (OpenAI ou OpenRouter) | O cliente final, para volume alto ou incerto; a agência, num pacote fechado com franquia |
+| Configuração, testes, templates, automações | A agência (taxa de implantação) |
+| Ajustes, revisão de conversas, relatório | A agência (mensalidade) |
+| Atendimento humano, transbordos | A equipe do cliente final |
+
+Como montar o preço e os pacotes: [Quanto cobrar do cliente final](/comecar/quanto-cobrar). As contas de custo: [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+## Antes do primeiro cliente: a marca da agência
+
+O **white-label** é da conta inteira, não de cada projeto. Configure uma vez:
+
+1. Em **Configurações → Minha Empresa**: nome, logo, cores, favicon e subdomínio (troque o aleatório por um nome seu).
+2. Em **Domínios Customizados**: um subdomínio exclusivo para o painel, como `painel.suaagencia.com.br`. Nunca o domínio do site da agência.
+3. Confira o que o cliente vê com **Acessar Whitelabel**.
+
+Todos os clientes finais veem a mesma marca. Veja [Sua marca: white-label](/comecar/white-label).
+
+## Onboarding em etapas
+
+<Steps>
+<Step title="Briefing e diagnóstico">
+Entenda o negócio, o objetivo do agente (agendar, qualificar, vender, atender), quando um humano assume e quem atende. Com o assistente de IA, isso vai para o `CLIENTE.md`. Veja [Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia) e [Diagnóstico](/trabalhar-com-ia/diagnostico).
+</Step>
+<Step title="Organização e projeto">
+Crie uma **organização** só para o cliente e o projeto dentro dela: por um **modelo de nicho**, ou duplicando um projeto-base da agência. Um projeto é um número de WhatsApp com um agente. Veja [Organizações e projetos](/produto/organizacoes-e-projetos) e os [playbooks por nicho](/playbooks/como-usar).
+</Step>
+<Step title="Conexão do WhatsApp, junto com o cliente">
+Numa chamada com o dono da conta Meta Business do cliente: conexão oficial (ou coexistência, se ele quer continuar no app), forma de pagamento cadastrada na conta do WhatsApp Business e, se houver anúncios, a integração com anúncios. Veja [Qual conexão escolher](/comecar/conexoes-whatsapp).
+</Step>
+<Step title="Templates">
+Crie e envie à Meta os templates de follow-up, lembrete e campanha. A aprovação leva até 24 horas, segundo a Meta: faça cedo.
+</Step>
+<Step title="Agente, funil e automações">
+Prompt, tools, propriedades, colunas, departamentos, follow-ups, transbordo. Siga os playbooks do objetivo: [agendamento](/playbooks/agendamento), [qualificação](/playbooks/qualificacao), [transbordo](/playbooks/transbordo), [follow-up](/playbooks/follow-up-e-reengajamento).
+</Step>
+<Step title="Acessos e departamentos">
+Crie os acessos da equipe do cliente e coloque os atendentes nos departamentos (veja abaixo).
+</Step>
+<Step title="Teste ponta a ponta">
+Pelo WhatsApp, com um número de fora: a conversa típica, um transbordo (o atendente recebeu o aviso?), um follow-up de teste, a devolução para a IA. Veja [Testar o agente](/engenharia-de-ia/testar).
+</Step>
+<Step title="Treinamento e go-live">
+Uma hora com a equipe do cliente (roteiro abaixo). Publique a versão do agente, ligue o agente e as automações.
+</Step>
+<Step title="Acompanhamento das duas primeiras semanas">
+Leia as conversas todo dia na primeira semana. É quando aparecem as perguntas que o prompt não previu.
+</Step>
+</Steps>
+
+## Quem recebe qual acesso
+
+| Pessoa | Papel | Por quê |
+|---|---|---|
+| Dono ou gerente do cliente final | **Gestor** | Opera CRM, campanhas, templates, departamentos e a conexão. Não mexe no prompt, nas automações nem nas chaves de API. |
+| Atendentes do cliente final | **Visualizador** | Vê só os leads atribuídos a ele. Conta no limite de usuários do plano se estiver num departamento. |
+| Quem configura na agência | **Editor** | Agente, automações, chaves, logs. |
+| Cliente que quer ajustar follow-ups sozinho | **Editor** (raro) | O Gestor não vê as automações nativas. Combine o que ele pode mudar. |
+
+Como fazer:
+
+1. Em **Configurações → Gerenciar Acessos**, crie cada acesso já com senha (não há convite por e-mail) e marque só a organização do cliente.
+2. Coloque os atendentes nos **departamentos** certos. Sem departamento, o Visualizador não vê nenhuma conversa e não recebe leads.
+3. Passe o **endereço white-label** (não o app.zatten.com), o e-mail e a senha por um canal seguro. Peça para trocarem a senha.
+
+Detalhes: [Montar a equipe](/comecar/equipe-e-permissoes) e [Papéis e permissões](/produto/papeis-e-permissoes).
+
+<Warning>
+**Funil, tags e propriedades não têm trava por papel.** Qualquer pessoa que abre **Contatos**, inclusive o Visualizador, consegue criar, editar e excluir colunas, tags e propriedades. Excluir uma tag ou coluna usada pelo agente tira a tool junto. Combine com a equipe do cliente que a estrutura é da agência.
+</Warning>
+
+## Treinamento da equipe do cliente
+
+O que a equipe precisa saber fazer, em uma hora:
+
+| Tema | O que mostrar |
+|---|---|
+| **Notificações** | Ativar o sino **Notificações** em **Conversas**, no navegador de cada atendente. É por ali que chega o aviso de transbordo. |
+| **Conversas** | Filtros (Não lidas, Status do agente, Departamento), o painel do lead, mensagens rápidas. |
+| **Responder** | Responder pelo chat assume o lead e pausa a IA. Com a janela de 24h fechada, só template. Veja [Conversas e chat ao vivo](/produto/conversas-e-chat). |
+| **Pausada x desligada** | A pausa acaba sozinha; o transbordo desliga até alguém religar. Veja [Pausa humana](/engenharia-de-ia/pausa-humana). |
+| **Devolver para a IA** | Ligar a chave **Agente IA** ou **Encerrar atendimento**, e quando usar cada um. Veja [Encerrar atendimento](/produto/encerrar-atendimento). |
+| **Kanban** | Mover um lead por vez quando a coluna dispara algo (transbordo, conversão). Mover em massa não aplica as chaves. |
+| **Fora do expediente** | Desligar **Receber Leads** (ou usar o autoatendimento do departamento). |
+
+<Tip>
+Grave o treinamento. Atendente novo do cliente assiste antes de receber o acesso.
+</Tip>
+
+## Relatório mensal
+
+Monte o relatório com a tela [Métricas](/produto/metricas) de cada projeto. Escolha o mês no topo.
+
+| Indicador | De onde vem | Como apresentar |
+|---|---|---|
+| **Contatos novos** | Card **Contatos** | Total, e quantos vieram de anúncio (Meta) x orgânico |
+| **Atendimentos da IA** | Card **Automação**: mensagens do Agente x do Humano | "A IA respondeu X% das mensagens": Agente ÷ (Agente + Humano) |
+| **Funil** | **Funil de Conversão** | Leads por etapa. É uma foto do momento: tire no mesmo dia de cada mês e compare com o anterior |
+| **Resultados** | Colunas de resultado (Agendado, Qualificado, Venda) | O número que o cliente entende: agendamentos, leads qualificados, vendas |
+| **Anúncios** | **Conversões** e **Leads por campanha** | Conversões enviadas ao Meta Ads, por evento, e o valor das compras |
+| **Campanhas** | Relatório de cada [campanha](/produto/campanhas) | Enviadas, entregues, lidas, respostas |
+| **Custo da IA** | Painel de uso do provider ou [LangSmith](/engenharia-de-ia/langsmith) | Custo por atendimento, não por token |
+| **O que mudou** | `MEMORIA.md` do cliente | Ajustes feitos no mês e o porquê |
+| **Próximos passos** | A sua análise | Até três recomendações |
+
+Regras para não errar:
+
+- **O gasto com IA da tela fica zerado no LangChain Agent** (e é aproximado no motor antigo). Use o valor do provider. Veja [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia).
+- **O mês da tela vira em UTC** (21h de Brasília no último dia).
+- **Não há exportação na tela.** Copie da tabela **Dados Detalhados**.
+- **Fale a língua do cliente:** atendimentos, agendamentos, vendas, horas economizadas. Não tokens.
+
+O assistente de IA não lê métricas pelo MCP. Para montar o relatório, ele abre `/metrics` pelo [navegador](/trabalhar-com-ia/navegador) ou calcula a partir do histórico pela [API](/trabalhar-com-ia/api-do-dia-a-dia).
+
+## Operação contínua
+
+| Frequência | O que fazer |
+|---|---|
+| Semanal | Ler uma amostra de conversas, principalmente as transferidas e as sem resultado. Conferir leads esperando a equipe. |
+| Quinzenal | Ajustar prompt, skills e tools pelo que as conversas mostraram. Testar e publicar uma versão nova. Veja [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao). |
+| Mensal | Relatório. Qualidade do número e dos templates. Limite de usuários e de contatos do plano. |
+| A cada mudança no negócio | Preços, horários, serviços novos: prompt e skills. |
+
+Mudanças que o cliente fez pelo painel aparecem na próxima leitura do template. Veja [Mudanças feitas pelo painel](/trabalhar-com-ia/mudancas-pelo-painel).
+
+## Armadilhas
+
+- **Quem cria o projeto entra em todos os departamentos dele, já recebendo leads.** Antes do go-live, tire a pessoa da agência dos departamentos (ou desligue o **Receber Leads** dela). Senão, ela recebe leads do cliente e ocupa uma vaga do limite de usuários.
+- **Conta Meta e pagamento no nome da agência** prendem o cliente à agência e jogam o custo de mensagens na sua conta. Prefira no nome do cliente.
+- **Sem forma de pagamento na conta do WhatsApp Business**, a Meta não entrega as respostas do agente.
+- **Projeto novo não entra sozinho no acesso** de quem não é Admin. Marque o projeto no acesso das pessoas.
+- **Mover o projeto de organização** pode tirar o acesso de quem o via pela organização antiga.
+- **Atendente sem departamento** não vê conversa nenhuma.
+- **Uma marca só.** Não prometa a um cliente uma marca diferente da dos outros na mesma conta.
+- **Relatório com o gasto da tela** sai zerado no LangChain Agent. Use o provider ou o LangSmith.
+
+## Para saber mais
+
+- [Quanto cobrar do cliente final](/comecar/quanto-cobrar) e [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- [Sua marca: white-label](/comecar/white-label)
+- [Montar a equipe](/comecar/equipe-e-permissoes) e [Papéis e permissões](/produto/papeis-e-permissoes)
+- [Organizações e projetos](/produto/organizacoes-e-projetos) e [Departamentos](/produto/departamentos)
+- [Métricas](/produto/metricas) e [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia)
+- [Como usar os playbooks](/playbooks/como-usar)
+- Termos para buscar: "onboarding de cliente de agência", "relatório mensal de resultados", "taxa de setup", "controle de acesso por papel (RBAC)".

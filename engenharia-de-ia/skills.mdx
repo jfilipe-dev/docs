@@ -1,0 +1,209 @@
+---
+title: "Skills do agente"
+description: "Leia para dar ao agente conhecimento longo (políticas, tabelas, roteiros) sem inchar o prompt: como a skill é carregada, como escrever nome, descrição e conteúdo, tamanho e os dois ajustes que a fazem sumir sem aviso."
+---
+
+Uma **skill do agente** é um bloco de conhecimento que o agente carrega só quando
+precisa: a política de trocas, o roteiro de qualificação, as regras de frete. O
+prompt fica curto e o conteúdo da skill só entra no contexto da conversa em que
+ele é útil.
+
+Use skill para conhecimento longo que vale só em parte das conversas. Regra que
+vale sempre fica no [prompt](/engenharia-de-ia/prompt). Dado que muda (preço,
+estoque, agenda) fica numa [tool](/engenharia-de-ia/tools/visao-geral), e a skill
+ensina a buscá-lo.
+
+<Note>
+Skill do agente é diferente da **skill da Zatten**, o pacote instalado no
+assistente da agência. Ver o [Glossário](/inicio/glossario).
+</Note>
+
+## Onde fica no painel
+
+Menu **Agente** (`/project`), seção **Tools** → **Adicionar** → grupo
+**Utilidades** → **Skill**. Cada skill aparece como uma tool na lista do agente.
+
+Skill faz parte do config do agente: salvar cria um rascunho, e o lead só recebe a
+skill depois de **Publicar** ([Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)).
+
+## Como configurar
+
+| Campo | O que faz | Regras |
+|---|---|---|
+| **Nome** | O identificador que o modelo usa para pedir a skill. | Vira minúsculas com underscore ao sair do campo: "Política de Troca" vira `politica_de_troca`. Único no agente. |
+| **Quando usar** | A única coisa que o modelo lê antes de decidir carregar a skill. | Obrigatório. Diga **em que situação** o conteúdo ajuda, não o que ele contém. |
+| **Conteúdo** | O texto entregue ao modelo quando ele pede a skill. | Obrigatório. Markdown livre. Digite `@` para citar uma tool do agente. |
+
+### Como escrever cada parte
+
+**Nome:** curto e descritivo, do assunto. `politica_de_troca`, `roteiro_orcamento`,
+`duvidas_convenio`. Evite nomes genéricos como `info` ou `regras`.
+
+**Quando usar:** é um prompt de decisão. Escreva o gatilho e o assunto.
+
+| Fraco | Bom |
+|---|---|
+| "Política de trocas da loja." | "Quando o lead quiser trocar, devolver ou reclamar de um produto: prazos, o que a loja aceita e como abrir a troca." |
+| "Convênios." | "Quando o lead perguntar se a clínica atende o convênio dele, ou quanto custa a consulta particular." |
+
+**Conteúdo:** escreva para o modelo, em tópicos, com a regra e a exceção. Diga o
+que fazer, não só o que é. Se a resposta depende de dado vivo, aponte para a tool
+em vez de copiar o dado:
+
+```markdown
+## Tabela de preços
+Não está aqui. Use @buscar_precos com o SKU do produto.
+Os preços mudam todo dia: nunca cite preço de memória.
+
+## Prazo de troca
+7 dias corridos a partir da entrega, com nota fiscal.
+Produto de higiene pessoal não tem troca.
+Para abrir a troca, use @abrir_chamado_troca.
+```
+
+Uma skill de 2 KB que ensina a buscar vale mais que uma de 200 KB que carrega
+tudo, e não fica desatualizada.
+
+## Como funciona por trás
+
+- Todas as skills do agente viram **uma única tool**, `load_skill`. A descrição
+  dessa tool lista as skills como `- nome: quando usar`. É só isso que o modelo vê
+  em toda chamada: cerca de 20 tokens por skill.
+- Quando a conversa pede, o modelo chama `load_skill` com o nome. O conteúdo volta
+  como resultado da tool e passa a fazer parte do histórico **daquela conversa**.
+- Se o modelo pedir um nome que não existe, recebe a lista das skills disponíveis
+  e se corrige na chamada seguinte.
+- A skill fica guardada **dentro do config** do agente. Por isso ela é versionada
+  junto: restaurar uma versão antiga restaura o texto das skills daquela versão.
+- Depois de carregada, a skill é reenviada ao modelo em toda resposta seguinte da
+  conversa, como qualquer histórico. Skill grande carregada cedo pesa em todas as
+  respostas depois dela ([Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia)).
+
+### Tamanho
+
+O agente não tem limite prático: montar o agente com 1 MB de skills leva o mesmo
+tempo que sem skill. O que pesa é o **editor**: acima de cerca de **100 KB** somados,
+salvar e abrir o editor fica lento, e o painel avisa. O que pesa também é o custo:
+o conteúdo carregado é cobrado como tokens de entrada em todas as respostas
+seguintes da conversa.
+
+Recomendação: várias skills pequenas e focadas em vez de uma grande. Uma skill por
+assunto que o lead pode puxar.
+
+### Os dois ajustes que fazem a skill sumir
+
+Dois ajustes do agente quebram skills **sem dar erro**. O agente responde como se
+o conhecimento não existisse.
+
+| Ajuste | O que acontece | Proteção |
+|---|---|---|
+| **Descartar resultados** (`context_editing`) | Apaga resultados antigos de tools quando o contexto cresce. A skill carregada é um resultado de tool: some no meio da conversa. | `exclude_tools: ["load_skill"]` |
+| **Filtrar tools** (`tool_selector`) | Esconde as tools que não parecem relevantes para a mensagem. Se esconder `load_skill`, o agente nem sabe que tem skills. | `always_include: ["load_skill"]` |
+
+**Pelo painel**, a proteção é automática: ao salvar um agente que tem skill, com
+um desses ajustes ligado, o painel acrescenta `load_skill` na exceção. **Pelo MCP
+ou pela API, não**: quem escreve o config precisa incluir.
+
+## Pelo MCP
+
+Há dois caminhos, com comportamentos diferentes.
+
+**Bloco `skills` do template.** Grava a skill no projeto e, se o projeto está no
+LangChain Agent, acrescenta ao config as skills que o agente **ainda não tem**
+(cria uma versão não publicada). O nome vem do `slug` (ou do `name`), convertido
+para minúsculas com underscore; `prompt` vira o conteúdo. Skill que o agente já
+tem **não é sobrescrita**, e skill sem conteúdo não entra (os dois casos geram
+nota).
+
+**Bloco `langchain`.** Para mudar o texto de uma skill que já existe, altere a
+tool `type: "skill"` dentro de `langchain.config.tools`. Mande o bloco inteiro como
+veio do `get_template`, com a alteração.
+
+<Visibility for="agents">
+Tool de skill no config:
+
+```json
+{
+  "_zatten": { "template": "agent.knowledge" },
+  "type": "skill",
+  "name": "politica_de_troca",
+  "description": "Quando o lead quiser trocar, devolver ou reclamar de um produto: prazos, o que a loja aceita e como abrir a troca.",
+  "content": "## Prazo de troca\n7 dias corridos a partir da entrega..."
+}
+```
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `type` | `"skill"` | |
+| `name` | string | Obrigatório. Minúsculas, sem acento, `_` no lugar de espaço. Único entre as skills |
+| `description` | string | Obrigatório. É o "Quando usar" |
+| `content` | string | Obrigatório. Não vazio |
+| `_zatten.template` | `"agent.knowledge"` | Faz o painel reabrir no editor de skill. Ignorado pelo agente |
+
+Proteções que o MCP **não** aplica sozinho. Se o config tem skill e um destes
+ajustes ligado, inclua:
+
+```json
+"settings": {
+  "context_editing": { "enabled": true, "edits": [{ "exclude_tools": ["load_skill"] }] },
+  "tool_selector": { "enabled": true, "always_include": ["load_skill"] }
+}
+```
+
+`edits` é uma lista: cada item precisa de `load_skill` em `exclude_tools`.
+
+Citar uma tool no conteúdo (`@nome`) que não existe no agente gera aviso no painel.
+O nome de uma tool da Composio é `TOOLKIT_ACTION` em maiúsculas (ex.:
+`GMAIL_SEND_EMAIL`).
+</Visibility>
+
+## Armadilhas
+
+- **Descrição ruim = skill que nunca carrega.** O modelo decide pela descrição. Se
+  ela descreve o conteúdo ("Tabela de convênios") em vez do gatilho ("Quando o lead
+  perguntar se atendemos o convênio dele"), o modelo raramente pede.
+- **Skill com regra que vale sempre.** Se o agente precisa saber aquilo em toda
+  conversa, vá para o prompt. Skill que nunca é carregada não protege nada.
+- **Duas skills com o mesmo nome** são bloqueadas no painel. Pelo template, a segunda
+  é tratada como "já existe" e não entra.
+- **Skill que cita tool inexistente** manda o modelo chamar algo que não está lá.
+  Confira os `@nome` depois de renomear ou apagar uma tool.
+- **Bloco `skills` não atualiza texto.** Mandar o mesmo `slug` com conteúdo novo no
+  bloco `skills` não muda a skill do agente. Altere pelo bloco `langchain`.
+- **Esquecer de publicar.** A skill nova só chega aos leads depois de **Publicar**.
+- **Resumo do histórico pode resumir a skill.** Com o resumo automático ligado, uma
+  skill carregada há muitas mensagens pode virar parte do resumo. O modelo pode
+  carregá-la de novo; diga no prompt para recarregar a skill antes de responder
+  sobre aquele assunto se houver dúvida ([Conversas longas](/engenharia-de-ia/conversas-longas)).
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Skill substitui a base de conhecimento (busca em arquivos) do motor antigo?">
+Para a maior parte dos casos, sim: textos de política, roteiros e FAQs viram skills.
+Para muito material (catálogos, manuais longos), use uma tool que busca o trecho
+certo numa API sua e uma skill curta que ensina a usá-la. Ver
+[LangChain Agent x motor antigo](/engenharia-de-ia/langchain-x-motor-antigo).
+</Accordion>
+<Accordion title="Quantas skills posso ter?">
+Não há limite de quantidade. Cada skill custa cerca de 20 tokens no catálogo, em
+toda chamada. Dezenas de skills funcionam; o que importa é cada descrição dizer
+claramente quando usar.
+</Accordion>
+<Accordion title="Como sei se o agente carregou a skill?">
+No [chat de teste](/engenharia-de-ia/testar) a chamada a `load_skill` aparece como
+tool. Em produção, aparece nas mensagens de tool da conversa e, com o monitoramento
+ligado, no [LangSmith](/engenharia-de-ia/langsmith).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Escrever um bom prompt](/engenharia-de-ia/prompt)
+- [Tools: visão geral](/engenharia-de-ia/tools/visao-geral)
+- [Conversas longas: resumo e limpeza de contexto](/engenharia-de-ia/conversas-longas)
+- [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) (seletor de tools)
+- [Referência do config do agente](/engenharia-de-ia/referencia-do-config)
+- Anthropic: [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- LangChain: [engenharia de contexto](https://docs.langchain.com/oss/python/langchain/context-engineering)
+- Termos para buscar: "progressive disclosure", "agent skills", "context engineering", "just-in-time context".

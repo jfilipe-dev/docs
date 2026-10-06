@@ -1,0 +1,144 @@
+---
+title: "Transbordo por inatividade"
+description: "Leia para mover o lead para um humano depois de X minutos sem interação: colunas de origem e destino, mensagem dentro e fora do horário comercial, fuso e o que acontece com a janela de 24h fechada."
+---
+
+O transbordo por inatividade, depois de **X minutos sem interação**, manda uma mensagem ao lead e o **move para outra coluna**, normalmente a de atendimento humano. Serve para não deixar o lead esperando quando o agente travou numa conversa ou quando o lead some no meio do atendimento.
+
+## Onde fica no painel
+
+**Automações → Automações nativas → criar → Transbordo por Inatividade.** Funciona em todas as conexões.
+
+## Como configurar
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Nome** | Nome na lista. Obrigatório. | — |
+| **Tempo de inatividade (minutos)** | Quantos minutos depois do fim da interação o transbordo age. Sempre em **minutos**, mínimo 1. | — |
+| **Coluna de destino** | Para onde o lead vai. Obrigatória. | — |
+| **Colunas de origem (opcional)** | Só leads que estão numa destas colunas. Vazio vale para todas. | Todas |
+| **Tags de origem (opcional)** | Só leads com pelo menos uma destas tags. Vazio vale para todos. | Todos |
+| **Mensagem de transbordo** | Texto enviado ao lead antes de mover. Opcional: vazio, só move. Com horário comercial ligado, o campo vira **Mensagem dentro do horário comercial**. | — |
+| **Horário Comercial** | Liga uma mensagem diferente fora do horário. | Desligado |
+| **Horários por dia** | Para cada dia: ligado ou não, início e fim. | Seg a sex, 09:00–18:00. Sábado (09:00–13:00) e domingo desligados. |
+| **Mensagem fora do horário comercial** | Texto enviado fora do horário. | — |
+
+Para 24 horas = 1.440 minutos.
+
+### O fuso do horário comercial
+
+O painel grava o horário no fuso de **Brasília** (`America/Sao_Paulo`). Para outro fuso, o horário é ajustado pelo template (veja Pelo MCP).
+
+- O início conta como dentro; o fim, como fora. Com 09:00–18:00, às 18:00 já é fora do horário.
+- O intervalo não atravessa a meia-noite. Para atender de 20:00 às 02:00, não funciona num dia só.
+- Dia desligado é sempre fora do horário.
+
+## Como funciona por trás
+
+### Quando é agendado e cancelado
+
+- **Agenda** a cada interação concluída: o agente respondeu, ou um humano respondeu pelo CRM. A coluna com "Disparar automações" e a rota `POST /automations/trigger` **não** agendam o transbordo.
+- **Refaz do zero** a cada nova interação concluída.
+- **Cancela** quando o lead escreve com a IA pausada ou desligada, ou com o agente fora do Horário de funcionamento.
+
+Os filtros de coluna e tag são avaliados no agendamento. Detalhes do ciclo em [Quando as automações disparam](/produto/automacoes/quando-disparam).
+
+### O que acontece na hora
+
+<Steps>
+<Step title="Confere">
+O transbordo continua ligado, o lead ainda está numa das colunas de origem (se houver) e **não** está já na coluna de destino. As tags não são conferidas de novo.
+</Step>
+<Step title="Escolhe a mensagem">
+Com horário comercial ligado: dentro do horário, a mensagem de dentro; fora, a de fora. Sem horário comercial: a mensagem de transbordo.
+</Step>
+<Step title="Envia o texto">
+Como texto comum, pela conexão do projeto. Se a mensagem estiver vazia, pula.
+</Step>
+<Step title="Move o lead">
+Para a coluna de destino. As chaves da coluna de destino valem: **Desativar IA** desliga a IA do lead; **Transbordo** desliga a IA e avisa o responsável. Também saem o webhook `LEAD_KANBAN_UPDATED`, as [conversões](/produto/automacoes/conversoes-meta) da coluna e os fluxos com o gatilho "Movido no Kanban". A chave "Disparar automações" da coluna de destino **não** vale.
+</Step>
+</Steps>
+
+### A janela de 24h
+
+| Conexão | Janela aberta | Janela fechada |
+|---|---|---|
+| Oficial e coexistência | Mensagem sai e o lead é movido. | A mensagem **não sai**, mas o lead **é movido** mesmo assim. |
+| Não oficial | Não há janela: a mensagem sempre sai e o lead é movido. | — |
+
+Na oficial, mantenha o tempo de inatividade bem abaixo de 24 horas, contando que a janela abre com a última mensagem **do lead**, não com a resposta do agente.
+
+## Configure a coluna de destino
+
+O transbordo só move. Quem para a IA e avisa o humano é a coluna de destino. Para um transbordo de verdade, ligue na coluna de destino a chave **Transbordo** (desliga a IA do lead e avisa o responsável) e garanta que o lead tenha responsável (por departamento com rodízio, por exemplo). Veja [Funil (Kanban)](/produto/funil-kanban) e [Departamentos](/produto/departamentos).
+
+## Pelo MCP
+
+Bloco `inactivity_handovers`.
+
+- Identificado por `name`. Sem `status`, nasce desligado.
+- Colunas e tags por nome: `target_column_name`, `source_column_names`, `source_tag_names`. Coluna de destino inexistente faz o transbordo ser ignorado, com nota; origens inexistentes são retiradas, com nota.
+- `delay` em minutos.
+- `business_hours.timezone` aceita outro fuso IANA (por exemplo `America/Manaus`). O painel sempre regrava `America/Sao_Paulo` ao salvar o formulário.
+
+<Visibility for="agents">
+```json
+{
+  "inactivity_handovers": [
+    {
+      "name": "Inatividade 30 min → humano",
+      "delay": 30,
+      "target_column_name": "Atendimento humano",
+      "source_column_names": ["Qualificação", "Orçamento"],
+      "source_tag_names": [],
+      "within_hours_message": "Vou te passar para alguém da equipe, só um instante.",
+      "outside_hours_message": "Nossa equipe volta amanhã às 9h e te responde por aqui.",
+      "business_hours_enabled": true,
+      "business_hours": {
+        "timezone": "America/Sao_Paulo",
+        "schedule": [
+          { "day": "MONDAY", "start": "09:00", "end": "18:00", "enabled": true },
+          { "day": "TUESDAY", "start": "09:00", "end": "18:00", "enabled": true },
+          { "day": "WEDNESDAY", "start": "09:00", "end": "18:00", "enabled": true },
+          { "day": "THURSDAY", "start": "09:00", "end": "18:00", "enabled": true },
+          { "day": "FRIDAY", "start": "09:00", "end": "18:00", "enabled": true },
+          { "day": "SATURDAY", "start": "09:00", "end": "13:00", "enabled": false },
+          { "day": "SUNDAY", "start": "09:00", "end": "18:00", "enabled": false }
+        ]
+      },
+      "status": "ACTIVE"
+    }
+  ]
+}
+```
+`start`/`end` em `HH:MM` (24h). `day`: `MONDAY`…`SUNDAY`.
+</Visibility>
+
+## Armadilhas
+
+- **Sem coluna de origem, o transbordo age até em leads encerrados.** Encerrar o atendimento não cancela o transbordo agendado, e o lead volta para a primeira coluna. Se o transbordo vale para todas as colunas, ele manda a mensagem e move esse lead. Sempre defina as colunas de origem.
+- **Coluna de destino sem "Transbordo" ou "Desativar IA"** move o lead, mas o agente continua respondendo.
+- **Fora da janela de 24h, o lead muda de coluna sem receber aviso** (conexão oficial).
+- **Tags de origem só valem no agendamento.** Tirar a tag depois não impede o transbordo.
+- **Rota de API não agenda transbordo.** `POST /automations/trigger` e a coluna com "Disparar automações" agendam follow-up e webhooks, mas não o transbordo.
+- **Fuso fixo no painel.** Clientes fora do horário de Brasília precisam do ajuste pelo template.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Posso ter mais de um transbordo?">
+Sim. Cada um é agendado de forma independente. Use colunas de origem diferentes para não disputarem o mesmo lead: o primeiro que agir move o lead, e o segundo para de valer quando o lead sai da coluna de origem.
+</Accordion>
+<Accordion title="A mensagem do transbordo reinicia o relógio dos follow-ups?">
+Não. A mensagem do transbordo não conta como interação concluída.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Funil (Kanban)](/produto/funil-kanban)
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- [Janela de 24h](/comecar/janela-de-24h)
+- [Playbook: transbordo](/playbooks/transbordo)
+- Termos para buscar: "handoff para humano", "IANA time zone", "horário comercial WhatsApp".

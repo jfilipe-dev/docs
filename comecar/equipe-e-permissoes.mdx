@@ -1,0 +1,113 @@
+---
+title: "Montar a equipe: usuários e permissões"
+description: "Leia para criar acessos para a equipe da agência e do cliente final, escolher entre os quatro papéis e entender o que cada um vê e quanto conta no limite do plano."
+---
+
+Os acessos são criados pela própria agência, **já com senha**: não existe convite por e-mail. Cada acesso tem um **papel** (Admin, Editor, Gestor ou Visualizador), a lista de **organizações e projetos** que a pessoa vê e os **departamentos** em que ela atende.
+
+## Criar um acesso
+
+Em **Configurações → Gerenciar Acessos**, crie o usuário. A tela de criação tem três passos:
+
+<Steps>
+<Step title="Dados e papel">
+Nome, e-mail, senha e papel. A conta é criada na hora, já confirmada.
+</Step>
+<Step title="Organizações e projetos">
+Quais organizações e quais projetos a pessoa enxerga. O admin vê tudo, sempre.
+</Step>
+<Step title="Departamentos">
+Em quais departamentos de cada projeto a pessoa atende (recebe leads e aparece no rodízio).
+</Step>
+</Steps>
+
+**Nenhum e-mail é enviado.** Passe o endereço do painel, o e-mail e a senha para a pessoa por um canal seguro, e peça que ela troque a senha no primeiro acesso.
+
+## Os quatro papéis
+
+| Papel | Para quem | Resumo |
+|---|---|---|
+| **Admin** | O dono da agência. É quem criou a conta. | Vê e faz tudo: assinatura, marca, domínio, projetos, ferramentas de IA (MCP). |
+| **Editor** | Quem configura projetos na agência. | Configura o agente, as automações, o WhatsApp, as chaves de API e os logs. Não vê assinatura, marca nem domínio. |
+| **Gestor** | O gerente da operação, muitas vezes do cliente final. | Opera CRM, campanhas, templates, conexão do WhatsApp e departamentos. Não vê nem edita o prompt, as automações e as chaves de API, e não conecta integrações. |
+| **Visualizador** | O atendente. | Vê só os leads atribuídos a ele (em Conversas e em Contatos) e as métricas. |
+
+### O que cada papel vê
+
+| Área do painel | Admin | Editor | Gestor | Visualizador |
+|---|---|---|---|---|
+| Setup Inicial | Sim | Sim | Não | Não |
+| Agente: configurar (prompt, modelo, ferramentas) | Sim | Sim | Não | Não |
+| Agente: conversar no chat de teste | Sim | Sim | Sim | Sim |
+| Agente: ligar e desligar | Sim | Sim | Sim | Não |
+| WhatsApp (conexão e templates) | Sim | Sim | Sim | Não |
+| Automações | Todas as abas | Todas as abas | Só **Mensagens rápidas** | Não |
+| Integrações (conectar, listar, desconectar) | Sim | Sim | Não (vê o menu, mas não usa) | Não |
+| Conversas e Contatos | Todos os leads | Todos os leads | Todos os leads | Só os leads atribuídos a ele |
+| Funil (colunas), tags e propriedades: criar, editar, excluir | Sim | Sim | Sim | Sim |
+| Métricas | Sim | Sim | Sim | Sim |
+| Departamentos e Campanhas | Sim | Sim | Sim | Não |
+| Logs e API Keys | Sim | Sim | Não | Não |
+| Assinatura | Sim (no endereço principal) | Não | Não | Não |
+| Trocar a conexão de projeto, excluir projeto | Sim | Não | Não | Não |
+
+### Abas de Configurações por papel
+
+| Papel | Abas |
+|---|---|
+| Admin | Conta, Projetos, Gerenciar Acessos, Minha Empresa, Apps, Domínios Customizados, Conectar ferramentas de IA |
+| Editor | Conta, Gerenciar Acessos, Apps |
+| Gestor | Conta, Gerenciar Acessos |
+| Visualizador | Conta |
+
+### Quem pode criar e remover quem
+
+- **Admin:** cria Editor, Gestor e Visualizador.
+- **Editor e Gestor:** criam só Visualizador.
+- Editor e Gestor **não removem** outro Editor ou Gestor.
+- O papel Admin não é oferecido na criação de acesso: a conta tem o admin que a criou.
+
+A matriz completa, tela a tela, está em [Usuários, papéis e permissões (referência)](/produto/papeis-e-permissoes).
+
+## Limite de usuários do plano
+
+O limite de usuários é **por projeto** e conta as **pessoas distintas nos departamentos do projeto**. A mesma pessoa em dois departamentos do mesmo projeto conta uma vez. Quem só tem acesso para ver o projeto, sem estar em departamento, não conta.
+
+Ao colocar no departamento uma pessoa que passaria do limite, a Zatten recusa. Para liberar vaga, tire alguém dos departamentos ou suba de plano. Veja [Planos, limites e cobrança](/comecar/planos-e-limites).
+
+## Como dar acesso ao cliente final
+
+1. Coloque os projetos do cliente final numa **organização** só dele.
+2. Crie os acessos da equipe dele como **Gestor** (gerente) ou **Visualizador** (atendentes), marcando só essa organização.
+3. Coloque os atendentes nos **departamentos** certos.
+4. Passe para eles o endereço **white-label** da agência (subdomínio ou domínio próprio), não o app.zatten.com. Veja [White-label](/comecar/white-label).
+
+## Armadilhas
+
+- **Não dá para adicionar um e-mail que já existe na Zatten.** Uma pessoa que já tem acesso em outra conta precisa de outro e-mail nesta.
+- **Esquecer o passo de departamentos** deixa a pessoa sem receber leads, mesmo vendo o projeto.
+- **Visualizador sem departamento** não vê lead nenhum, nem em Conversas nem em Contatos, porque só vê os atribuídos a ele.
+- **Funil, tags e propriedades não têm trava por papel.** Qualquer pessoa que abre **Contatos**, inclusive o Visualizador, consegue criar, editar e excluir colunas, tags e propriedades. Se o cliente final não pode mexer na estrutura, combine isso com a equipe dele.
+- **Gestor vê o menu Integrações, mas não usa.** Listar e conectar integrações exige Admin ou Editor.
+- **Gestor não acessa as automações nativas.** Se o cliente final precisa mexer em follow-up ou webhooks, o papel é Editor.
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://youtube.com/embed/viWwc6rcgkE"
+  title="Vídeo: equipe e permissoes"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Usuários, papéis e permissões (referência)](/produto/papeis-e-permissoes).
+- [Departamentos e distribuição](/produto/departamentos).
+- [Entregar e operar para o cliente final](/playbooks/entregar-ao-cliente).
+- Termos para buscar: "controle de acesso por papel (RBAC)", "round robin de atendimento".

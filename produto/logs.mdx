@@ -1,0 +1,174 @@
+---
+title: "Logs"
+description: "Leia para depurar o agente e as mensagens de um projeto pela tela Logs: os tipos (erros, function calls, mídia, textos, templates), a busca, o que cada erro comum quer dizer e quando ir para o LangSmith."
+---
+
+A tela **Logs** lista tudo o que passou pelo projeto, mensagem a mensagem, com o
+**tipo** de cada registro e o detalhe do erro quando algo falhou. É onde se
+descobre por que o agente não respondeu, por que uma mensagem não foi entregue ou
+por que uma mídia foi ignorada.
+
+## Onde fica no painel
+
+Menu **Logs** (`/logs`), título **Logs do agente**. Só **admin** e **editor** veem;
+gestor e visualizador não têm o menu.
+
+A tabela mostra, da mais recente para a mais antiga, 20 por página:
+
+| Coluna | O que é |
+|---|---|
+| **Lead** | Nome e WhatsApp do lead |
+| **Tipo** | O tipo do registro. Erros aparecem em vermelho |
+| **Enviado por** | **Lead**, **Agente de IA**, **Usuário** (um humano da equipe) ou **Sistema** |
+| **Mensagem** | O texto, quando há |
+| **Detalhes** | A explicação do erro, ou o detalhe técnico que veio do provider |
+
+## Como usar
+
+### Filtrar por tipo
+
+| Filtro | O que entra |
+|---|---|
+| **Todos** | Tudo |
+| **Erros** | Todos os tipos de erro (da IA, da Meta, de mídia, de tool) |
+| **Function Calls** | Chamadas de tool, MCP, busca na web, busca em arquivos e o raciocínio do modelo (motor antigo) |
+| **Mídia** | Áudio, imagem, documento, vídeo, contato, botão, figurinha, localização |
+| **Textos** | Mensagens de texto e reações |
+| **Templates** | Templates da Meta enviados |
+
+### Buscar
+
+O campo **Buscar por Erro, Nome e WhatsApp do lead** procura primeiro leads pelo
+nome ou número. Se achar, mostra os registros desses leads. Se não achar nenhum
+lead, procura o termo no texto da mensagem e no detalhe do erro.
+
+## Como depurar o agente
+
+<Steps>
+<Step title="Ache o lead">
+Busque pelo número ou nome do lead que reclamou. Veja a sequência: a mensagem do
+lead, o que veio depois.
+</Step>
+<Step title="Filtre por Erros">
+Se houver um erro logo depois da mensagem do lead, ele explica a falta de
+resposta. Leia o **Tipo** e os **Detalhes** e use a tabela abaixo.
+</Step>
+<Step title="Sem erro e sem resposta?">
+Provavelmente a IA estava pausada ou desligada para o lead, ou a mensagem ainda
+estava no buffer. Confira no chat do lead e em [Pausa humana](/engenharia-de-ia/pausa-humana)
+e [Buffer](/engenharia-de-ia/buffer).
+</Step>
+<Step title="Respondeu errado?">
+Logs mostram o que foi enviado, não por que o modelo decidiu assim. No LangChain
+Agent, as chamadas de tool e o raciocínio ficam no
+[LangSmith](/engenharia-de-ia/langsmith), com cada passo da conversa. Ligue o
+LangSmith no projeto antes de precisar.
+</Step>
+</Steps>
+
+<Note>
+No **LangChain Agent**, as chamadas de tool **não aparecem** no filtro Function
+Calls: ficam no LangSmith. Esse filtro mostra as chamadas do motor antigo. Mais um
+motivo para [migrar](/engenharia-de-ia/migrar) e ligar o LangSmith.
+</Note>
+
+### O que cada erro comum quer dizer
+
+| Tipo | O que aconteceu | O que fazer |
+|---|---|---|
+| `ERROR_OPENAI_KEY`, `ERROR_OPENAI_AUTHENTICATION` | A chave do modelo é inválida, foi revogada ou não tem crédito | Confira a chave e o saldo no provider ([Providers](/engenharia-de-ia/providers)) |
+| `ERROR_OPENAI_RATE_LIMIT` | O provider limitou as chamadas | Suba o limite da conta no provider ou configure fallback ([Resiliência](/engenharia-de-ia/resiliencia)) |
+| `ERROR_OPENAI_TOKENS_EXCEEDED` | A conversa passou do contexto do modelo | Ligue o resumo de conversas longas ([Conversas longas](/engenharia-de-ia/conversas-longas)) |
+| `ERROR_OPENAI_TIMEOUT`, `ERROR_OPENAI_SERVER` | O provider demorou ou caiu | Fallback de modelo e retry |
+| `ERROR_OPENAI_INVALID_REQUEST`, `ERROR_OPENAI` | O provider recusou a chamada; o motivo está em Detalhes | Leia o detalhe: modelo inexistente, parâmetro não suportado, tool inválida |
+| `ERROR_TOOL_CALL`, `ERROR_MCP_CALL` | Uma tool ou servidor MCP falhou | Teste o endpoint da tool ([Tools](/engenharia-de-ia/tools/visao-geral)) |
+| `ERROR_MEDIA_INTERPRETATION` | O lead mandou áudio, imagem ou PDF e a interpretação dessa mídia está desligada | Ligue a interpretação ([Mídia](/engenharia-de-ia/midia)) |
+| `ERROR_UNSUPPORTED_MEDIA` | Mídia que o agente não lê: vídeo ou documento que não é PDF. Na conexão oficial, figurinha, localização e reação são descartadas antes de gravar e nem aparecem aqui | Nada a corrigir; um humano pode responder |
+| `ERROR_META_REENGAGEMENT` | Texto livre fora da janela de 24h (código Meta 131047) | Use template ([Janela de 24h](/comecar/janela-de-24h)) |
+| `ERROR_META_UNDELIVERABLE` | A Meta não conseguiu entregar (código 131026): número sem WhatsApp, termos da Meta não aceitos pelo lead ou app desatualizado | Confira o número |
+| `ERROR_META_TIMEOUT` | A Meta não entregou (código 131049), em geral por limite de mensagens de marketing por pessoa | Espere ao menos 24 horas antes de reenviar e espace os envios de marketing |
+| `ERROR_META_UNKNOWN` | Tipo de mensagem não suportado pela Meta (código 131051) | Envie em outro formato |
+| `ERROR_META_UNAVAILABLE` | Mensagem que a Meta não mostra no CRM (ex.: de anúncio na coexistência) | Ver [Mensagens não visíveis](/produto/automacoes/mensagens-nao-visiveis) |
+| `ERROR_META_UNSUPPORTED_MESSAGE` | Mensagem que a API não exibe | Abra o WhatsApp no celular para ver |
+| `ERROR_META`, `ERROR`, `UNKNOWN` | Outro erro; o código e a mensagem estão em Detalhes | Leia o detalhe; se persistir, fale com o [suporte pelo WhatsApp](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0) |
+
+<Note>
+**No LangChain Agent, todo erro do agente é gravado como `ERROR_OPENAI`**, qualquer
+que seja o provider (OpenAI ou OpenRouter): modelo que recusou ou caiu, tempo
+esgotado, servidor MCP fora do ar. O prefixo OPENAI é histórico. O motivo real está em
+**Detalhes**, num texto que começa com "LangGraph error:" ou "LangGraph request
+failed:". Os tipos específicos (`ERROR_OPENAI_KEY`, `_RATE_LIMIT`, `_TIMEOUT` e os
+outros da tabela) só aparecem em projetos no motor antigo. Para ver o passo exato que
+falhou, abra o trace no [LangSmith](/engenharia-de-ia/langsmith).
+</Note>
+
+<Visibility for="agents">
+Tipos por filtro:
+
+- `errors`: `ERROR`, `ERROR_OPENAI*` (KEY, RATE_LIMIT, INVALID_REQUEST, TIMEOUT,
+  SERVER, TOKENS_EXCEEDED, AUTHENTICATION, ASSISTANT_ID), `ERROR_AI_RESPONSE_BLOCKED`,
+  `ERROR_MEDIA_INTERPRETATION`, `ERROR_META*` (UNSUPPORTED_MESSAGE, UNAVAILABLE,
+  UNKNOWN, PAYMENT_ISSUE, ACCOUNT_BLOCKED, TIMEOUT, UNDELIVERABLE, REENGAGEMENT),
+  `ERROR_TOOL_CALL`, `ERROR_UNSUPPORTED_MEDIA`, `ERROR_MCP_CALL`, `UNKNOWN`
+- `function_call`: `FUNCTION_CALL`, `FUNCTION_CALL_OUTPUT`, `MCP_CALL`,
+  `MCP_APPROVAL_REQUEST`, `MCP_APPROVAL_RESPONSE`, `WEB_SEARCH_CALL`,
+  `FILE_SEARCH_CALL`, `REASONING_OUTPUT`
+- `media`: `AUDIO`, `IMAGE`, `DOCUMENT`, `VIDEO`, `CONTACT`, `BUTTON`, `STICKER`, `LOCATION`
+- `interactions`: `TEXT`, `REACTION`
+- `templates`: `TEMPLATE`
+
+URL da tela com filtros: `/logs?type=<filtro>&search=<termo>&page=<n>`.
+</Visibility>
+
+## Como funciona por trás
+
+- Logs é uma visão das **mensagens** do projeto, com o tipo e o erro de cada uma.
+  Não é um log técnico separado: um erro aparece aqui porque foi gravado junto da
+  conversa.
+- O total de páginas é estimado: em projetos grandes, o número no rodapé é
+  aproximado.
+- Um erro de entrega também gera o evento de erro nos
+  [Webhooks de eventos](/produto/automacoes/webhooks), se houver um com a opção de
+  erros ligada. Use para ser avisado sem abrir a tela.
+
+## Pelo MCP
+
+O MCP não lê logs. O assistente consulta pelo navegador
+([Usar o painel pelo navegador](/trabalhar-com-ia/navegador)) ou pelo histórico do
+lead na API ([A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia)). Para o
+raciocínio do agente, o LangSmith.
+
+## Armadilhas
+
+- **Sem erro não quer dizer que deu certo.** A IA pausada, desligada ou fora do
+  horário não gera erro: simplesmente não responde.
+- **Busca por nome acha o lead, não o texto.** Se o termo bate com um lead, a tela
+  mostra os registros dele e não procura o termo nas mensagens de outros leads.
+- **O detalhe do erro vem do provider**, muitas vezes em JSON e em inglês. Leia o
+  `message` e o `code`.
+- **Logs não mostram as execuções do Trigger Flow.** Elas ficam no botão
+  **Execuções** do editor ([Execuções e depuração](/produto/trigger-flow/execucoes)).
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="O agente não respondeu e não há erro. O que olhar?">
+O estado da IA no lead (ligada, pausada ou desligada), a pausa humana, o horário do
+agente e se a conversa estava numa coluna que desliga a IA
+([Funil](/produto/funil-kanban)).
+</Accordion>
+<Accordion title="Por quanto tempo os logs ficam?">
+Enquanto as mensagens ficarem no histórico do projeto, conforme o plano. Ver
+[Planos, limites e cobrança](/comecar/planos-e-limites).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Observabilidade com LangSmith](/engenharia-de-ia/langsmith)
+- [Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona)
+- [Testar o agente](/engenharia-de-ia/testar)
+- [Janela de 24h](/comecar/janela-de-24h)
+- Códigos de erro da Meta: https://developers.facebook.com/documentation/business-messaging/whatsapp/support/error-codes
+- LangSmith, observabilidade: https://docs.langchain.com/langsmith/observability
+- Termos para buscar: "WhatsApp Cloud API error 131047", "131026", "131049", "rate limit", "context length exceeded".

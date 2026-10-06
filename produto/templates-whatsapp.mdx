@@ -1,0 +1,187 @@
+---
+title: "Templates do WhatsApp (Meta)"
+description: "Leia para criar, editar, sincronizar e usar templates da Meta: categorias, cabeçalho de mídia, botões, variáveis nomeadas, status de aprovação, por que a mídia fica guardada na Zatten e o que falha no envio."
+---
+
+Um **template da Meta** é uma mensagem pré-aprovada pela Meta, com categoria, variáveis e, se quiser, mídia e botões. Na conexão oficial, é o **único** jeito de falar com um lead fora da [janela de 24h](/comecar/janela-de-24h). Follow-up, campanhas, mensagens agendadas e o envio de template pela API usam templates.
+
+A Zatten cria o template no painel, envia para a Meta aprovar e acompanha o status sozinha. Só template **aprovado** é enviado.
+
+## Onde fica no painel
+
+Menu **WhatsApp**, aba **Templates** (admin, editor e gestor). A lista mostra nome, categoria, idioma e status, com os botões **Sincronizar**, editar e excluir.
+
+Na **conexão não oficial** (QR Code), a mesma aba tem outro tipo de template: texto salvo no painel, com variáveis, **sem aprovação** e sem categoria, mídia ou botões. Esta página trata dos templates da Meta. Veja [WhatsApp não oficial](/comecar/whatsapp-nao-oficial).
+
+## Como configurar
+
+### Campos
+
+| Campo | O que faz | Regras |
+|---|---|---|
+| **Nome** | Identifica o template na Meta e na Zatten. É o `template_name` da API. | Formatado sozinho para minúsculas, números e `_` ao sair do campo ("Boas vindas!" vira `boas_vindas`). **Não muda depois de criado.** |
+| **Categoria** | **Marketing** ou **Utilitário**. Define o preço por mensagem e as regras da Meta. | Não muda depois de aprovado (só se o template for rejeitado). |
+| **Idioma** | Português (Brasil), Inglês ou Inglês (EUA). | Não muda depois de criado. O mesmo nome pode existir em idiomas diferentes. |
+| **Tipo de Cabeçalho** | Nenhum, Texto, Imagem, Vídeo ou Documento. | Texto: até 60 caracteres e no máximo 1 variável. Imagem: JPEG ou PNG, até 5 MB. Vídeo: MP4. Documento: PDF. Vídeo e documento: até 15 MB no painel. |
+| **Corpo da Mensagem** | O texto principal. **Adicionar Variável** insere `{{nome}}` ou o slug de uma propriedade. | Obrigatório. |
+| **Rodapé** | Linha final, em cinza. | Opcional, até 60 caracteres, sem variável. |
+| **Botões** | Resposta Rápida, Link URL, Número de Telefone ou Copiar Código. | Opcional. Link URL aceita variável no endereço. |
+| **Valores de Exemplo para Variáveis** | Um exemplo para cada variável, enviado à Meta para a revisão. | Preencha com exemplos realistas: a Meta usa isso para aprovar. |
+
+O botão **Copiar Código** pede um código de exemplo. A categoria **Autenticação** não é criada pelo painel; se ela existir na conta (criada fora da Zatten), aparece na lista depois de sincronizar.
+
+### Variáveis
+
+A Zatten usa **variáveis nomeadas**: `{{nome}}`, `{{cidade}}`, nunca `{{1}}`. Na hora do envio, cada variável é preenchida com dados do lead:
+
+| Variável | Valor no envio |
+|---|---|
+| `{{nome}}` | Nome do lead. Sem nome, "Cliente". |
+| `{{telefone}}` | Número do lead. |
+| `{{data}}` | Data do envio no horário de Brasília (dd/mm/aaaa). Ex.: `06/10/2026`. |
+| `{{hora}}` | Hora do envio no horário de Brasília (hh:mm, sem fuso escrito). Ex.: `14:30`. |
+| `{{slug-da-propriedade}}` | Valor daquela [propriedade](/produto/propriedades) no lead. |
+
+Se o lead tiver uma propriedade com o slug `data` ou `hora`, o valor dela vale no lugar
+da data e da hora do envio. Cliente final em outro fuso: o template mostra a hora de
+Brasília; escreva isso no texto (por exemplo, "14:30, horário de Brasília").
+
+Se o template pede uma variável que não existe no projeto, o painel avisa ao escolher o template e oferece criar a propriedade com aquele slug.
+
+### Status
+
+| Na lista | O que significa | Pode enviar? |
+|---|---|---|
+| **Pendente** | Em revisão na Meta (até 24 horas, segundo a Meta). Também aparece assim para outros estados da Meta, como pausado ou desativado. | Não |
+| **Aprovado** | Liberado. | Sim |
+| **Rejeitado** | A Meta recusou. Dá para editar (inclusive a categoria) e reenviar. | Não |
+| **Sincronização pendente** | Existe só na Zatten, ainda não foi enviado à Meta (veio de importação, duplicação ou do template do projeto). | Não |
+
+O status, a categoria e a qualidade são atualizados sozinhos quando a Meta avisa a mudança. Não é preciso sincronizar para ver uma aprovação.
+
+## Como funciona por trás
+
+**Criar** envia o template para a Meta na hora. Ele aparece como **Pendente** até a Meta decidir.
+
+**Editar** só é possível em template **Aprovado**, **Rejeitado** ou pausado pela Meta. A edição volta para revisão. Nome e idioma não mudam; para isso, crie outro template.
+
+**Excluir** apaga na Meta **pelo nome**: todos os idiomas daquele nome somem, e somem da conta do WhatsApp inteira, não só deste projeto. Não pode ser desfeito.
+
+**Sincronizar** faz três coisas:
+
+1. Envia à Meta os templates em **Sincronização pendente**.
+2. Se um template pendente já existe na conta do WhatsApp com o mesmo nome e idioma, adota o que existe em vez de criar outro (comum ao duplicar um projeto para um número que já tinha os templates).
+3. Traz para a lista templates criados direto na Meta.
+
+Depois de sincronizar, follow-ups que esperavam um template pendente são ligados a ele.
+
+**Por que a mídia fica guardada na Zatten.** A Meta devolve a mídia do cabeçalho como um endereço que expira. Por isso, o arquivo que você sobe no painel fica guardado pela Zatten, num endereço que não expira, e é reenviado à Meta a cada envio. Template criado **fora** da Zatten (no gerenciador da Meta) chega com o endereço da Meta e, quando ele expira, o envio falha: edite o template no painel e suba a mídia de novo.
+
+**Envio.** Antes de enviar, a Zatten confere se o template está aprovado e preenche as variáveis. Se faltar o valor de alguma variável no lead, o envio **não acontece** (a mensagem não sai pela metade).
+
+<Visibility for="agents">
+Template salvo com `parameter_format: "NAMED"`. Componentes no formato da Meta:
+
+```json
+{
+  "name": "confirmacao_consulta",
+  "language": "pt_BR",
+  "category": "UTILITY",
+  "parameter_format": "NAMED",
+  "components": [
+    { "type": "HEADER", "format": "IMAGE", "example": { "header_handle": ["<url da mídia guardada pela Zatten>"] } },
+    {
+      "type": "BODY",
+      "text": "Olá {{nome}}, sua consulta é em {{data_consulta}}.",
+      "example": { "body_text_named_params": [
+        { "param_name": "nome", "example": "Ana" },
+        { "param_name": "data_consulta", "example": "12/10" }
+      ] }
+    },
+    { "type": "FOOTER", "text": "Clínica Exemplo" },
+    { "type": "BUTTONS", "buttons": [ { "type": "QUICK_REPLY", "text": "Confirmar" } ] }
+  ]
+}
+```
+
+- Botões: `QUICK_REPLY`, `URL`, `PHONE_NUMBER`, `COPY_CODE`.
+- Status da Meta: `APPROVED`, `PENDING`, `REJECTED`, `PAUSED`, `DISABLED`. Só `APPROVED` é enviado.
+- Envio pela API: `POST /api/v1/messages/template` com `lead_number` e `template_name`. Erros: `TEMPLATE_NOT_FOUND` (404), template não aprovado, variável sem valor. Veja [Mensagens](/api/mensagens) e [Erros](/api/erros).
+- Valores das variáveis: `nome` (nome do lead ou "Cliente"), `telefone`, `data`, `hora`, e as propriedades do lead pelo slug. Propriedade vazia no lead = envio recusado.
+</Visibility>
+
+## Pelo MCP
+
+O bloco `meta_templates` do template do projeto **só é lido**. `get_template` traz todos os templates da Meta do projeto, com categoria, idioma, componentes e formato.
+
+Na escrita, nada é criado nem alterado:
+
+- template que já existe nunca é atualizado: o estado é da Meta;
+- template que falta **não é enviado à Meta**. A resposta traz uma nota listando quais faltam. O envio é feito por uma pessoa, no painel (criando o template ou usando **Sincronizar** depois de importar um projeto).
+
+Ao aplicar um template de projeto pelo painel (importar JSON ou duplicar), os templates entram como **Sincronização pendente**. Clique em **Sincronizar** em **WhatsApp → Templates** para enviá-los à Meta.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave, junto com `language` |
+| `language` | string | `pt_BR`, `en`, `en_US` |
+| `category` | string ou null | `MARKETING`, `UTILITY`, `AUTHENTICATION` |
+| `components` | lista | Formato da Meta |
+| `parameter_format` | string ou null | `NAMED` |
+
+Ao montar um follow-up ou campanha para o cliente, confira em `get_template` se o template existe **e** está aprovado (pergunte ao usuário ou veja no painel). Não prometa envio com template ausente ou pendente.
+</Visibility>
+
+## Armadilhas
+
+- **Variável sem valor no lead = envio falha.** Uma campanha ou envio pelo chat com `{{cidade}}` não sai para quem não tem a propriedade preenchida. Use variáveis que todo lead tem, ou filtre (na campanha, pelas propriedades).
+- **Follow-up na conexão oficial só preenche `nome`, `telefone`, `data` e `hora`.** Template com variável de propriedade não serve para follow-up. Veja [Follow-up](/produto/automacoes/follow-up).
+- **Propriedade de vínculo conversa some ao encerrar.** Template que usa essa propriedade falha depois do [encerramento](/produto/encerrar-atendimento).
+- **Utilitário com conteúdo promocional vira Marketing.** A Meta aprova como Marketing (mais caro) ou rejeita por categoria incorreta. Mensagem mista (aviso de pedido com cupom) é Marketing.
+- **Excluir apaga todos os idiomas e em toda a conta.** Se dois projetos usam o mesmo número ou a mesma conta do WhatsApp, excluir num afeta o outro.
+- **Template pausado aparece como Pendente.** Se um template que funcionava parou de sair, confira a qualidade e o status no gerenciador da Meta.
+- **Mídia de template criado fora da Zatten expira.** Edite e suba o arquivo no painel antes de usar em campanha ou follow-up.
+- **Nome e idioma não mudam.** Errou? Crie outro e exclua o antigo.
+- **Cada envio é cobrado pela Meta conforme a categoria.** Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Quanto tempo a Meta leva para aprovar?">
+Segundo a Meta, até 24 horas. A lista atualiza sozinha quando a decisão chega.
+</Accordion>
+<Accordion title="Criei o template no gerenciador da Meta. Como ele aparece na Zatten?">
+Clique em **Sincronizar**. Se ele tiver mídia no cabeçalho, edite e suba o arquivo pelo painel para o endereço não expirar.
+</Accordion>
+<Accordion title="Posso usar variáveis numeradas, como na Meta?">
+Não. A Zatten não usa `{{1}}`, `{{2}}`: cria templates com variáveis nomeadas, preenchidas pelos dados do lead. Use `{{nome}}` ou o slug de uma propriedade.
+</Accordion>
+<Accordion title="O MCP pode criar o template para mim?">
+Não. O assistente pode redigir o texto, a categoria e as variáveis; quem cria e envia para aprovação é uma pessoa, no painel.
+</Accordion>
+</AccordionGroup>
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://youtube.com/embed/NDROXF6uo6E"
+  title="Vídeo: templates whatsapp"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Janela de 24h, templates e o que dá para enviar](/comecar/janela-de-24h)
+- [Campanhas](/produto/campanhas), [Follow-up](/produto/automacoes/follow-up)
+- [Propriedades personalizadas](/produto/propriedades)
+- [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- Meta: [templates (fundamentos)](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview), [categorias](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-categorization), [qualidade](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-quality), [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing).
+- Termos para buscar: "message template", "template categorization", "INCORRECT_CATEGORY", "template quality rating", "template pausing", "named parameters".

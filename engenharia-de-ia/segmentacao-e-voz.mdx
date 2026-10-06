@@ -1,0 +1,219 @@
+---
+title: "Segmentação e voz"
+description: "Leia para decidir como a resposta do agente chega ao lead: dividida em várias mensagens com \"digitando…\" (segmentação) ou em áudio com a voz da ElevenLabs, quando cada uma age, quanto custam e como configurar."
+---
+
+Duas opções mudam a forma como a resposta do agente é entregue no WhatsApp. O
+texto que o agente escreve é o mesmo; muda só a entrega.
+
+- **Segmentação**: divide a resposta em várias mensagens curtas, uma frase por
+  mensagem, com "digitando…" e uma pausa entre elas. Parece mais com uma pessoa
+  escrevendo.
+- **Voz (ElevenLabs)**: quando o lead manda áudio, o agente responde em áudio, com
+  uma voz da ElevenLabs.
+
+As duas são aplicadas pelo servidor da Zatten, depois que o agente termina, e
+valem para os dois motores.
+
+## Segmentação
+
+### Onde fica no painel
+
+Em **Agente**, abra **Configurações avançadas** e ligue **Segmentação** ("Dividir
+respostas longas"). Vale na hora, sem publicar. Projetos criados em branco nascem
+com ela ligada.
+
+### Como a resposta é dividida
+
+A divisão é feita **a cada fim de frase**: depois de um ponto final (`.`) ou de
+uma exclamação (`!`) seguidos de espaço ou quebra de linha. Não depende do tamanho
+da resposta: uma resposta de três frases vira três mensagens.
+
+| O que | Divide? |
+|---|---|
+| `.` ou `!` seguido de espaço ou quebra de linha | **Sim** |
+| `?` | **Não**: a pergunta fica junto da frase seguinte |
+| Abreviações `Dr.`, `Dra.`, `Prof.`, `Sr.`, `Sra.`, `Srta.`, `Eng.`, `Exmo.`, `Ilmo.` | Não |
+| Ponto dentro de número ou endereço sem espaço depois (`R$ 1.500`, `site.com.br`) | Não |
+| Itens de lista (`- item` ou `1. item`) | Não são separados uns dos outros |
+
+Exemplo:
+
+```text
+Resposta do agente:
+"Olá, Mariana! Temos horário amanhã às 14h e às 16h. Qual fica melhor para você?"
+
+Mensagens enviadas:
+1. Olá, Mariana!
+2. Temos horário amanhã às 14h e às 16h.
+3. Qual fica melhor para você?
+```
+
+### O ritmo do envio
+
+Para cada parte, em ordem:
+
+1. mostra **"digitando…"** ao lead (só na conexão oficial e na coexistência);
+2. espera **25 milissegundos por caractere** daquela parte (uma frase de 80
+   caracteres espera 2 segundos);
+3. envia a parte.
+
+A primeira parte sai como resposta (citando) a mensagem do lead, quando for o caso.
+
+Sem segmentação, a resposta sai numa mensagem só, com um "digitando…" antes, na
+conexão oficial.
+
+### Quanto custa
+
+Na **conexão oficial e na coexistência**, **cada parte é uma mensagem cobrada
+pela Meta**. Desde 01/10/2026 a Meta cobra também as mensagens de serviço, que são
+as respostas dentro da janela de 24h. Uma resposta dividida em 4 partes custa 4
+mensagens. Na conexão não oficial, não há cobrança da Meta.
+
+Os tokens da IA não mudam: o agente escreve uma resposta só. Veja
+[Quanto custa operar um projeto](/comecar/custos-de-operacao) e a página de preços
+da Meta em "Para saber mais".
+
+### Quando usar
+
+- **Ligue** quando o tom é de conversa e as respostas são curtas (2 a 4 frases).
+  Escreva no prompt "responda em até 3 frases curtas".
+- **Desligue** quando o agente manda explicações longas, listas de passos ou
+  orçamentos: muitas mensagens seguidas cansam o lead e multiplicam o custo na
+  Meta.
+
+## Voz (ElevenLabs)
+
+### Quando o agente responde em áudio
+
+Só quando **as três condições** valem:
+
+1. o lote que o agente está respondendo tem **pelo menos um áudio do lead**;
+2. a voz está **ligada**;
+3. a **chave de API** e o **ID da voz** da ElevenLabs estão preenchidos.
+
+Então a resposta inteira vira **um áudio**, gerado com o modelo
+`eleven_multilingual_v2` da ElevenLabs, e é enviada como mensagem de áudio. Não
+sai texto junto e a segmentação não se aplica.
+
+Se o lead escreveu texto, a resposta é texto, mesmo com a voz ligada.
+
+Se a geração do áudio falha (chave inválida, limite de uso da ElevenLabs, voz não
+encontrada), a Zatten grava o erro no chat e **envia a resposta em texto**.
+
+### Onde configurar
+
+O builder do LangChain Agent não tem tela para a voz. Configure pelo template do
+projeto, no bloco `llm_attendant` (veja "Pelo MCP"). Projetos migrados do motor
+antigo mantêm o que estava configurado lá.
+
+Para obter os dados:
+
+1. Crie uma conta na ElevenLabs e gere uma **chave de API**.
+2. Escolha ou crie uma voz na biblioteca da ElevenLabs e copie o **ID da voz**
+   (Voice ID).
+3. Grave os dois no projeto e ligue a voz.
+
+A ElevenLabs cobra direto da sua conta, por caractere convertido em áudio. Preços
+na página da ElevenLabs.
+
+### Escrever para ser ouvido
+
+O agente escreve a mesma resposta, sem saber se ela vai virar áudio. Links,
+listas, emojis e números longos soam mal quando lidos em voz alta. Quando a voz
+estiver ligada, acrescente ao prompt:
+
+```markdown
+# Respostas a áudio
+Quando a mensagem do lead começar com "[Áudio transcrito]", responda como se
+estivesse falando: frases curtas, sem links, sem listas, sem emojis. Escreva
+números por extenso quando forem poucos ("duas e meia").
+```
+
+O prefixo `[Áudio transcrito]` é como o LangChain Agent marca o texto de um áudio
+transcrito. Veja [Mídia: áudio, imagem e PDF](/engenharia-de-ia/midia).
+
+## Pelo MCP
+
+As duas ficam no bloco `llm_attendant` e gravam na hora (não criam versão do
+agente).
+
+<Visibility for="agents">
+```json
+{
+  "llm_attendant": {
+    "message_segmentation": true,
+    "eleven_labs": true,
+    "eleven_labs_api_key": "<chave da ElevenLabs>",
+    "eleven_labs_voice_id": "<voice id>"
+  }
+}
+```
+
+- `message_segmentation`: booleano.
+- `eleven_labs`: booleano. Só tem efeito com `eleven_labs_api_key` e
+  `eleven_labs_voice_id` preenchidos.
+- `eleven_labs_api_key` ausente ou `null` mantém a chave atual. `""` (texto vazio)
+  **grava vazio por cima** e a voz para de funcionar sem aviso. Omita o campo ou
+  devolva o valor lido do `get_template`. Nunca mostre a chave ao usuário nem a
+  grave em arquivo versionado.
+- Divisão: regex por fim de frase em `.` ou `!` seguido de espaço; `?` não divide;
+  abreviações Dr, Dra, Prof, Sr, Sra, Srta, Eng, Exmo, Ilmo protegidas; linhas de
+  lista (`- `, `* `, `1. `) preservadas. Partes vazias são descartadas.
+- Atraso entre partes: `len(parte) × 25 ms`, antes de cada envio. Indicador de
+  digitação só no provider Meta.
+- Voz: dispara se qualquer mensagem do lote tem `messageType = audio`. Saída MP3,
+  `eleven_multilingual_v2`. Falha grava mensagem `ERROR` no chat e cai para texto.
+- Antes do envio, o Markdown é convertido para o formato do WhatsApp (títulos
+  removidos, links viram `texto: url`).
+</Visibility>
+
+## Armadilhas
+
+- **Segmentação divide toda resposta, não só as longas.** Cada frase terminada em
+  ponto vira uma mensagem.
+- **Cada parte é cobrada pela Meta** na conexão oficial e na coexistência.
+  Respostas longas com segmentação multiplicam o custo.
+- **Pergunta não separa.** "Tudo bem? Posso ajudar." sai numa mensagem só; "Tudo
+  bem. Posso ajudar?" sai em duas.
+- **Segmentação soma com o buffer na demora percebida.** O lead espera o
+  [buffer](/engenharia-de-ia/buffer) e depois as pausas entre as partes.
+- **O chat de teste não mostra a segmentação nem a voz.** Elas são aplicadas na
+  entrega pelo WhatsApp. Teste num número real.
+- **Voz ligada sem chave ou sem ID da voz não faz nada**, e não há aviso.
+- **Áudio com link** é lido em voz alta e o lead não consegue clicar. Oriente o
+  prompt.
+- **Lote misto**: se o lead mandou texto e áudio no mesmo lote, a resposta sai em
+  áudio.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Posso controlar onde a resposta é dividida?">
+Indiretamente, pelo prompt. Cada frase terminada em ponto ou exclamação vira uma
+mensagem. Para juntar duas ideias numa mensagem, peça frases ligadas por vírgula.
+</Accordion>
+<Accordion title="A voz funciona com a conexão não oficial?">
+Sim. O áudio é gerado pela Zatten e enviado pela conexão do projeto, qualquer que
+seja.
+</Accordion>
+<Accordion title="O agente pode mandar áudio quando o lead escreve texto?">
+Não. A voz só age quando o lote tem áudio do lead.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona)
+- [Buffer de mensagens](/engenharia-de-ia/buffer)
+- [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- [Janela de 24h](/comecar/janela-de-24h)
+- Meta, preços do WhatsApp: https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing
+- Meta, mensagens de serviço (cobradas desde 01/10/2026): https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages
+- ElevenLabs, texto para fala: https://elevenlabs.io/docs/capabilities/text-to-speech
+- ElevenLabs, chave de API: https://elevenlabs.io/docs/api-reference/authentication
+- ElevenLabs, preços: https://elevenlabs.io/pricing
+
+**Termos para buscar:** "WhatsApp typing indicator", "message segmentation
+chatbot", "ElevenLabs voice ID", "eleven_multilingual_v2", "WhatsApp service
+messages pricing".

@@ -1,0 +1,221 @@
+---
+title: "Providers: OpenAI e OpenRouter"
+description: "Leia para escolher entre OpenAI e OpenRouter, criar a chave, colocar créditos e configurar o provider no agente. Explica o BYOK: a agência paga a IA direto ao provider, sem a Zatten no meio."
+---
+
+O **provider** é a empresa que roda o modelo de IA e cobra por token. O agente da
+Zatten aceita dois: **OpenAI** e **OpenRouter**. A chave é sempre da agência (ou
+do cliente final), e a conta da IA vai direto ao provider. A Zatten não cobra nada
+sobre a IA. Isso é o **BYOK** (*bring your own key*).
+
+## OpenAI ou OpenRouter?
+
+| | OpenAI | OpenRouter |
+|---|---|---|
+| O que é | A fabricante dos modelos GPT | Um intermediário que dá acesso a modelos de vários fabricantes com uma chave só |
+| Modelos | Só os da OpenAI | OpenAI, Google, Anthropic, Meta, Mistral e outros |
+| Nome do modelo | `gpt-5-mini` | `openai/gpt-5-mini`, `google/gemini-…` (fabricante/modelo) |
+| Cobrança | Créditos pré-pagos na OpenAI | Créditos pré-pagos no OpenRouter |
+| Lista no painel | Modelos de chat da OpenAI | Só modelos que aceitam tools e respondem em texto |
+| Preço | Página de preços da OpenAI | Por modelo, na página do modelo no OpenRouter |
+
+**Quando usar cada um:**
+
+- **OpenAI** quando o projeto vai usar só GPT e a agência quer a conta direto na
+  OpenAI.
+- **OpenRouter** quando quer comparar modelos de fabricantes diferentes, usar
+  Gemini ou Claude, ou ter um modelo de reserva de outro fabricante com a mesma
+  chave ([Resiliência](/engenharia-de-ia/resiliencia)).
+
+Os dois funcionam igual dentro da Zatten: retry, fallback, tools e transcrição
+valem para ambos. Preços nunca são copiados aqui: veja nos links do fim da página.
+
+## Criar a chave e colocar créditos
+
+<Tabs>
+<Tab title="OpenAI">
+<Steps>
+<Step title="Crie a conta">
+Entre em https://platform.openai.com com o e-mail da agência ou do cliente final
+(quem vai pagar).
+</Step>
+<Step title="Coloque créditos">
+Em **Settings → Billing**, adicione um cartão e compre créditos. Sem saldo, toda
+chamada falha. Ligue a recarga automática se não quiser que o agente pare quando
+o saldo acabar.
+</Step>
+<Step title="Crie a chave">
+Em **API keys** (https://platform.openai.com/api-keys), clique em **Create new
+secret key**. Copie na hora: a chave aparece uma vez só.
+</Step>
+</Steps>
+</Tab>
+<Tab title="OpenRouter">
+<Steps>
+<Step title="Crie a conta">
+Entre em https://openrouter.ai.
+</Step>
+<Step title="Coloque créditos">
+Em **Credits** (https://openrouter.ai/settings/credits), compre créditos. O
+OpenRouter também tem recarga automática.
+</Step>
+<Step title="Crie a chave">
+Em **Keys** (https://openrouter.ai/keys), crie uma chave. Dá para definir um
+limite de crédito por chave. Copie na hora.
+</Step>
+</Steps>
+</Tab>
+</Tabs>
+
+<Tip>
+**Uma chave por cliente final.** Assim dá para ver o gasto de cada um no painel do
+provider, pôr limite e revogar uma chave sem derrubar os outros projetos. Na
+OpenAI, use um projeto (Projects) por cliente final, com a chave dentro dele. No
+OpenRouter, uma chave por cliente com limite de crédito.
+</Tip>
+
+## Configurar no agente
+
+<Steps>
+<Step title="Abra as configurações do modelo">
+Em **Agente**, clique no ícone de ajustes ao lado do modelo. Abre
+**Configurações do modelo**.
+</Step>
+<Step title="Escolha o provider e cole a chave">
+Em **Provider**, escolha OpenAI ou OpenRouter. Em **API Key**, cole a chave do
+mesmo provider.
+</Step>
+<Step title="Escolha o modelo">
+A lista de modelos muda com o provider. Ver
+[Escolher o modelo](/engenharia-de-ia/escolher-o-modelo).
+</Step>
+<Step title="Salve, teste e publique">
+**Salvar** cria um rascunho. Teste no chat do builder e clique em **Publicar**.
+</Step>
+</Steps>
+
+A mesma chave serve, sem configurar de novo, para:
+
+- os **modelos de fallback** do mesmo provider (fallback de outro provider exige a
+  chave dele);
+- a **transcrição** de áudio;
+- o **resumo** de conversas longas e o **seletor de tools**, quando usam outro
+  modelo.
+
+## BYOK: quem é dono da chave?
+
+Duas formas comuns:
+
+- **Chave da agência.** A agência paga o provider e repassa no preço ao cliente
+  final. Mais simples de operar; o custo de IA entra na conta da agência. Ver
+  [Quanto cobrar do cliente final](/comecar/quanto-cobrar).
+- **Chave do cliente final.** O cliente cria a conta no provider e passa a chave.
+  O gasto fica com ele; a agência depende dele manter o saldo.
+
+Nos dois casos, a conta é por token, direto ao provider. Para estimar quanto vai
+custar, ver [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia).
+
+<Note>
+No OpenRouter, "BYOK" quer dizer outra coisa: usar a sua chave de um fabricante
+(por exemplo, OpenAI) **dentro** do OpenRouter. Não é necessário para usar o
+OpenRouter na Zatten.
+</Note>
+
+## Pelo MCP
+
+- `langchain.config.model.provider` (`openai` ou `openrouter`) e
+  `model.api_key`.
+- Numa escrita do bloco `langchain`, a chave já gravada é mantida só quando o
+  campo `api_key` não vem. Para trocar de chave, envie a nova. Nunca envie `""`:
+  o vazio é gravado e o agente para de responder.
+- O `get_template` devolve a chave preenchida. **Nunca mostre a chave** na
+  conversa nem a grave em arquivo; o snapshot troca a chave por `"<removido>"`
+  ([Regras](/trabalhar-com-ia/regras)).
+
+<Visibility for="agents">
+- `model.provider`: `"openai" | "openrouter"`. O valor `"custom"` foi desativado e
+  invalida o agente inteiro.
+- `model.api_key`: string; é o único lugar que o agente lê. Herdam dela, quando
+  vazias: `model.fallback.models[].api_key` (`null` = herda; só faz sentido no
+  mesmo provider), `settings.transcription.api_key`, e os modelos de
+  `summarization` e `tool_selector`.
+- Trocar `provider` sem trocar `api_key` → HTTP 401 em toda mensagem.
+- Trocar `provider` exige ajustar `model.name` (OpenRouter usa `fabricante/modelo`)
+  e `settings.transcription.model` (`whisper-1` na OpenAI, `openai/whisper-1` no
+  OpenRouter). Salvar pelo builder acerta a transcrição sozinho; pelo template,
+  envie o valor certo.
+</Visibility>
+
+## Armadilhas
+
+- **Chave de um provider no outro**: a chave da OpenAI começa com `sk-`, a do
+  OpenRouter com `sk-or-`. Trocada, toda mensagem falha com 401.
+- **Sem saldo**: a OpenAI responde 429 (`insufficient_quota`) e o OpenRouter 402.
+  O agente tenta de novo e, sem um fallback com saldo, cai na
+  [mensagem de erro](/engenharia-de-ia/resiliencia). Ligue a recarga automática.
+- **A lista de modelos da OpenAI é geral.** Um modelo pode aparecer e a sua chave
+  não ter acesso a ele. Teste no chat do builder antes de publicar.
+- **Trocar de provider muda o nome do modelo.** `gpt-5-mini` na OpenAI é
+  `openai/gpt-5-mini` no OpenRouter.
+- **Max tokens alto no OpenRouter** reserva mais crédito por chamada. Com saldo
+  baixo, a chamada pode ser recusada mesmo que a resposta fosse curta.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="A Zatten cobra alguma taxa sobre a IA?">
+Não. A IA é paga direto ao provider, por token. O plano da Zatten é cobrado à
+parte ([Planos, limites e cobrança](/comecar/planos-e-limites)).
+</Accordion>
+<Accordion title="Posso usar Anthropic (Claude) ou Google (Gemini) direto?">
+Não direto. Use pelo OpenRouter, que dá acesso a esses modelos com uma chave só.
+</Accordion>
+<Accordion title="O OpenRouter é mais caro?">
+O OpenRouter cobra uma taxa na compra de créditos e repassa o preço por token do
+fabricante sem acréscimo (FAQ do OpenRouter, consultado em 06/10/2026). Confira o
+valor atual da taxa em https://openrouter.ai/docs/faq.
+</Accordion>
+<Accordion title="Onde vejo quanto gastei?">
+No painel do provider (uso por chave), e em [Métricas](/produto/metricas) na
+Zatten (tokens por dia). Com o LangSmith, por conversa.
+</Accordion>
+</AccordionGroup>
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://youtube.com/embed/wX6Yn3PJfuI"
+  title="Vídeo: providers"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo)
+- [Resiliência: retry, fallback e erro](/engenharia-de-ia/resiliencia)
+- [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia)
+- [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- OpenAI, início rápido: https://developers.openai.com/api/docs/quickstart
+- OpenAI, chaves: https://platform.openai.com/api-keys
+- OpenAI, modelos: https://developers.openai.com/api/docs/models
+- OpenAI, preços: https://developers.openai.com/api/docs/pricing
+- OpenAI, limites de uso (rate limits): https://developers.openai.com/api/docs/guides/rate-limits
+- OpenAI, códigos de erro: https://developers.openai.com/api/docs/guides/error-codes
+- OpenRouter, início rápido: https://openrouter.ai/docs/quickstart
+- OpenRouter, chaves: https://openrouter.ai/keys
+- OpenRouter, créditos: https://openrouter.ai/settings/credits
+- OpenRouter, modelos: https://openrouter.ai/models
+- OpenRouter, preços: https://openrouter.ai/pricing
+- OpenRouter, perguntas frequentes: https://openrouter.ai/docs/faq
+- OpenRouter, BYOK: https://openrouter.ai/docs/guides/overview/auth/byok
+- OpenRouter, índice para IA: https://openrouter.ai/docs/llms.txt
+
+**Termos para buscar:** "OpenAI API key create", "OpenAI prepaid billing
+credits", "OpenAI projects API keys", "OpenRouter credits", "OpenRouter API key
+credit limit", "insufficient_quota 429".

@@ -1,0 +1,84 @@
+---
+title: "Planos, limites e cobrança"
+description: "Leia para entender como a Zatten cobra (por projeto), o que muda entre os planos, como trocar de plano e por que o painel pode ficar bloqueado."
+---
+
+A Zatten cobra **por projeto**, isto é, por número de WhatsApp conectado a um agente. **Todos os planos têm todas as funcionalidades.** O que muda entre eles é só o limite de uso: quantos usuários atendem no projeto, quantos contatos ele guarda e por quanto tempo o histórico de mensagens fica disponível.
+
+<Info>
+Os valores e os limites de cada plano estão em [zatten.com/planos](https://www.zatten.com/planos). Esta página não copia preços, porque eles mudam.
+</Info>
+
+## Como a cobrança funciona
+
+- **Uma assinatura por projeto.** Cada projeto tem o próprio plano. Uma agência com 10 clientes finais, um número cada, tem 10 assinaturas, e cada uma pode estar num plano diferente.
+- **Não há cobrança por usuário.** O plano define quantos usuários podem atender no projeto, mas não cobra por cabeça.
+- **A IA não entra na conta da Zatten.** Ela é BYOK: a chave é sua (OpenAI ou OpenRouter), e o consumo é pago direto ao provedor, sem acréscimo.
+- **As mensagens da Meta também não.** Na conexão oficial, a Meta cobra direto na conta do WhatsApp Business.
+- **Mensal ou anual.** O anual sai mais barato (veja o desconto em [zatten.com/planos](https://www.zatten.com/planos)).
+- **Sem contrato.** Dá para cancelar quando quiser.
+
+As três contas (Zatten, IA e Meta) estão somadas em [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+## O que muda entre os planos
+
+| Limite | O que conta | Quando é verificado |
+|---|---|---|
+| **Usuários no projeto** | Usuários distintos nos departamentos do projeto. A mesma pessoa em dois departamentos conta uma vez. | Ao colocar um usuário num departamento e ao trocar de plano. |
+| **Contatos** | Leads do projeto. | Ao importar contatos por CSV (se o arquivo passar do limite, ele é recusado inteiro) e ao trocar de plano. |
+| **Histórico** | Por quanto tempo as mensagens ficam disponíveis no painel (meses ou ilimitado). | Sempre, ao exibir as conversas. |
+
+Há também o **Enterprise**, para agências com muitos projetos (a partir de 10), com volume sob medida, desconto progressivo, SLA e onboarding dedicado. A negociação é direta, pelo botão "Fale conosco" em [zatten.com/planos](https://www.zatten.com/planos).
+
+## Trocar de plano
+
+O plano de um projeto é trocado em **Assinatura**, no menu do projeto. Esse item só aparece para o **admin** e só no endereço principal do painel (app.zatten.com). No domínio white-label da agência ele não aparece, para o cliente final não ver a cobrança.
+
+- **Subir de plano:** vale na hora. Você paga a diferença proporcional ao tempo que falta no ciclo.
+- **Descer de plano:** só é aceito se o uso atual couber no plano novo. Se o projeto tem 4 usuários e o plano novo permite 2, a troca é recusada com a mensagem "Você tem 4 usuários e este plano permite 2". Remova usuários dos departamentos (ou reduza os contatos) antes.
+- **Cancelar:** em **Assinatura → Gerenciar Assinatura → Cancelar Assinatura**. O cancelamento vale no fim do período já pago.
+
+## Por que o painel está bloqueado? (paywall)
+
+O painel só abre se a conta tiver **pelo menos um projeto com assinatura ativa**.
+
+1. Todo projeto novo nasce **pendente de pagamento**.
+2. No fim da criação, a tela pede para escolher o plano e leva ao checkout.
+3. Ao voltar do checkout, o painel mostra "Confirmando seu pagamento" e confere a cada 3 segundos, por até 90 segundos. Normalmente libera em poucos segundos.
+
+Enquanto a conta não tiver nenhum projeto pago:
+
+- o painel inteiro mostra a tela de assinatura no lugar das páginas;
+- não é possível criar outro projeto;
+- o agente do projeto pendente não pode ser ligado.
+
+Quem já tem um projeto pago pode criar outro e deixar a assinatura dele para depois ("Deixar para depois"). O painel continua liberado, mas o projeto novo fica pendente e o agente dele não liga até ser assinado em **Assinatura**.
+
+## Armadilhas
+
+- **Excluir um projeto não cancela a assinatura dele.** Com a assinatura ativa, a tela nem deixa excluir. Com o pagamento vencido, o projeto pode ser excluído, e a cobrança continua. Cancele em **Assinatura** antes de excluir.
+- **Se a confirmação do pagamento demorar mais de 90 segundos, não pague de novo.** A tela não volta para a grade de planos de propósito, para evitar assinatura duplicada. Recarregue a página depois de alguns minutos ou fale com o [suporte da Zatten pelo WhatsApp](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0).
+- **O limite de usuários conta quem está nos departamentos do projeto**, não quem tem acesso à conta. Um usuário que só vê o projeto, sem estar em departamento nenhum, não ocupa vaga.
+- **Descer de plano com histórico menor** reduz o tempo de histórico que o painel mostra.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Um cliente final com dois números paga dois planos?">
+Sim. Cada número é um projeto, e cada projeto tem a própria assinatura. Coloque os dois na mesma organização para organizar o acesso.
+</Accordion>
+<Accordion title="Algum plano tem menos funcionalidades?">
+Não. Agente, CRM, funil, departamentos, campanhas, automações, white-label, métricas, API, integrações e a API de Conversões do Meta Ads estão em todos os planos.
+</Accordion>
+<Accordion title="O consumo da IA está incluído no plano?">
+Não. A IA é paga direto ao provedor (OpenAI ou OpenRouter) com a sua chave. Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- Preços e limites atuais: [zatten.com/planos](https://www.zatten.com/planos).
+- [Assinatura e limites (referência)](/produto/assinatura-e-limites): o que conta como usuário, downgrade, confirmação do checkout.
+- [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+- [Quanto cobrar do cliente final](/comecar/quanto-cobrar).
+- Termos para buscar: "cobrança por projeto", "BYOK", "proration" (cobrança proporcional).

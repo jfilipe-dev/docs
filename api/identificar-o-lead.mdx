@@ -1,0 +1,88 @@
+---
+title: "Identificar o lead"
+description: "Leia para mandar o número do lead do jeito certo na API: só dígitos com DDI, com ou sem o 9º dígito, quando dá 404 ou 400, quando a API cria o lead e quando usar o id do lead em vez do número."
+---
+
+Na API, o lead é identificado pelo **número do WhatsApp**: só dígitos, com o código do
+país (DDI) e o DDD. Exemplo: `5511999998888`.
+
+```bash
+curl "https://api.zatten.com/api/v1/leads/5511999998888" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+## O 9º dígito
+
+Para números do Brasil (começam com `55`), a API procura o lead **com e sem** o 9º
+dígito. As duas chamadas abaixo acham o mesmo lead:
+
+| Você manda | A API procura |
+|---|---|
+| `5511999998888` (com o 9) | `5511999998888` e `551199998888` |
+| `551199998888` (sem o 9) | `5511999998888` e `551199998888` |
+
+Números de outros países são procurados exatamente como vieram.
+
+Na resposta, a API devolve o número **como está gravado** no lead (`wa_id` ou `phone`).
+Guarde esse valor no seu sistema.
+
+## Formato
+
+- **Só dígitos.** Espaços, `+`, parênteses e hífens são ignorados na busca, mas
+  `GET /messages/history` valida o tamanho do texto que você manda (10 a 15
+  caracteres): `+55 (11) 99999-8888` passa de 15 e dá 400. Mande sempre só dígitos.
+- **Com DDI.** Sem o `55`, um número brasileiro não é tratado como brasileiro e não é
+  achado.
+- **Na URL** (`/leads/{numero}`) e **no corpo** (`lead_number`) o formato é o mesmo.
+
+## Lead não encontrado
+
+O lead precisa existir **no projeto da chave**. Um número que existe em outro projeto da
+mesma conta não é achado.
+
+| Rota | Lead inexistente |
+|---|---|
+| `/leads/{numero}/…` (todas) | **404** `Lead with number … not found` |
+| `GET /messages/history` | **404** |
+| `POST /messages/text`, `/image`, `/audio`, `/video`, `/file` | **400** `Lead with number … not found` |
+| `POST /messages/template` | **Cria o lead** e envia |
+| `POST /flows/trigger`, `/hooks/{path}` | **404** |
+
+## Como um lead passa a existir
+
+- O número manda mensagem para o WhatsApp do projeto.
+- Alguém envia um **template** para o número (pelo CRM, por [campanha](/produto/campanhas)
+  ou por `POST /messages/template`).
+- O contato é importado em **Contatos → Importar** (CSV). Ver [Contatos](/produto/contatos).
+
+Texto e mídia pela API **não** criam lead. Para falar pela primeira vez com um número,
+use um template.
+
+## Número ou id?
+
+Quase toda rota usa o número. Duas usam (ou aceitam) o **id** do lead, um uuid:
+
+| Rota | Identificador |
+|---|---|
+| `POST /automations/trigger` | `lead_id` (obrigatório) |
+| `POST /flows/trigger`, `POST /hooks/{path}` | `lead_number` **ou** `lead_id` |
+
+O id vem em `GET /leads/{numero}` (campo `id`) e nos [webhooks de saída](/api/webhooks-de-saida)
+(`lead.id` ou `lead_id`).
+
+## Armadilhas
+
+- **Número sem DDI não é achado.** `11999998888` não acha `5511999998888`.
+- **Formatação no histórico dá 400.** Mande só dígitos.
+- **Texto para número novo dá 400, não 404.** O primeiro contato é sempre por template.
+- **Chave de outro projeto** dá "não encontrado" mesmo para um lead que existe. Confira a
+  chave antes de concluir que o lead sumiu.
+- **Lead com encerramento de atendimento continua existindo.** Ele sai das Conversas e
+  do Kanban, mas a API ainda o acha pelo número. Ver
+  [Encerrar atendimento](/produto/encerrar-atendimento).
+
+## Para saber mais
+
+- [Leads](/api/leads), [Mensagens](/api/mensagens), [Erros](/api/erros)
+- [Contatos](/produto/contatos): importação e exportação
+- Termos para buscar: "formato E.164", "nono dígito celular Brasil", "WhatsApp wa_id".

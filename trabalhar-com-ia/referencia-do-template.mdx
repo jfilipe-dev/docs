@@ -1,0 +1,495 @@
+---
+title: "Referência do template (JSON)"
+description: "Consulte para saber o que é cada bloco do template do projeto (tags, columns, properties, automações, flows, llm_attendant, langchain e outros), como cada item é identificado e o que a escrita faz de especial."
+---
+
+O template do projeto é um JSON com o projeto inteiro. É o que `get_template`
+devolve e o que `update_template` aceita, em qualquer subconjunto de blocos. Esta
+página lista todos os blocos: o que cada um é, como cada item é reconhecido numa
+escrita e o que a escrita faz de diferente nele.
+
+As regras que valem para todos os blocos (lista inteira, órfãos, campo vazio,
+ligar e desligar, referências por nome) estão em
+[Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona).
+
+## Visão geral
+
+| Bloco | O que é | Chave | Recurso |
+|---|---|---|---|
+| `version` | Versão do formato do arquivo | — | — |
+| `meta` | Nome e descrição do projeto | uma por projeto | [Organizações e projetos](/produto/organizacoes-e-projetos) |
+| `llm_attendant` | Ajustes do agente que valem fora do config: buffer, pausa humana, segmentação, voz, e os campos do motor antigo | uma por projeto | [Buffer](/engenharia-de-ia/buffer), [Pausa humana](/engenharia-de-ia/pausa-humana) |
+| `tags` | Tags do projeto | `slug` (ou nome) | [Tags](/produto/tags) |
+| `columns` | Colunas do funil | `slug` (ou nome) | [Funil (Kanban)](/produto/funil-kanban) |
+| `properties` | Propriedades personalizadas e seus valores | `slug` (ou nome) | [Propriedades](/produto/propriedades) |
+| `skills` | Skills do agente | `slug` | [Skills do agente](/engenharia-de-ia/skills) |
+| `follow_ups` | Follow-ups e reengajamentos | nome | [Follow-up](/produto/automacoes/follow-up), [Reengajamento](/produto/automacoes/reengajamento) |
+| `webhooks` | Webhooks de eventos | nome | [Webhooks de eventos](/produto/automacoes/webhooks) |
+| `integration_webhooks` | Webhooks por inatividade | nome | [Webhook por inatividade](/produto/automacoes/webhook-por-inatividade) |
+| `mcps` | Servidores MCP do motor antigo | nome | [Servidores MCP no agente](/engenharia-de-ia/tools/mcp) |
+| `conversions` | Conversões para o Meta Ads por coluna | nome | [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta) |
+| `unseen_message` | Resposta para mensagens não visíveis | uma por projeto | [Mensagens não visíveis](/produto/automacoes/mensagens-nao-visiveis) |
+| `attendant_teams` | Departamentos | `slug` (ou nome) | [Departamentos](/produto/departamentos) |
+| `meta_templates` | Templates da Meta | nome + idioma | [Templates do WhatsApp](/produto/templates-whatsapp) |
+| `inactivity_handovers` | Transbordos por inatividade | nome | [Transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade) |
+| `custom_actions` | Ações personalizadas (botões no lead) | nome | [Ações personalizadas](/produto/automacoes/acoes-personalizadas) |
+| `quick_messages` | Mensagens rápidas | nome | [Mensagens rápidas](/produto/mensagens-rapidas) |
+| `flows` | Fluxos do Trigger Flow | nome | [Trigger Flow](/produto/trigger-flow/conceitos) |
+| `langchain` | O config do agente no LangChain Agent | um por projeto | [Referência do config](/engenharia-de-ia/referencia-do-config) |
+
+"`slug` (ou nome)": casa pelo slug quando o item traz um; sem slug, pelo nome.
+Só os blocos com slug renomeiam.
+
+## Os blocos
+
+### version
+
+A versão do formato, hoje `"1.0"`. Obrigatória no arquivo completo; num envio
+parcial pelo MCP, não precisa vir.
+
+### meta
+
+O nome e a descrição do projeto. `icon` viaja, mas não é gravado.
+
+**Na escrita:** trocar `meta.name` renomeia o projeto. A partir daí, o MCP exige o
+nome novo no par `project_id` + `project_name`.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Obrigatório |
+| `description` | string ou null | |
+| `icon` | string ou null | Ignorado na escrita |
+</Visibility>
+
+### llm_attendant
+
+Os ajustes do agente que ficam no projeto, fora do config. Valem para os dois
+motores: **buffer** (segundos), **pausa humana** (minutos), **segmentação** e
+**voz** (ElevenLabs). Os demais campos (prompt, modelo, temperatura, mídia, busca
+na web) são do motor antigo; no LangChain Agent, isso fica no bloco `langchain`.
+
+**Na escrita:**
+
+- `functions` viaja na leitura e é **ignorada** na escrita: carrega endereços e
+  alvos do motor antigo. Se a lista enviada for diferente da atual, uma nota avisa.
+- O motor (`llm`) não muda por aqui. Migrar é pelo painel.
+- Campo `null` ou omitido não grava. Atenção às chaves: `api_key` e
+  `eleven_labs_api_key` com `""` (string vazia) **gravam vazio** por cima da
+  chave atual. Omita o campo ou devolva o valor lido.
+
+<Visibility for="agents">
+| Campo | Tipo | Motor | Notas |
+|---|---|---|---|
+| `message_buffer` | número ≥ 1 | os dois | Segundos. Abaixo de 1, a escrita é recusada. Num projeto com buffer 0 ou vazio, a mensagem é salva e os webhooks saem, mas ela não vai ao agente (a IA não responde) |
+| `pause_in_human_interaction` | número ≥ 0 | os dois | Minutos de pausa da IA depois que um humano responde |
+| `message_segmentation` | boolean | os dois | Divide a resposta em várias mensagens |
+| `eleven_labs` | boolean | os dois | Responde em áudio quando o lead manda áudio |
+| `eleven_labs_api_key`, `eleven_labs_voice_id` | string | os dois | Exigidos com `eleven_labs` |
+| `should_update_on_user_echo` | boolean | os dois | Só quando uma mensagem enviada pelo app cria um lead novo |
+| `message_quantity` | número ≥ 20 | os dois | No LangChain Agent, só limita o histórico trazido ao criar uma conversa nova |
+| `llm` | `OPENAI_RESPONSES`, `OPEN_ROUTER`, `LANGCHAIN_AGENT` | — | Só leitura na prática |
+| `prompt`, `model`, `temperature` (0–2), `top_p` (0–1), `max_tokens`, `reasoning` (`NONE`…`XHIGH`), `verbosity`, `api_key` | | antigo | |
+| `audio_interpretation`, `image_interpretation`, `pdf_interpretation`, `video_interpretation`, `code_interpreter`, `web_search`, `use_v2_response_schema`, `webhooks` | | antigo | |
+| `functions` | lista | antigo | Ignorada na escrita |
+</Visibility>
+
+### tags
+
+As tags do projeto, com cor, descrição e vínculo (contato ou conversa).
+
+**Na escrita:** renomeia pelo `slug`. Cor obrigatória, no formato `#RRGGBB`.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Obrigatório |
+| `color` | string | Obrigatório, `#RRGGBB` |
+| `description` | string ou null | |
+| `scope` | `lead` ou `conversation` | `lead` fica no contato; `conversation` sai ao encerrar o atendimento |
+| `slug` | string ou null | Chave de identidade |
+</Visibility>
+
+### columns
+
+As colunas do funil, na ordem, com as três chaves de comportamento.
+
+**Na escrita:** renomeia pelo `slug`. `order` é obrigatório. A coluna com
+`order` 0 é a de entrada: recebe leads novos e é para onde o lead volta ao
+encerrar o atendimento.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | |
+| `order` | número | Obrigatório. 0 = coluna de entrada |
+| `color` | `#RRGGBB` ou null | |
+| `description` | string ou null | |
+| `slug` | string ou null | Chave de identidade |
+| `shutdown_ai` | boolean | Desativar IA ao entrar na coluna |
+| `transhipment` | boolean | Transbordo: desliga a IA do lead (até religar ou encerrar) e avisa o responsável |
+| `should_trigger_automations` | boolean | Disparar automações, só ao mover pelo CRM |
+</Visibility>
+
+### properties
+
+As propriedades personalizadas: texto livre ou lista fechada de valores.
+
+**Na escrita:**
+
+- `is_enum: true` e `values` andam juntos. `values` sem `is_enum: true` é
+  ignorado, com nota.
+- Propriedade de texto livre já preenchida em algum contato não vira lista. A nota
+  traz a contagem de contatos.
+- Valor retirado de `values` continua existindo: pode haver lead preenchido com ele.
+- `send_to_ai` decide se o valor entra no contexto do agente. Padrão: `true`
+  (propriedade criada pelo painel vai para a IA). Não aparece no formulário do
+  painel; só se altera pelo template.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Obrigatório |
+| `slug` | string ou null | Chave de identidade; é o nome do parâmetro nas tools do agente |
+| `description` | string ou null | |
+| `scope` | `lead` ou `conversation` | |
+| `is_enum` | boolean | Liga a lista fechada |
+| `send_to_ai` | boolean | Injeta o valor no contexto do agente |
+| `values` | lista de `{ value, description? }` | Chave de cada valor: `value` |
+</Visibility>
+
+### skills
+
+As skills do agente: conhecimento carregado só quando o agente precisa.
+
+**Na escrita:** grava a skill no projeto e, se o projeto está no LangChain Agent,
+acrescenta ao config do agente as skills que ele ainda não tem (cria uma versão
+não publicada). Uma skill que o agente já tem **não é sobrescrita**: para mudar o
+texto dela, altere a tool `skill` no bloco `langchain`. Skill sem conteúdo não
+entra, com nota.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | |
+| `slug` | string | Obrigatório; chave de identidade |
+| `description` | string | O que o agente lê para decidir carregar |
+| `prompt` | string | O conteúdo |
+| `associated_functions` | qualquer | Do motor antigo; ignorado na escrita |
+</Visibility>
+
+### follow_ups
+
+Follow-ups (template da Meta depois de um tempo) e reengajamentos (texto livre
+antes de a janela de 24h fechar), no mesmo bloco, diferenciados por `method`.
+
+**Na escrita:**
+
+- Nasce desligado se `status` não vier.
+- O template da Meta vai por **nome** (`template_name`). Se ele ainda não existe
+  sincronizado no projeto, o follow-up entra sem template e guarda o nome; uma
+  nota avisa, e o vínculo é feito quando o template for sincronizado.
+- Em `RE_ENGAGEMENT`, `delay` são os minutos **antes** de a janela fechar, e a
+  unidade é sempre minutos.
+- Colunas e tags inexistentes são retiradas dos filtros, com nota.
+- Item sem `name` é ignorado.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade; obrigatório na prática |
+| `method` | `FOLLOW_UP` ou `RE_ENGAGEMENT` | |
+| `delay` | número | Em `FOLLOW_UP`, espera contada a partir do fim da interação |
+| `delay_unit` | `MINUTES`, `HOURS`, `DAYS` | Forçado a `MINUTES` em `RE_ENGAGEMENT` |
+| `order_follow_up` | número | Ordem na sequência |
+| `template_name` | string ou null | Template da Meta, pelo nome (só `FOLLOW_UP`) |
+| `template_variables` | objeto | Valores das variáveis do template |
+| `reengagement_message` | string ou null | Texto do reengajamento |
+| `columns`, `tags` | lista de nomes ou null | Filtros; vazio vale para todos |
+| `status` | `ACTIVE` ou `INACTIVE` | Ausente não mexe |
+</Visibility>
+
+### webhooks
+
+Webhooks de eventos: a Zatten avisa um sistema externo quando algo acontece
+(lead criado, conversa, kanban, tags, erros).
+
+**Na escrita:** nasce desligado (e sem endereço, se `url` não vier). Só liga
+com endereço. `url` vazia não grava; preenchida troca o endereço do cliente.
+Item sem `name` é ignorado.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `url` | string | Vazio não grava |
+| `status` | `ACTIVE` ou `INACTIVE` | Ligar exige endereço |
+| `lead_created`, `conversations`, `kanban`, `tags`, `errors` | boolean | Quais eventos enviar |
+</Visibility>
+
+### integration_webhooks
+
+Webhooks por inatividade: enviam os dados do lead para um sistema externo depois
+de um tempo sem interação.
+
+**Na escrita:** mesmas regras de endereço e estado do `webhooks`. Colunas e tags
+inexistentes são retiradas dos filtros, com nota.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `url` | string | Vazio não grava |
+| `delay`, `delay_unit` | número, `MINUTES`/`HOURS`/`DAYS` | Atraso |
+| `columns`, `tags` | lista de nomes ou null | Filtros |
+| `status` | `ACTIVE` ou `INACTIVE` | Ligar exige endereço |
+</Visibility>
+
+### mcps
+
+Servidores MCP cadastrados no projeto para o motor antigo. No LangChain Agent, os
+servidores MCP ficam como tools no bloco `langchain`.
+
+**Na escrita:** nasce desligado (e sem endereço, se `url` não vier). Só liga
+com endereço. `url` e `headers` vazios não gravam. Mantenha `request_approval` desligado.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `url` | string | Vazio não grava |
+| `headers` | objeto ou null | Vazio não grava |
+| `status` | `ACTIVE` ou `INACTIVE` | Ligar exige endereço |
+| `request_approval` | boolean | Manter `false` |
+</Visibility>
+
+### conversions
+
+Eventos enviados ao Meta Ads quando um lead que veio de anúncio entra numa coluna.
+
+**Na escrita:** nasce desligada. A coluna vai por nome (`column_name`); se não
+existir, a conversão é ignorada, com nota.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `event` | string | `LeadSubmitted`, `InitiateCheckout`, `Purchase`, `ViewContent`, `CartAbandoned` ou `AddToCart`. Outros nomes (`Schedule`, personalizados) são gravados, mas não aparecem enviados: não use |
+| `column_name` | string | Coluna que dispara o evento |
+| `value` | número ou null | Exigido (> 0) em `Purchase`; moeda BRL |
+| `status` | `ACTIVE` ou `INACTIVE` | |
+</Visibility>
+
+### unseen_message
+
+A resposta automática para mensagens que chegam por anúncio e não aparecem no CRM
+(conexão com coexistência). Existe no máximo uma por projeto.
+
+**Na escrita:** a chave é fixa. Mandar outro `name` renomeia a mesma resposta.
+Nasce desligada.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | |
+| `message` | string | |
+| `status` | `ACTIVE` ou `INACTIVE` | |
+
+O bloco é um objeto (ou `null`), não uma lista.
+</Visibility>
+
+### attendant_teams
+
+Os departamentos do projeto.
+
+**Na escrita:** renomeia pelo `slug`. **Os membros não viajam**: departamento
+criado nasce vazio, e alguém adiciona as pessoas no painel.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | |
+| `slug` | string ou null | Chave de identidade |
+| `icon` | string ou null | |
+| `default` | boolean | Departamento padrão, que recebe leads novos |
+| `should_send_name` | boolean | A mensagem do humano leva o nome de quem atende |
+</Visibility>
+
+### meta_templates
+
+Os templates da Meta do projeto. `get_template` traz todos.
+
+**Na escrita pelo MCP:** nada é criado nem alterado. Template existente nunca é
+atualizado (o estado é da Meta). Template que falta não é enviado à Meta: a nota
+lista quais faltam e sugere `submit_meta_templates: true`, opção que o MCP não
+tem. O envio é feito por uma pessoa, no painel.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave, junto com `language` |
+| `language` | string | Ex.: `pt_BR` |
+| `category` | string ou null | `MARKETING`, `UTILITY`, `AUTHENTICATION` |
+| `components` | lista | Formato da Meta |
+| `parameter_format` | string ou null | Ex.: `NAMED` |
+</Visibility>
+
+### inactivity_handovers
+
+Transbordos por inatividade: depois de um tempo sem interação, o lead vai para
+uma coluna de atendimento humano, com mensagem dentro e fora do horário comercial.
+
+**Na escrita:** nasce desligado. A coluna de destino vai por nome; se não
+existir, o transbordo é ignorado, com nota. Colunas e tags de origem inexistentes
+são retiradas, com nota.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `delay` | número | Minutos sem interação (mínimo 1 na tela) |
+| `target_column_name` | string | Coluna de destino |
+| `source_column_names`, `source_tag_names` | lista de nomes | Filtros de origem |
+| `within_hours_message`, `outside_hours_message` | string ou null | |
+| `business_hours_enabled` | boolean | |
+| `business_hours` | `{ timezone, schedule: [{ day, start, end, enabled }] }` | `day`: `MONDAY`…`SUNDAY` |
+| `status` | `ACTIVE` ou `INACTIVE` | |
+</Visibility>
+
+### custom_actions
+
+Ações personalizadas: botões no lead que fazem uma chamada HTTP quando um humano
+clica.
+
+**Na escrita:** sem `webhook_url`, nasce **pendente**: sem endereço e desligada. O estado é
+`is_active` (boolean). Só liga com endereço. `webhook_url`, `headers`,
+`query_params` e `body_params` vazios não gravam.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `description` | string ou null | |
+| `webhook_url` | string | Vazio não grava |
+| `method` | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` | |
+| `headers`, `query_params`, `body_params` | lista de `{ key, value }` | Vazio não grava. Valores aceitam `{{lead.*}}`, menos os headers |
+| `icon`, `color` | string ou null | |
+| `confirm` | boolean | Pede confirmação antes de chamar |
+| `is_active` | boolean | Ausente não mexe |
+| `order` | número | |
+</Visibility>
+
+### quick_messages
+
+Mensagens rápidas: blocos de texto e mídia que o humano envia com `/comando`.
+
+**Na escrita:** nasce desligada se `is_active` não vier. O comando é gravado sem
+barra, em minúsculas e com hífens no lugar de espaços. O filtro por departamento
+não viaja: a mensagem nova vale para todos.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `description` | string ou null | |
+| `command` | string ou null | Sem barra: `chegada`, não `/chegada` |
+| `blocks` | lista | `{ "type": "TEXT", "text": "…" }` ou `{ "type": "IMAGE", "media_url", "mime_type", "filename", "caption"? }` (também `VIDEO`, `AUDIO`, `DOCUMENT`) |
+| `is_active` | boolean | |
+| `order` | número | |
+</Visibility>
+
+### flows
+
+Os fluxos do Trigger Flow: gatilho, condições e ações, desenhados no editor.
+
+**Na escrita:**
+
+- **Fluxo novo** é criado desligado (se `status` não vier). Referências a coluna,
+  tag e departamento dentro do grafo vão por **nome**; se alguma não existir, o
+  fluxo não é criado, com nota.
+- **Fluxo que já existe** (mesmo nome) não tem o grafo reescrito: só o `status`
+  muda. O desenho é do editor.
+- Responsável não viaja: é uma pessoa, não configuração.
+- Não mande `execution_plan`; ele é refeito a partir dos nós.
+- Fluxo sem nó de gatilho não é criado. Dois fluxos com o mesmo caminho de webhook
+  de entrada também não.
+- Gatilhos **em breve** (`lead.created`, `lead.message_received`,
+  `lead.property_changed`, `lead.inactive`) não rodam hoje, nem pela API. Não monte
+  fluxos com eles.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `description` | string ou null | |
+| `status` | `ACTIVE` ou `INACTIVE` | O único campo alterável num fluxo existente |
+| `nodes` | lista | Nós do grafo; `""` numa coluna ou tag significa "qualquer" |
+| `edges` | lista | Ligações entre nós |
+
+Catálogo de gatilhos, condições e ações em [Trigger Flow: blocos](/produto/trigger-flow/blocos).
+</Visibility>
+
+### langchain
+
+O config do agente no LangChain Agent: modelo, instruções, tools, skills e
+ajustes (retry, fallback, resumo, LangSmith e outros).
+
+**Na escrita:**
+
+- Cria uma **versão nova, não publicada**. Quem publica é uma pessoa, no painel.
+- Config igual ao atual não cria versão.
+- A chave do modelo (`model.api_key`) e a do LangSmith
+  (`settings.tracing.api_key`) já gravadas são mantidas **só quando o campo não
+  vem**. `""` grava vazio por cima e o agente para de responder. O
+  `get_template` devolve as chaves preenchidas: devolva o valor lido ou omita o
+  campo, nunca `""` nem um texto de exemplo.
+- Headers de tools vazios ou ausentes mantêm os atuais.
+- Aprovação humana é sempre desligada, com nota.
+- Tools cujo alvo não existe no projeto não entram, com nota.
+- Gravar por cima de uma versão ainda não publicada gera nota.
+- Projeto no motor antigo: o bloco é ignorado, com nota.
+- A regra editável de uma ação da Zatten fica em `_zatten.note`, mas o modelo lê
+  `description`. A escrita pelo MCP **não** recompõe `description` a partir da
+  nota (só o painel faz isso, ao salvar a ação). Para mudar a regra pelo MCP,
+  altere os dois: `_zatten.note` e o fim de `description`, com o mesmo texto.
+  Veja [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten).
+
+<Visibility for="agents">
+```json
+{
+  "langchain": {
+    "config": {
+      "name": "…",
+      "model": { "provider": "openai", "name": "…" },
+      "instructions": { "system_prompt": "…" },
+      "tools": [],
+      "settings": {}
+    }
+  }
+}
+```
+
+Todos os campos do `config`, com tipo, padrão e status, em
+[Referência do config do agente](/engenharia-de-ia/referencia-do-config).
+</Visibility>
+
+## Armadilhas
+
+- **Lista inteira, sempre.** Qualquer bloco de lista enviado com itens faltando
+  deixa os que faltam como órfãos.
+- **Renomear sem `slug`** cria um item novo. Só `columns`, `tags`,
+  `attendant_teams`, `properties` e `skills` renomeiam.
+- **Nos blocos identificados por nome**, mudar o `name` cria outro item e deixa o
+  antigo como órfão.
+- **Renomear coluna, tag ou departamento que o agente usa:** mande também o bloco
+  `langchain` (como veio do `get_template`) na mesma escrita. Só assim as tools
+  do agente passam a apontar para o nome novo (o que cria uma versão não
+  publicada). Sem isso, numa escrita futura do bloco `langchain`, a tool que
+  aponta para o nome antigo é descartada, com nota.
+
+## Para saber mais
+
+- [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona)
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Sobrescrever x atualizar um projeto por template](/produto/sobrescrever-x-atualizar)
+- [API de template (REST)](/api/template)

@@ -1,0 +1,112 @@
+---
+title: "Encerrar atendimento"
+description: "Leia antes de encerrar um atendimento (pelo painel, pela API ou por um fluxo) para saber o que muda no lead, o que vai para o histórico, o que continua e qual gatilho dispara."
+---
+
+**Encerrar atendimento** fecha a conversa atual do lead e o devolve ao estado de contato novo: **primeira coluna do funil, sem responsável, sem departamento e com a IA religada**. O lead não é apagado. O que era daquela conversa (tags e propriedades de vínculo **conversa**) vai para o histórico; o que é do contato fica. Na próxima mensagem do lead, começa uma conversa nova.
+
+Use ao fim de cada atendimento, para que o próximo contato do lead comece limpo.
+
+## Onde fica no painel
+
+Em **Conversas**, abra o lead e, no painel à direita, seção **Ações**, clique em **Encerrar atendimento** e confirme. O mesmo encerramento existe na API e no Trigger Flow (veja abaixo).
+
+## O que acontece, passo a passo
+
+| O que | Depois de encerrar |
+|---|---|
+| **Coluna** | Volta para a primeira coluna do funil (a de ordem 0). |
+| **Responsável e departamento** | Ficam vazios. |
+| **IA** | Religada, mesmo que estivesse **desligada** ou pausada. |
+| **Mensagens não lidas** | Zeradas. |
+| **Tags de vínculo conversa** | Saem do lead e ficam guardadas na conversa encerrada. |
+| **Propriedades de vínculo conversa** | Os valores são apagados do lead e ficam guardados na conversa encerrada. |
+| **Tags e propriedades de vínculo contato** | Continuam no lead. |
+| **Nome, telefone, anotações** | Continuam no lead. |
+| **Conversa** | Fica fechada. O lead sai da lista de Conversas e do Kanban; continua em **Contatos**. |
+| **Histórico do lead** | Ganha o registro "Atendimento finalizado". |
+| **Trigger Flow** | Dispara o gatilho **Conversa encerrada** (`lead.conversation_closed`). |
+
+O vínculo de cada tag e propriedade é definido no cadastro dela (**contato** ou **conversa**), não na hora de aplicar. Veja [Tags](/produto/tags) e [Propriedades personalizadas](/produto/propriedades).
+
+## Como funciona por trás
+
+**Quando o lead volta.** O encerramento não abre uma conversa nova. Ela nasce na próxima mensagem do lead (ou num envio para ele). Nesse momento, o lead volta para a lista de Conversas, na primeira coluna, e recebe responsável pelo rodízio do [departamento padrão](/produto/departamentos).
+
+**Encerrar duas vezes não faz nada.** Se o lead não tem conversa aberta, o encerramento termina sem mudar nada e sem disparar o gatilho. Isso protege contra duplo clique e reenvio.
+
+**O gatilho "conversa encerrada".** Dispara uma vez por conversa encerrada, depois que tudo foi gravado. O fluxo enxerga o lead já no estado novo (primeira coluna, sem responsável, IA ligada). Mensagens que o fluxo enviar ficam na conversa que acabou de ser encerrada e **não reabrem** o atendimento. Use para pesquisa de satisfação, aviso ao CRM externo ou registro em planilha. Veja [Trigger Flow: blocos](/produto/trigger-flow/blocos).
+
+**Follow-ups pendentes não saem.** O follow-up confere, na hora de enviar, se o lead tem conversa aberta. Depois do encerramento, não tem, e o envio é pulado.
+
+**Mover para a primeira coluna não dispara automações de coluna.** O encerramento grava a coluna direto: não dispara as automações da coluna nem o gatilho de coluna alterada do Trigger Flow. Use o gatilho **Conversa encerrada**.
+
+<Visibility for="agents">
+Estado gravado no lead ao encerrar:
+
+```json
+{
+  "thread_id": null,
+  "zatten_thread_id": null,
+  "column_id": "<primeira coluna por order>",
+  "assigned_to_team": null,
+  "assigned_to_user": null,
+  "ai_response_block_until": null,
+  "unread_messages": 0,
+  "tags": ["<só tags de scope lead>"]
+}
+```
+
+`tags` vira `null` quando não sobra nenhuma. A conversa (thread) recebe `closed_at`, `tags_snapshot` (`[{ id, name, color }]`) e `properties_snapshot` (`[{ slug, name, value }]`).
+
+- Tag aplicada cuja definição não existe mais **fica** no lead (não é tratada como de conversa).
+- Propriedade sem definição encontrada **fica** no lead.
+- Projeto sem nenhuma coluna: o encerramento falha com 400.
+- Gatilho do Trigger Flow: `lead.conversation_closed`, com `trigger_event = { lead_id, lead_number, zatten_thread_id, source }` (`source`: `api` ou `system`). Dedupe por lead + conversa.
+- Atividade gravada: `THREAD_CLEARED`.
+</Visibility>
+
+## Pela API e pelo Trigger Flow
+
+Os três caminhos fazem exatamente a mesma coisa:
+
+| Caminho | Como |
+|---|---|
+| Painel | **Conversas → lead → Ações → Encerrar atendimento** |
+| API | `PATCH /api/v1/leads/{numero}/thread`, com a chave de API do projeto. Responde **204** (inclusive quando não havia conversa aberta). |
+| Trigger Flow | Ação **Encerrar atendimento** (`lead.reset_thread`). |
+
+A rota e a ação **encerram** a conversa: não abrem uma nova nem "reiniciam" a atual. A conversa nova só nasce na próxima mensagem.
+
+O encerramento não viaja no template do projeto: é uma ação sobre um lead, não configuração. Veja [Controle da IA por lead (API)](/api/controle-da-ia).
+
+## Armadilhas
+
+- **Encerrar religa a IA, inclusive a desligada.** Um lead que estava com a IA desligada de propósito (cliente sensível, negociação humana) volta a ser atendido pelo agente na próxima mensagem. Se a IA deve continuar desligada, não encerre: mova o lead para uma coluna com **Desativar IA**.
+- **Tag ou propriedade com vínculo errado.** Tag que deveria acompanhar o contato ("Cliente PJ") cadastrada como **conversa** some a cada encerramento. Confira o vínculo de cada tag e propriedade antes de colocar o encerramento na rotina da equipe.
+- **Propriedade de conversa usada no template de follow-up ou campanha** fica vazia depois do encerramento. O envio que depende dela falha por variável sem valor.
+- **"Sumiu da tela" não é "foi apagado".** O lead está em **Contatos**.
+- **Automação de coluna não roda.** A primeira coluna recebe o lead sem disparar as automações dela. Para agir no encerramento, use o gatilho **Conversa encerrada**.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Encerrar apaga as mensagens?">
+Não. As mensagens ficam na conversa encerrada, que aparece na seção **Conversas** do painel do lead.
+</Accordion>
+<Accordion title="O agente lembra da conversa anterior quando o lead volta?">
+Não. A memória do agente é por conversa: a nova começa sem as mensagens da anterior. O que é do contato (nome, tags e propriedades de vínculo contato) continua no lead.
+</Accordion>
+<Accordion title="Dá para encerrar automaticamente depois de um tempo sem resposta?">
+Não existe gatilho automático por tempo (o gatilho **Lead inativo** do Trigger Flow está em breve). Use uma rotina externa (um agendador, por exemplo) que chame `PATCH /api/v1/leads/{numero}/thread`, ou que chame o webhook de entrada de um fluxo com a ação **Encerrar atendimento**. Veja [Disparar fluxos](/api/fluxos-e-webhook-de-entrada).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Conversas e chat ao vivo](/produto/conversas-e-chat)
+- [Tags](/produto/tags) e [Propriedades personalizadas](/produto/propriedades) (vínculo contato x conversa)
+- [Funil (Kanban)](/produto/funil-kanban)
+- [Trigger Flow: conceitos](/produto/trigger-flow/conceitos) e [blocos](/produto/trigger-flow/blocos)
+- [Controle da IA por lead (API)](/api/controle-da-ia)
+- Termos para buscar: "encerrar atendimento", "conversation_closed", "reset_thread", "thread".

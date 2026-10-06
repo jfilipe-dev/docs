@@ -1,0 +1,66 @@
+---
+title: "Limites de requisição"
+description: "Leia antes de chamar a API da Zatten em volume: não há limite fixo publicado, o que fazer se vier 429 com Retry-After e como espaçar chamadas em lote."
+---
+
+A API da Zatten **não tem um limite fixo de requisições publicado**. Mesmo assim,
+chame com moderação: se um dia a resposta vier **429**, espere o tempo do header
+`Retry-After` e repita a mesma chamada.
+
+## Se vier 429
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 23
+Content-Type: application/json
+
+{ "message": "Too many requests. Try again in 23 second(s)." }
+```
+
+- `Retry-After`: segundos até poder tentar de novo. Espere isso antes de repetir.
+- O corpo do 429 usa `message`, não `error` como os outros erros.
+- Se as respostas trouxerem os headers `RateLimit-Remaining` e `RateLimit-Reset`,
+  use-os para desacelerar antes de chegar no 429.
+
+## Como chamar em lote
+
+<Steps>
+<Step title="Espace as chamadas">
+Para uma ação em muitos leads, faça poucas chamadas por segundo (2 a 5) e uma de
+cada vez. É rápido o bastante para centenas de leads e não sobrecarrega nada.
+</Step>
+<Step title="Respeite o Retry-After">
+Ao receber 429, espere o tempo do header e repita a mesma chamada. Não repita na hora.
+</Step>
+<Step title="Não insista com chave inválida">
+401 em loop não resolve nada: confira a chave antes de tentar de novo.
+Ver [Autenticação](/api/autenticacao).
+</Step>
+</Steps>
+
+<Warning>
+A API sem limite fixo não quer dizer WhatsApp sem limite. A Meta tem os próprios limites
+de envio, e mandar mensagem em loop para muitos leads derruba a qualidade do número.
+Mensagem para muitos leads é [campanha](/produto/campanhas), não API.
+</Warning>
+
+## Outros 429
+
+O 429 que vem do **provedor de WhatsApp** é outro caso: aparece num envio de mensagem
+na conexão não oficial e não traz `Retry-After` da Zatten. Ver [Erros](/api/erros).
+
+## Armadilhas
+
+- **Sem limite publicado não é convite a rajada.** Espace as chamadas em lote.
+- **Repetir o 429 na hora** só alonga a espera. Use o `Retry-After`.
+- **Erro também é chamada.** 400 e 404 em loop não mudam de resultado: corrija o corpo
+  antes de repetir.
+
+## Para saber mais
+
+- [Autenticação](/api/autenticacao), [Erros](/api/erros)
+- [Campanhas](/produto/campanhas) para envio em massa
+- Meta: [limites de mensagens](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits)
+  e [throughput da plataforma](https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform)
+- Termos para buscar: "429 Too Many Requests", "Retry-After header", "RateLimit headers",
+  "exponential backoff".

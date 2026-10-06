@@ -1,0 +1,102 @@
+---
+title: "Notificar o responsável"
+description: "Leia para mandar uma notificação push ao responsável de um lead pela API (POST /leads/{numero}/notification): título até 100 caracteres, mensagem até 500, o que acontece sem responsável, respostas sent true/false, erros e cuidados contra spam."
+---
+
+`POST /leads/{numero}/notification` manda uma **notificação** ao **responsável atual**
+do lead: o usuário da equipe atribuído a ele. É a mesma ação do bloco **Notificar
+responsável** do Trigger Flow. Use para avisar alguém da equipe de que um lead precisa
+de atenção (um pedido pago, um formulário preenchido, uma reclamação).
+
+A notificação aparece no sino de notificações do painel e, se o usuário ativou as
+notificações no navegador ou no celular, chega como push. Clicar abre o lead no CRM.
+
+Ela vai **só** para o responsável. Lead sem responsável não gera notificação.
+
+## Corpo
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `title` | string | Não | Título. Vazio, só espaços ou `null`: o nome do lead (ou o número, se não tiver nome). Até **100** caracteres; o excesso é cortado com `…`. Fica numa linha. |
+| `body` | string | Não | Mensagem. Vazio: "Uma automação enviou uma notificação sobre este lead." Até **500** caracteres; o excesso é cortado com `…`. |
+
+Texto com mais de **4000** caracteres em qualquer campo, ou campo que não é texto, dá 400.
+O texto é puro: HTML não é interpretado. Caracteres invisíveis e de controle são removidos.
+
+O corpo inteiro pode ser vazio (`{}`): a notificação sai com o nome do lead e a mensagem
+padrão.
+
+## Resposta: 200
+
+| Corpo | Quer dizer |
+|---|---|
+| `{ "sent": true, "profile_id": "<id do usuário>" }` | Enviada ao serviço de notificação. Não garante que chegou a um aparelho (o usuário pode não ter ativado o push). |
+| `{ "sent": false, "reason": "NO_ASSIGNEE" }` | O lead não tem responsável. Nada foi enviado. |
+| `{ "sent": false, "reason": "ASSIGNEE_NO_ACCESS" }` | O responsável não tem mais acesso ao projeto. Nada foi enviado. |
+
+`sent: false` não é erro: a chamada responde 200 para você decidir o que fazer (por
+exemplo, atribuir um responsável e notificar de novo).
+
+## Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Must be a string` / `Must be at most 4000 characters` | Campo inválido. |
+| 404 | `Lead with number … not found` | Lead inexistente no projeto. |
+| 502 | `Push provider failed` | O serviço de notificação falhou. Tente de novo mais tarde. |
+
+## Exemplo
+
+```bash
+curl -X POST "https://api.zatten.com/api/v1/leads/5511999998888/notification" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Pagamento confirmado",
+    "body": "Maria Souza pagou o pedido 9182. Combine a entrega."
+  }'
+```
+
+## Garantir que alguém receba
+
+<Steps>
+<Step title="Atribua um responsável">
+Se o lead pode estar sem responsável, chame antes
+[`PATCH /leads/{numero}/assignee`](/api/leads) com o departamento (sem e-mail, o rodízio
+escolhe).
+</Step>
+<Step title="Notifique">
+Chame `POST /leads/{numero}/notification`.
+</Step>
+<Step title="Confira o sent">
+`sent: false` com `NO_ASSIGNEE` quer dizer que o passo 1 não deixou ninguém atribuído.
+</Step>
+</Steps>
+
+<Visibility for="agents">
+- Destinatário: `lead.assigned_to_user` lido no momento da chamada.
+- 200 `{sent: true, profile_id}` | 200 `{sent: false, reason: "NO_ASSIGNEE"|"ASSIGNEE_NO_ACCESS"}` | 400 | 404 | 502 `{error: "Push provider failed"}` | 500.
+- `title`: vazio → nome do lead → número; trunca em 100. `body`: vazio → texto padrão; trunca em 500. Teto bruto 4000 (400).
+- A mesma combinação de título e mensagem para o mesmo lead substitui a notificação anterior no aparelho; textos diferentes se acumulam.
+- Notificar não altera o lead nem dispara gatilhos. Não há limite de frequência por lead.
+</Visibility>
+
+## Armadilhas
+
+- **Lead sem responsável não notifica ninguém.** A resposta é 200 com `sent: false`.
+- **Encerrar o atendimento tira o responsável.** Notificar logo depois de encerrar dá
+  `NO_ASSIGNEE`.
+- **Atribuir responsável não notifica.** A troca de responsável pela API ou pelo rodízio
+  não avisa a pessoa; chame esta rota se quiser avisar.
+- **Não há limite de frequência.** Uma integração que notifica a cada evento pode inundar
+  o responsável. Filtre do seu lado.
+- **Texto vindo do lead.** Se você monta o título com o que o lead escreveu, o lead controla
+  o conteúdo da notificação. Prefira textos fixos.
+- **`sent: true` não é "lido".** Quer dizer só que a notificação foi enviada.
+
+## Para saber mais
+
+- [Leads](/api/leads): responsável e departamento
+- [Departamentos](/produto/departamentos)
+- [Trigger Flow: blocos](/produto/trigger-flow/blocos): o bloco Notificar responsável
+- Termos para buscar: "web push notification", "push notification PWA".

@@ -1,0 +1,156 @@
+---
+title: "Tools: visão geral"
+description: "Leia antes de dar ações ao agente: o que é uma tool, como o modelo decide chamar (pela descrição), os tipos que o LangChain Agent aceita (ações da Zatten, HTTP, Composio, MCP, skill, lista de tarefas) e quantas tools é demais."
+---
+
+Uma **tool** é uma ação que o agente pode executar no meio da conversa: mover o
+lead no funil, consultar uma agenda, buscar um pedido na API do cliente final. Sem
+tools, o agente só conversa. Com elas, ele age no CRM e em sistemas externos.
+
+O modelo decide sozinho quando chamar cada tool. Ele decide **lendo o nome, a
+descrição e os parâmetros** de cada uma. Por isso a descrição é a parte mais
+importante de qualquer tool.
+
+## Onde fica no painel
+
+No editor do agente (LangChain Agent), seção **Tools**:
+
+- **Adicionar** abre o catálogo, com os filtros **Tudo**, **CRM**, **Utilidades** e
+  **Aplicativos**, mais **Chamada de API** e **Servidor MCP**.
+- A engrenagem ao lado abre **Comportamento das Tools**: limite de chamadas,
+  nova tentativa, limpeza de resultados antigos e o filtro de tools por mensagem.
+
+Toda mudança cria um rascunho. A tool só vale para os leads depois de
+[publicar a versão](/engenharia-de-ia/versoes-e-publicacao).
+
+## Os tipos de tool
+
+| No painel | O que é | Página |
+|---|---|---|
+| **CRM** (ações da Zatten) | Mover no funil, tags, departamento, propriedade, agendar e cancelar mensagem, transferir para humano, desligar a IA. Prontas, sem configurar API. | [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten) |
+| **Chamada de API** | Uma requisição HTTP para qualquer sistema com API: agenda, ERP, CRM externo, n8n. | [Tool HTTP: referência](/engenharia-de-ia/tools/http) |
+| **Aplicativos** | Ações prontas de apps conectados pela tela Integrações (Google Agenda, HubSpot, Notion…), via Composio. | [Tools da Composio](/engenharia-de-ia/tools/composio) |
+| **Servidor MCP** | Um servidor que entrega várias tools de uma vez. | [Servidores MCP no agente](/engenharia-de-ia/tools/mcp) |
+| **Skill** (em Utilidades) | Conhecimento que o agente carrega só quando precisa. Para o modelo, é uma tool `load_skill`. | [Skills do agente](/engenharia-de-ia/skills) |
+| **Lista de tarefas** (em Utilidades) | Deixa o agente planejar um atendimento longo em etapas. | [Lista de tarefas](/engenharia-de-ia/lista-de-tarefas) |
+
+## Como o modelo decide chamar uma tool
+
+A cada mensagem, o modelo recebe o prompt, a conversa e a lista de tools. Para
+cada tool ele vê três coisas:
+
+1. **Nome:** `kanban_move_ganho`, `consultar_horarios`.
+2. **Descrição:** o texto que diz o que a tool faz e quando usar.
+3. **Parâmetros:** o que ele precisa preencher, cada um com tipo e descrição.
+
+Ele **não vê** o endereço, os cabeçalhos nem o código por trás. Se a descrição
+diz "consulta horários", ele vai chamar quando o lead perguntar de horário, mesmo
+que a API faça outra coisa.
+
+Depois da chamada, o modelo recebe o resultado (o JSON da API, ou uma mensagem de
+erro) e decide o que responder ao lead. Ele pode chamar várias tools na mesma
+mensagem.
+
+### O que escrever na descrição
+
+Trate a descrição como prompt, não como rótulo. Diga:
+
+- **o que acontece** quando a tool roda;
+- **quando usar**, com o gatilho da conversa ("quando o cliente informar o CPF");
+- **quando não usar** ("não use se ele só pediu preço");
+- **o efeito colateral** que importa ("o lead sai da coluna anterior").
+
+<Tip>
+Descrição ruim: "Busca pedido". Descrição boa: "Consulta o status de um pedido
+pelo número. Use quando o cliente perguntar sobre entrega ou pedir a posição de
+um pedido que já fez. Não use para pedidos novos."
+</Tip>
+
+### Descrição ou prompt?
+
+- **Na descrição da tool:** quando e como usar *aquela* tool.
+- **No prompt:** o fluxo do atendimento e a ordem das etapas ("primeiro qualifique,
+  depois consulte a agenda, depois agende").
+
+Repetir no prompt a regra que já está na descrição não ajuda e gasta tokens. Mais
+em [Escrever um bom prompt](/engenharia-de-ia/prompt).
+
+## Quantas tools é demais?
+
+Cada tool ocupa contexto em toda mensagem e é mais uma opção para o modelo errar.
+
+- **Até umas dez tools:** o modelo costuma escolher bem, se as descrições forem
+  claras e não se sobrepuserem.
+- **Acima disso:** ligue **Filtrar tools** em **Comportamento das Tools**. Antes de
+  responder, um modelo mais barato lê a mensagem e deixa visíveis só as tools
+  ligadas ao pedido. Custa uma chamada a mais por mensagem.
+- **Servidor MCP conta como todas as tools que ele expõe**, não como uma.
+
+Duas tools que fazem quase a mesma coisa confundem o modelo. Junte ou deixe a
+diferença explícita na descrição.
+
+Detalhes do filtro e dos limites de chamada em
+[Limites e segurança](/engenharia-de-ia/limites-e-seguranca).
+
+## Como funciona por trás
+
+- As **ações da Zatten** são gravadas como tools HTTP que chamam a própria Zatten.
+  Por isso aparecem no JSON com `type: "http"`.
+- As **skills** viram uma única tool, `load_skill`, que lista todas pelo nome.
+- A **lista de tarefas** liga um recurso do agente que dá ao modelo a tool
+  `write_todos`.
+- A **aprovação humana** por tool existe no config, mas fica sempre desligada: o
+  painel não tem onde aprovar, e a conversa ficaria parada esperando.
+
+<Visibility for="agents">
+No config (`langchain.config.tools[]`), `type` é um destes: `http`, `composio`,
+`mcp`, `skill`, `builtin`. O tipo `native` não é mais aceito pelo agente: uma tool
+com tipo inválido derruba o agente inteiro. Ações da Zatten são `http` com a
+metadata `_zatten` (ignorada pelo agente, lida pelo painel).
+
+```json
+{
+  "tools": [
+    { "type": "http", "name": "consultar_pedido", "description": "…", "url": "https://…", "method": "GET", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
+    { "type": "composio", "toolkit": "googlecalendar", "action": "find_free_slots", "require_approval": false },
+    { "type": "mcp", "name": "context7", "transport": "http", "url": "https://mcp.context7.com/mcp", "headers": {} },
+    { "type": "skill", "name": "politica_de_troca", "description": "…", "content": "…" },
+    { "type": "builtin", "name": "todo_list", "config": { "enabled": true, "system_prompt": null, "tool_description": null } }
+  ]
+}
+```
+
+`require_approval` deve ser sempre `false`. O `update_template` força `false` e
+devolve nota.
+</Visibility>
+
+## Pelo MCP
+
+As tools viajam no bloco `langchain` do template do projeto, em `config.tools`.
+Toda escrita do bloco cria uma versão nova, não publicada. Detalhes do bloco em
+[Referência do template](/trabalhar-com-ia/referencia-do-template#langchain).
+
+- Mande a lista **inteira** de tools: o bloco `langchain` grava o config como veio.
+- Uma ação da Zatten cujo alvo (coluna, tag, departamento, propriedade) não existe
+  no projeto não entra, e a resposta traz nota.
+
+## Armadilhas
+
+- **Descrição vaga.** É a causa mais comum de "o agente não chama a tool" ou
+  "chama na hora errada". Reescreva a descrição antes de mexer no prompt.
+- **Tool adicionada, versão não publicada.** O chat de teste usa o rascunho; os
+  leads, a versão publicada.
+- **Muitas tools parecidas.** O modelo escolhe a errada. Junte ou diferencie.
+- **Servidor MCP grande.** Um servidor com 30 tools põe 30 tools no contexto.
+- **Tool lenta.** O agente tem até 180 segundos por resposta, contando todas as
+  tools e o modelo. Uma API lenta pode estourar o tempo.
+
+## Para saber mais
+
+- [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten)
+- [Tool HTTP: referência](/engenharia-de-ia/tools/http) e [como montar a sua API](/engenharia-de-ia/tools/montar-sua-api)
+- [Testar o agente](/engenharia-de-ia/testar)
+- Anthropic, "Writing tools for agents": https://www.anthropic.com/engineering/writing-tools-for-agents
+- OpenAI, function calling: https://developers.openai.com/api/docs/guides/function-calling
+- LangChain, agentes: https://docs.langchain.com/oss/python/langchain/agents
+- Termos para buscar: "tool calling", "function calling", "tool description", "LLM tool selector".

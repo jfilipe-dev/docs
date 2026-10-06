@@ -1,0 +1,448 @@
+---
+title: "Referência do config do agente (JSON)"
+description: "Consulte para ler ou escrever o config do agente no LangChain Agent (bloco langchain.config do template): a estrutura, todos os campos com tipo, padrão e status, os campos que não têm efeito hoje, o que o template não grava e um exemplo mínimo válido."
+---
+
+O config do agente é o JSON que define o agente de um projeto no LangChain Agent:
+o modelo, o prompt, as tools e os ajustes. O editor do painel (menu **Agente**) e o
+bloco `langchain.config` do template mexem no mesmo JSON. Esta página lista todos os
+campos.
+
+Só dois campos são obrigatórios: `model.provider` e `model.name`. Todo o resto tem
+padrão, e **campo omitido vale o padrão**. Grave só o que você quer diferente do
+padrão.
+
+## A estrutura em uma olhada
+
+```json
+{
+  "name": "…",
+  "model": { … },
+  "instructions": { … },
+  "tools": [ … ],
+  "settings": { … },
+  "agents": []
+}
+```
+
+| Bloco | O que faz | Onde aprender |
+|---|---|---|
+| `name` | Nome interno do agente. O lead não vê. | — |
+| `model` | Provider, modelo, chave, temperatura, Max Tokens, raciocínio, tempo limite, tentativas e modelos de reserva (fallback). | [Providers](/engenharia-de-ia/providers), [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo), [Resiliência](/engenharia-de-ia/resiliencia) |
+| `instructions` | O prompt do agente e se os dados do lead vão junto a cada mensagem. | [Prompt](/engenharia-de-ia/prompt), [Contexto injetado](/engenharia-de-ia/contexto-injetado) |
+| `tools` | Tudo o que o agente pode usar: chamadas de API (incluindo as ações da Zatten), Composio, servidores MCP, skills e a lista de tarefas. | [Tools: visão geral](/engenharia-de-ia/tools/visao-geral) |
+| `settings` | Ajustes do comportamento: erro e transbordo, limite de chamadas, dados pessoais, resumo e limpeza de contexto, novas tentativas de tool, filtro de tools, transcrição de áudio e LangSmith. | Ver a tabela abaixo |
+| `agents` | Reservado para vários agentes no futuro. **Sem efeito hoje.** | — |
+
+### Os blocos de `settings`
+
+| Bloco | O que faz | Ligado por padrão? | Onde aprender |
+|---|---|---|---|
+| `error_handling` | Mensagem ao lead e transbordo quando todos os modelos falham. | **Sim** | [Resiliência](/engenharia-de-ia/resiliencia) |
+| `call_limit` | Teto de chamadas ao modelo por mensagem e por conversa. | Não | [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) |
+| `pii_protection` | Esconde ou bloqueia dados pessoais. | Não | [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) |
+| `human_approval` | Pausa para aprovação humana. | Não, e **fica sempre desligado** | [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) |
+| `summarization` | Resume o histórico de conversas longas. | Não | [Conversas longas](/engenharia-de-ia/conversas-longas) |
+| `context_editing` | Limpa resultados antigos de tools. | Não | [Conversas longas](/engenharia-de-ia/conversas-longas) |
+| `tool_retry` | Tenta de novo uma tool que falhou. | Não | [Tools: visão geral](/engenharia-de-ia/tools/visao-geral) |
+| `tool_selector` | Mostra ao modelo só as tools ligadas à mensagem. | Não | [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) |
+| `transcription` | Transforma áudio do lead em texto. | **Sim** | [Mídia](/engenharia-de-ia/midia) |
+| `tracing` | Envia o passo a passo do agente ao LangSmith. | Não | [LangSmith](/engenharia-de-ia/langsmith) |
+
+## Regras que valem para o config inteiro
+
+- **Omitido = padrão.** Mandar `settings: {}` é igual a não mandar nada: valem os
+  padrões, inclusive `error_handling` e `transcription` ligados.
+- **Chave desconhecida não dá erro.** O agente ignora a chave e a guarda intacta.
+  É assim que o painel guarda `_id` e `_zatten` dentro de cada tool. A contrapartida:
+  **um erro de digitação também não dá erro**. `"inject_contex": true` passa na
+  validação e o recurso simplesmente não liga.
+- **Valores fora da lista invalidam.** Um `type` de tool, um `provider` ou um enum
+  com valor que não existe faz o agente inteiro deixar de funcionar.
+- **Tempo é sempre em segundos** (`timeout_seconds`, `initial_delay`, `max_delay`).
+- **Toda escrita cria uma versão não publicada.** Quem publica é uma pessoa, no
+  painel ([Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)).
+- **Pelo MCP, o `config` enviado substitui o config inteiro.** Parta do que o
+  `get_template` devolveu e mude só o necessário.
+
+## O que o template não grava
+
+Ao aplicar o bloco `langchain` (pelo MCP ou pela API de template), a Zatten ajusta
+estes campos e devolve uma nota quando muda algo:
+
+| Campo | O que acontece |
+|---|---|
+| `model.api_key` e `settings.tracing.api_key` | **Preservadas só quando o campo está ausente.** Sem o campo, a chave já gravada no projeto continua. Com `""` (texto vazio), o vazio é **gravado por cima** e o agente para de responder. Omita o campo ou devolva intacto o valor que o `get_template` trouxe. Nunca mande `""` nem um texto de exemplo no lugar da chave. |
+| `tools[].headers` | **Preservados** quando a tool chega sem cabeçalhos (campo ausente ou `{}`) e tem o mesmo `_id` de uma tool já gravada. Um cabeçalho com valor vazio é gravado vazio. |
+| `settings.human_approval.enabled` e `tools[].require_approval` | **Sempre gravados `false`.** A aprovação pausa a conversa esperando alguém aprovar, e o painel não tem tela para isso: o lead ficaria sem resposta. |
+| `settings.tracing.metadata.attendant_id` | Reescrito com o projeto de destino, para os traces no LangSmith ficarem no projeto certo. |
+
+Também não grave:
+
+- `model.provider: "custom"`: desativado; o agente não valida.
+- `tools[].type: "native"`: removido. As ações da Zatten são tools `http`
+  ([Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten)).
+- `settings.tracing.provider`: não existe. O tracing é sempre LangSmith.
+
+## Campos sem efeito hoje
+
+São aceitos na validação, mas nada no agente os usa. Não prometa o recurso a partir
+deles.
+
+| Campo | Por quê |
+|---|---|
+| `description` (raiz) | Só metadado. O agente não lê. |
+| `agents` | Reservado para vários agentes. Sem contrato definido. |
+| `tools[].allowed_tools` e `tools[].blocked_tools` (MCP) | **O filtro não existe.** Toda tool do servidor MCP chega ao modelo, diga a lista o que disser ([Servidores MCP](/engenharia-de-ia/tools/mcp)). |
+| `settings.human_approval.mode: "all_responses"` (o padrão) e `"custom"` | Não implementados. E a aprovação fica sempre desligada de qualquer forma. |
+| `tools[].name` de `builtin` diferente de `todo_list` | Aceito e ignorado. |
+| `settings.tracing.enabled: true` sem `api_key` | Valida e não liga. |
+
+## Combinações que o agente recusa
+
+Passam campo a campo, mas o config inteiro falha:
+
+| Quando | Exige |
+|---|---|
+| `model.fallback.enabled: true` | Pelo menos um item em `model.fallback.models` |
+| `settings.call_limit.enabled: true` | `per_message` ou `per_conversation` |
+| `settings.summarization.enabled: true` | `trigger_tokens` ou `trigger_messages` |
+| `settings.pii_protection.enabled: true` | Pelo menos uma regra em `rules` |
+| `settings.transcription.provider: "custom"` | `base_url` |
+
+E estas **não falham, mas não funcionam**, sem aviso:
+
+- `settings.error_handling.handoff_tool` com o nome de uma tool que não existe ou
+  que não é `http`: o lead recebe a mensagem de erro, mas não é transferido.
+- Uma propriedade `"type": "array"` sem `items` em `parameters` de uma tool `http`:
+  modelos do Google (Gemini) recusam **toda** chamada do agente
+  ([Tool HTTP](/engenharia-de-ia/tools/http)).
+
+## Referência campo a campo
+
+As tabelas completas ficam abaixo. Status: **ativo** (o agente usa), **sem efeito
+hoje** (aceito e ignorado), **sempre `false`** (o template força desligado).
+
+<Visibility for="agents">
+
+### Raiz
+
+| Caminho | Tipo | Padrão | Status |
+|---|---|---|---|
+| `name` | string | `"agent"` | ativo. Espaço e `< \| \ / >` viram `_` ao ir ao provider |
+| `description` | string ou null | `null` | sem efeito hoje |
+| `model` | objeto | obrigatório | ativo |
+| `instructions` | objeto | ver abaixo | ativo |
+| `tools` | lista de tools | `[]` | ativo. Discriminada por `type` |
+| `settings` | objeto | ver abaixo | ativo |
+| `agents` | lista de objetos | `[]` | sem efeito hoje. Não grave |
+
+### model
+
+| Caminho | Tipo | Padrão | Status |
+|---|---|---|---|
+| `model.provider` | `"openai"` \| `"openrouter"` | obrigatório | ativo. `"custom"` invalida |
+| `model.name` | string | obrigatório | ativo. OpenRouter: `fabricante/modelo` |
+| `model.api_key` | string | `""` | ativo. Preservada pelo template só quando ausente; `""` grava vazio. Nunca mostre |
+| `model.temperature` | número | `0` | ativo |
+| `model.max_tokens` | inteiro | `4096` | ativo |
+| `model.provider_options` | objeto | `{}` | ativo. Chave desconhecida é descartada sem erro |
+| `model.fallback.enabled` | boolean | `false` | ativo. `true` exige `models` |
+| `model.fallback.models[].provider` | string | obrigatório | ativo. Mesmos valores de `model.provider` |
+| `model.fallback.models[].name` | string | obrigatório | ativo |
+| `model.fallback.models[].api_key` | string ou null | `null` | ativo. `null` herda `model.api_key` |
+| `model.fallback.models[].provider_options` | objeto | `{}` | ativo |
+| `model.retry.enabled` | boolean | `false` | ativo |
+| `model.retry.max_retries` | inteiro | `2` | ativo |
+
+### model.provider_options
+
+| Caminho | Tipo | Padrão | Provider | Status |
+|---|---|---|---|---|
+| `model.provider_options.reasoning` | `{ "effort": "minimal" \| "low" \| "medium" \| "high" \| "xhigh" }` ou null | `null` | os dois | ativo. `null` = padrão do modelo |
+| `model.provider_options.timeout_seconds` | inteiro | `60` | os dois | ativo. Segundos |
+| `model.provider_options.max_retries` | inteiro | `2` | os dois | ativo. Tentativas do cliente do provider, além de `model.retry` |
+| `model.provider_options.top_p` | número | — | os dois | ativo |
+| `model.provider_options.frequency_penalty` | número | — | os dois | ativo |
+| `model.provider_options.presence_penalty` | número | — | os dois | ativo |
+| `model.provider_options.stop` | lista de strings | — | os dois | ativo |
+| `model.provider_options.seed` | inteiro | — | os dois | ativo |
+| `model.provider_options.organization` | string | — | só `openai` | ativo |
+| `model.provider_options.service_tier` | string | — | só `openai` | ativo |
+| `model.provider_options.logprobs` | boolean | — | só `openai` | ativo |
+| `model.provider_options.openrouter_provider` | objeto | — | só `openrouter` | ativo. Roteamento entre provedores do OpenRouter |
+
+Chave do outro provider (ex.: `openrouter_provider` com `provider: "openai"`) é
+descartada sem erro.
+
+### instructions
+
+| Caminho | Tipo | Padrão | Status |
+|---|---|---|---|
+| `instructions.system_prompt` | string | `"You are a helpful assistant."` | ativo |
+| `instructions.inject_context` | boolean | `false` | ativo. Anexa o bloco "Contexto do lead atual" ao prompt |
+
+### tools: campos por tipo
+
+Cinco tipos: `http`, `composio`, `mcp`, `skill`, `builtin`. Qualquer outro invalida
+o agente. Em todos, `_id` (string) e `_zatten` (objeto) são metadados do painel:
+o agente ignora e devolve intactos. Mantenha-os como vieram do `get_template`.
+
+**`type: "http"`** ([Tool HTTP](/engenharia-de-ia/tools/http),
+[Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten))
+
+| Caminho | Tipo | Padrão | Status |
+|---|---|---|---|
+| `tools[].type` | `"http"` | `"http"` | ativo |
+| `tools[].name` | string | obrigatório | ativo. Nome que o modelo vê e chama |
+| `tools[].description` | string | `""` | ativo. É o que faz o modelo escolher a tool |
+| `tools[].url` | string | obrigatório | ativo. Aceita `{{variáveis}}` |
+| `tools[].method` | `"GET"` \| `"POST"` \| `"PUT"` \| `"PATCH"` \| `"DELETE"` | `"POST"` | ativo |
+| `tools[].headers` | objeto de strings | `{}` | ativo. Aceita `{{variáveis}}`. Preservados pelo template quando ausentes ou `{}` (casados pelo `_id`) |
+| `tools[].query_params` | objeto de strings | `{}` | ativo. Aceita `{{variáveis}}` |
+| `tools[].body_template` | objeto | `{}` | ativo. Aceita `{{variáveis}}`. Ignorado em `GET` |
+| `tools[].parameters` | JSON Schema | `{}` | ativo. Os argumentos que o modelo preenche. `array` exige `items` |
+| `tools[].inject_context` | boolean | `false` | ativo. Põe `leadId`, `attendantId`, `leadNumber`, `threadId` no body (e `name`, `created_at` quando existem). Obrigatório nas rotas `/api/public` da Zatten |
+| `tools[].on_error` | string | `""` | ativo. Instrução ao modelo quando esta chamada falha |
+| `tools[].timeout_seconds` | inteiro ou null | `null` (180 segundos) | ativo. Segundos |
+| `tools[].require_approval` | boolean | `false` | sempre `false` |
+
+**`type: "composio"`** ([Composio](/engenharia-de-ia/tools/composio))
+
+| Caminho | Tipo | Padrão | Status |
+|---|---|---|---|
+| `tools[].type` | `"composio"` | `"composio"` | ativo |
+| `tools[].toolkit` | string | obrigatório | ativo. Ex.: `gmail` |
+| `tools[].action` | string | obrigatório | ativo. Ex.: `send_email`. O nome visto pelo modelo é `TOOLKIT_ACTION` em maiúsculas (`GMAIL_SEND_EMAIL`) |
+| `tools[].require_approval` | boolean | `false` | sempre `false` |
+
+**`type: "mcp"`** ([Servidores MCP](/engenharia-de-ia/tools/mcp)). Uma entrada é
+um servidor, e adiciona todas as tools que ele expõe.
+
+| Caminho | Tipo | Padrão | Status |
+|---|---|---|---|
+| `tools[].type` | `"mcp"` | `"mcp"` | ativo |
+| `tools[].name` | string | obrigatório | ativo. Nome do servidor |
+| `tools[].transport` | `"http"` \| `"sse"` \| `"stdio"` | `"http"` | ativo. `"http"` é o HTTP atual do MCP (streamable). `"stdio"` é aceito, mas o ambiente não tem `npx` nem `uvx`: use `"http"` |
+| `tools[].url` | string | `""` | ativo. Para `http` e `sse` |
+| `tools[].headers` | objeto de strings | `{}` | ativo. Para `http` e `sse` |
+| `tools[].command` | string | `""` | ativo. Para `stdio` |
+| `tools[].args` | lista de strings | `[]` | ativo. Para `stdio` |
+| `tools[].env` | objeto de strings | `{}` | ativo. Para `stdio` |
+| `tools[].allowed_tools` | lista de strings ou null | `null` | **sem efeito hoje**. Não filtra |
+| `tools[].blocked_tools` | lista de strings ou null | `null` | **sem efeito hoje**. Não filtra |
+| `tools[].require_approval` | boolean | `false` | sempre `false` |
+
+**`type: "skill"`** ([Skills](/engenharia-de-ia/skills)). Todas as skills viram
+uma tool só, `load_skill`.
+
+| Caminho | Tipo | Padrão | Status |
+|---|---|---|---|
+| `tools[].type` | `"skill"` | `"skill"` | ativo |
+| `tools[].name` | string | obrigatório | ativo |
+| `tools[].description` | string | obrigatório | ativo. Vai no catálogo que o modelo lê |
+| `tools[].content` | string | obrigatório | ativo. Só entra no contexto quando o modelo pede |
+
+**`type: "builtin"`** ([Lista de tarefas](/engenharia-de-ia/lista-de-tarefas))
+
+| Caminho | Tipo | Padrão | Status |
+|---|---|---|---|
+| `tools[].type` | `"builtin"` | `"builtin"` | ativo |
+| `tools[].name` | `"todo_list"` | obrigatório | ativo. Outro nome é ignorado |
+| `tools[].config.enabled` | boolean | `true` | ativo. Declarar a entrada já liga |
+| `tools[].config.system_prompt` | string ou null | `null` | ativo. `null` usa o texto padrão |
+| `tools[].config.tool_description` | string ou null | `null` | ativo. `null` usa o texto padrão |
+
+### settings
+
+`call_limit` e `pii_protection` usam os nomes abaixo no JSON. Não use os nomes
+internos (`thread_limit`, `run_limit`, `exit_behavior`, `pii_type`, `strategy`).
+
+| Caminho | Tipo | Padrão | Status |
+|---|---|---|---|
+| `settings.error_handling.enabled` | boolean | **`true`** | ativo |
+| `settings.error_handling.message` | string | `"Tive um problema tecnico aqui e nao consegui responder agora. Ja chamei um atendente para te ajudar!"` | ativo |
+| `settings.error_handling.handoff_tool` | string ou null | `null` | ativo. Nome de uma tool `http` do mesmo config |
+| `settings.call_limit.enabled` | boolean | `false` | ativo. `true` exige um limite |
+| `settings.call_limit.per_message` | inteiro ou null | `null` | ativo |
+| `settings.call_limit.per_conversation` | inteiro ou null | `null` | ativo. Acumula na conversa até encerrar |
+| `settings.call_limit.when_reached` | `"end"` \| `"error"` | `"end"` | ativo |
+| `settings.call_limit.reached_message` | string | `"Desculpe, tive um problema para concluir agora. Pode tentar de novo?"` | ativo |
+| `settings.pii_protection.enabled` | boolean | `false` | ativo. `true` exige regra |
+| `settings.pii_protection.rules[].data_type` | string | obrigatório | ativo. `email`, `credit_card`, `ip`, `mac_address`, `url` ou nome livre com `detector` |
+| `settings.pii_protection.rules[].action` | `"block"` \| `"redact"` \| `"mask"` \| `"hash"` | `"redact"` | ativo |
+| `settings.pii_protection.rules[].detector` | string (regex) ou null | `null` | ativo |
+| `settings.pii_protection.rules[].where` | `"input"` \| `"output"` \| `"both"` \| `"tool_results"` | — | ativo. Atalho para os três abaixo |
+| `settings.pii_protection.rules[].apply_to_input` | boolean | `true` | ativo. Continua `true` com `where: "output"`; mande `false` se quiser só a saída |
+| `settings.pii_protection.rules[].apply_to_output` | boolean | `false` | ativo |
+| `settings.pii_protection.rules[].apply_to_tool_results` | boolean | `false` | ativo |
+| `settings.human_approval.enabled` | boolean | `false` | sempre `false` |
+| `settings.human_approval.mode` | `"all_responses"` \| `"tool_calls"` \| `"custom"` | `"all_responses"` | sem efeito hoje (aprovação desligada) |
+| `settings.summarization.enabled` | boolean | `false` | ativo. `true` exige um gatilho |
+| `settings.summarization.model` | string ou null | `null` | ativo. Só o nome; mesmo provider e chave do agente |
+| `settings.summarization.trigger_tokens` | inteiro ou null | `null` | ativo |
+| `settings.summarization.trigger_messages` | inteiro ou null | `null` | ativo |
+| `settings.summarization.keep_messages` | inteiro | `20` | ativo |
+| `settings.context_editing.enabled` | boolean | `false` | ativo |
+| `settings.context_editing.token_count_method` | `"approximate"` \| `"model"` | `"approximate"` | ativo |
+| `settings.context_editing.edits[].trigger` | inteiro (tokens) | `100000` | ativo |
+| `settings.context_editing.edits[].keep` | inteiro | `3` | ativo |
+| `settings.context_editing.edits[].clear_at_least` | inteiro | `0` | ativo |
+| `settings.context_editing.edits[].clear_tool_inputs` | boolean | `false` | ativo |
+| `settings.context_editing.edits[].exclude_tools` | lista de strings | `[]` | ativo. Com skills, inclua `load_skill` |
+| `settings.context_editing.edits[].placeholder` | string | `"[cleared]"` | ativo |
+| `settings.tool_retry.enabled` | boolean | `false` | ativo |
+| `settings.tool_retry.max_retries` | inteiro | `2` | ativo |
+| `settings.tool_retry.backoff_factor` | número | `2.0` | ativo |
+| `settings.tool_retry.initial_delay` | número (segundos) | `1.0` | ativo |
+| `settings.tool_retry.max_delay` | número (segundos) | `60.0` | ativo |
+| `settings.tool_retry.jitter` | boolean | `true` | ativo |
+| `settings.tool_retry.tools` | lista de strings ou null | `null` | ativo. `null` = todas |
+| `settings.tool_selector.enabled` | boolean | `false` | ativo |
+| `settings.tool_selector.model` | string ou null | `null` | ativo. Só o nome; `null` usa o do agente |
+| `settings.tool_selector.system_prompt` | string ou null | `null` | ativo |
+| `settings.tool_selector.max_tools` | inteiro ou null | `null` | ativo |
+| `settings.tool_selector.always_include` | lista de strings | `[]` | ativo. Com skills, inclua `load_skill` |
+| `settings.transcription.enabled` | boolean | **`true`** | ativo |
+| `settings.transcription.provider` | `"openai"` \| `"openrouter"` \| `"google"` \| `"custom"` ou null | `null` | ativo. `null` herda `model.provider` |
+| `settings.transcription.model` | string | `"openai/whisper-1"` | ativo. Na OpenAI direta use `"whisper-1"` |
+| `settings.transcription.api_key` | string ou null | `null` | ativo. `null` herda `model.api_key` |
+| `settings.transcription.base_url` | string ou null | `null` | ativo. Exigido com `provider: "custom"` |
+| `settings.transcription.language` | string ou null | `null` | ativo. Ex.: `"pt"` |
+| `settings.tracing.enabled` | boolean | `false` | ativo. Sem `api_key` não liga |
+| `settings.tracing.api_key` | string | `""` | ativo. Preservada pelo template só quando ausente; `""` grava vazio. Nunca mostre |
+| `settings.tracing.project` | string | `"default"` | ativo |
+| `settings.tracing.endpoint` | string | `"https://api.smith.langchain.com"` | ativo |
+| `settings.tracing.tags` | lista de strings | `[]` | ativo |
+| `settings.tracing.metadata` | objeto de strings | `{}` | ativo. `attendant_id` é reescrito pelo template |
+
+### Config com todos os padrões
+
+É o que o agente roda quando recebe só `model.provider` e `model.name`:
+
+```json
+{
+  "name": "agent",
+  "description": null,
+  "model": {
+    "provider": "openrouter",
+    "name": "fabricante/modelo",
+    "api_key": "",
+    "temperature": 0,
+    "max_tokens": 4096,
+    "provider_options": {},
+    "fallback": { "enabled": false, "models": [] },
+    "retry": { "enabled": false, "max_retries": 2 }
+  },
+  "instructions": {
+    "system_prompt": "You are a helpful assistant.",
+    "inject_context": false
+  },
+  "tools": [],
+  "settings": {
+    "call_limit": {
+      "enabled": false, "per_conversation": null, "per_message": null,
+      "when_reached": "end",
+      "reached_message": "Desculpe, tive um problema para concluir agora. Pode tentar de novo?"
+    },
+    "pii_protection": { "enabled": false, "rules": [] },
+    "human_approval": { "enabled": false, "mode": "all_responses" },
+    "error_handling": {
+      "enabled": true,
+      "message": "Tive um problema tecnico aqui e nao consegui responder agora. Ja chamei um atendente para te ajudar!",
+      "handoff_tool": null
+    },
+    "summarization": {
+      "enabled": false, "model": null,
+      "trigger_tokens": null, "trigger_messages": null, "keep_messages": 20
+    },
+    "context_editing": {
+      "enabled": false, "token_count_method": "approximate",
+      "edits": [{
+        "trigger": 100000, "keep": 3, "clear_at_least": 0,
+        "clear_tool_inputs": false, "exclude_tools": [], "placeholder": "[cleared]"
+      }]
+    },
+    "tool_retry": {
+      "enabled": false, "max_retries": 2, "backoff_factor": 2.0,
+      "initial_delay": 1.0, "max_delay": 60.0, "jitter": true, "tools": null
+    },
+    "tool_selector": {
+      "enabled": false, "model": null, "system_prompt": null,
+      "max_tools": null, "always_include": []
+    },
+    "transcription": {
+      "enabled": true, "provider": null, "model": "openai/whisper-1",
+      "api_key": null, "base_url": null, "language": null
+    },
+    "tracing": {
+      "enabled": false, "api_key": "", "project": "default",
+      "endpoint": "https://api.smith.langchain.com", "tags": [], "metadata": {}
+    }
+  },
+  "agents": []
+}
+```
+
+</Visibility>
+
+## Exemplo de config mínimo válido
+
+Um agente no OpenRouter, com prompt, dados do lead no contexto e o transbordo
+automático quando o modelo falha. A chave não vai no exemplo: num projeto que já
+roda, a chave gravada é mantida; num projeto novo, preencha no painel
+([Providers](/engenharia-de-ia/providers)).
+
+```json
+{
+  "name": "atendimento_clinica",
+  "model": {
+    "provider": "openrouter",
+    "name": "fabricante/modelo"
+  },
+  "instructions": {
+    "system_prompt": "Você é a recepcionista da Clínica Exemplo. Responda em português, com frases curtas.",
+    "inject_context": true
+  },
+  "tools": [],
+  "settings": {
+    "transcription": { "language": "pt" }
+  }
+}
+```
+
+O menor config que o agente aceita é só `{"model": {"provider": "…", "name": "…"}}`.
+Troque `fabricante/modelo` por um modelo real ([Escolher o modelo](/engenharia-de-ia/escolher-o-modelo)).
+Para uma tool de verdade nesse config, veja os exemplos em
+[Tool HTTP](/engenharia-de-ia/tools/http) e
+[Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten).
+
+## Armadilhas
+
+- **Erro de digitação não dá erro.** Uma chave escrita errado é ignorada em
+  silêncio e o recurso fica desligado. Confira os nomes nesta página.
+- **Gravar `settings` inteiro "por garantia"** congela os padrões no JSON. Grave só o
+  que mudou.
+- **Mandar a chave vazia.** `"api_key": ""` apaga a chave gravada e o agente para
+  de responder. Para manter a chave atual, omita `model.api_key` (e
+  `settings.tracing.api_key`) ou devolva o valor que o `get_template` trouxe.
+- **`allowed_tools` e `blocked_tools` no MCP** parecem um controle de segurança, mas
+  não filtram nada.
+- **`openai/whisper-1` com provider OpenAI direto** faz toda transcrição falhar. Use
+  `whisper-1` ([Mídia](/engenharia-de-ia/midia)).
+- **Skills somem em conversa longa** com `context_editing` ou `tool_selector` ligados,
+  se `load_skill` não estiver em `exclude_tools` e `always_include`
+  ([Skills](/engenharia-de-ia/skills)).
+- **`handoff_tool` com nome errado** não transfere o lead, sem aviso.
+- **Valor fora da lista** (provider `custom`, tool `native`, enum inventado) derruba o
+  agente inteiro: nenhuma mensagem é respondida.
+
+## Para saber mais
+
+- [Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template) (o bloco `langchain`)
+- [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)
+- [Testar o agente](/engenharia-de-ia/testar)
+- LangChain: [middlewares prontos](https://docs.langchain.com/oss/python/langchain/middleware/built-in)
+- Termos para buscar: "LangChain create_agent middleware", "JSON Schema object
+  properties items", "OpenRouter provider routing", "LangSmith tracing project".

@@ -1,0 +1,215 @@
+---
+title: "Trigger Flow: conceitos"
+description: "Leia antes de montar ou mexer num fluxo do Trigger Flow: o que são gatilho, condição e ações, como o editor funciona, as variáveis ({{lead}}, {{trigger}}, {{node}}), ligar e desligar, e o que o MCP faz e não faz com fluxos."
+---
+
+O **Trigger Flow** é o editor visual de automações da Zatten. Cada **fluxo** tem
+um **gatilho** (o evento que o inicia), **condições** opcionais (que escolhem um
+caminho Sim ou Não) e **ações** (o que acontece com o lead: mover no funil, pôr
+tag, enviar mensagem, chamar uma API). Use quando os tipos nativos de automação
+não bastam: reagir a uma tag, avisar o responsável, integrar com o sistema do
+cliente final.
+
+<Note>
+Nem todo gatilho está disponível. Quatro aparecem como **em breve** (Novo lead
+criado, Mensagem recebida, Propriedade alterada e Lead inativo) e hoje não podem
+ser usados, nem pela API. A lista de quem dispara cada gatilho está em
+[Trigger Flow: catálogo de blocos](/produto/trigger-flow/blocos#de-onde-vem-cada-gatilho).
+</Note>
+
+## Onde fica no painel
+
+**Automações** → aba **Trigger Flow** (`/automations?tab=trigger-flow`). A lista
+mostra cada fluxo com o gatilho, a chave de ligar e desligar e as opções de
+duplicar e excluir. O editor abre em `/automations/flows/<id>` (`/automations/flows/new`
+cria um fluxo novo).
+
+Só **admin** e **editor** veem e editam fluxos. O gestor vê apenas a aba de
+mensagens rápidas. Ver [Usuários, papéis e permissões](/produto/papeis-e-permissoes).
+
+## Como configurar
+
+### As três peças
+
+| Peça | Quantos por fluxo | O que faz |
+|---|---|---|
+| **Gatilho** | Exatamente 1 | O evento que inicia o fluxo para um lead. Pode ter filtros (ex.: "só a tag VIP"). Filtro vazio vale para qualquer valor. |
+| **Condição** | Quantas quiser | Testa regras sobre o lead, a mensagem ou a resposta de um bloco anterior. Tem duas saídas: **Sim** e **Não**. |
+| **Ação** | Quantas quiser | Faz algo: tag, coluna, propriedade, anotação, responsável, IA, notificação, mensagem, requisição HTTP. |
+
+Todo fluxo roda **para um lead**. Até o gatilho de webhook precisa dizer qual é o
+lead. O catálogo completo, com os campos de cada bloco, está em
+[Trigger Flow: catálogo de blocos](/produto/trigger-flow/blocos).
+
+### O editor
+
+1. Escolha o gatilho. O painel lateral mostra os campos dele.
+2. Clique no **+** para adicionar blocos e ligue a saída de um à entrada do próximo.
+3. Clique num bloco para configurar. Campos com `{{…}}` aceitam variáveis.
+4. **Salvar** valida o fluxo inteiro. Blocos com problema ficam com borda âmbar e
+   o salvamento é bloqueado até corrigir.
+5. Depois do primeiro salvamento aparece o botão **Execuções**, com o histórico
+   (ver [Execuções e depuração](/produto/trigger-flow/execucoes)).
+
+O que o editor recusa ao salvar:
+
+- fluxo sem gatilho, ou com mais de um;
+- **ciclo** (um bloco que volta para um anterior);
+- **mais de uma ligação saindo da mesma saída**. Cada saída leva a um bloco só; para
+  dividir o caminho, use uma condição;
+- bloco solto, sem nada ligado acima dele;
+- campo obrigatório vazio, ou valor fora do limite;
+- tag, coluna, propriedade, departamento, usuário ou template que não existem
+  mais no projeto (o card mostra "(item removido)").
+
+Um gatilho marcado como **em breve** no editor ainda não pode ser usado num fluxo
+ligado. Hoje estão em breve: Novo lead criado, Mensagem recebida, Propriedade
+alterada e Lead inativo.
+
+### Variáveis
+
+Campos de texto marcados com `{{…}}` aceitam variáveis, resolvidas na hora em que
+o bloco roda. Há três famílias:
+
+| Família | O que é | Exemplos |
+|---|---|---|
+| `lead.*` | Dados do lead, sempre disponíveis | `{{lead.name}}`, `{{lead.number}}`, `{{lead.property.cidade}}` |
+| `trigger.*` | O que o gatilho trouxe (varia por gatilho) | `{{trigger.tag.name}}`, `{{trigger.message.text}}`, `{{trigger.body.pedido_id}}` |
+| `node.<id>.*` | A resposta de um bloco **Requisição HTTP** que fica acima no caminho | `{{node.n4.response.status}}`, `{{node.n4.response.body.url}}` |
+
+O seletor de variáveis de cada campo lista só o que existe naquele ponto do fluxo:
+`trigger.*` do gatilho escolhido e `node.*` dos blocos HTTP que vêm antes.
+
+<Visibility for="agents">
+Variáveis `lead.*`:
+
+| Variável | Valor |
+|---|---|
+| `lead.id` | UUID do lead |
+| `lead.number` | Número de WhatsApp (o mesmo da API) |
+| `lead.name` | Nome, ou vazio |
+| `lead.column` | **Id** da coluna atual |
+| `lead.tags` | Lista de **ids** das tags |
+| `lead.assigned_user` | E-mail do responsável, ou vazio |
+| `lead.department` | Id do departamento, ou vazio |
+| `lead.conversation_window` | `open` ou `expired` (janela de 24h). Conexão não oficial é sempre `open` |
+| `lead.conversation_expires_at` | Fim da janela em ISO-8601 UTC; vazio sem janela |
+| `lead.thread_id` | Id da conversa aberta, ou vazio se não houver |
+| `lead.attendant_id` | Id do projeto |
+| `lead.property.<slug>` | Valor da propriedade pelo slug |
+
+Variáveis `trigger.*` por gatilho:
+
+| Gatilho | Variáveis |
+|---|---|
+| `lead.first_message`, `lead.message_received` (em breve) | `trigger.message.text` |
+| `lead.column_changed` | `trigger.column.id`, `trigger.column.name` (coluna de destino) |
+| `lead.tag_added`, `lead.tag_removed` | `trigger.tag.id`, `trigger.tag.name` |
+| `lead.property_changed` (em breve) | `trigger.property.slug`, `trigger.property.value` |
+| `lead.assignee_changed` | `trigger.assignee.{user_id,user_email,user_name,department_id,department_name}`, `trigger.previous_assignee.{user_id,user_email,department_id,department_name}`, `trigger.actor.{user_id,origin}` |
+| `lead.conversation_closed` | `trigger.thread.id` |
+| `webhook.inbound` | `trigger.body`, `trigger.body.<campo>`, `trigger.path` |
+| `lead.created`, `lead.inactive` (em breve) | nenhuma além de `lead.*` |
+
+Saídas de um bloco `http.request` com id `n4`: `node.n4.response.status`,
+`node.n4.response.body` e `node.n4.response.body.<caminho>` (qualquer
+profundidade, com ponto).
+</Visibility>
+
+### Ligar e desligar
+
+O fluxo nasce **desligado**. Ligue pela chave na lista de fluxos. Só fluxos
+ligados rodam. Não dá para ligar um fluxo sem gatilho, nem um cujo gatilho ainda
+aparece como "em breve".
+
+## Como funciona por trás
+
+1. O evento acontece (ou alguém chama a API dizendo que aconteceu).
+2. A Zatten procura os fluxos **ligados** do projeto com aquele gatilho.
+3. Para cada fluxo, confere os filtros do gatilho. Se não batem, a execução é
+   registrada como **Ignorado** e nenhum passo roda.
+4. Se batem, cria uma execução e roda os blocos **um por vez, em fila**, seguindo
+   as ligações. Uma condição escolhe Sim ou Não.
+5. Se um passo falha, a execução **para ali** com status **Falhou**. Os blocos
+   seguintes não rodam: eles pressupõem que o anterior deu certo. Não há nova
+   tentativa automática.
+
+Cada fluxo que bate gera uma execução separada. Dois fluxos com o mesmo gatilho
+rodam os dois, sem ordem garantida entre eles.
+
+Os dados `lead.*` são uma **foto tirada no início** da execução. Uma ação que mude o
+lead no meio do fluxo (mover de coluna, pôr tag) não atualiza `{{lead.column}}` ou
+`{{lead.tags}}` nos blocos seguintes. A exceção é a janela de 24h: a condição
+**Janela de 24h** é reavaliada no momento em que roda.
+
+Limites, timeouts e o histórico estão em
+[Trigger Flow: execuções e depuração](/produto/trigger-flow/execucoes).
+
+## Pelo MCP
+
+Os fluxos viajam no bloco `flows` do template do projeto. O que o MCP faz:
+
+- **Cria fluxo novo**, desligado se `status` não vier. Referências a coluna, tag e
+  departamento vão por **nome**; propriedade vai por slug e template da Meta por
+  nome. Se alguma não existir no projeto, o fluxo não é criado, com nota.
+- **Não reescreve o grafo de um fluxo que já existe** (mesmo nome). Só muda o
+  `status` (ligar e desligar). Para redesenhar, use o editor.
+- O usuário responsável (em "Definir responsável" e nos filtros) não viaja: é uma
+  pessoa, não configuração.
+- Fluxo sem gatilho não é criado. Dois fluxos com o mesmo caminho de webhook de
+  entrada também não.
+
+Detalhes do bloco em [Referência do template](/trabalhar-com-ia/referencia-do-template#flows).
+
+<Warning>
+O MCP não roda a validação do editor (ciclos, saídas duplicadas, campos
+obrigatórios). Depois de criar um fluxo pelo MCP, abra-o no editor, clique em
+**Salvar** e só então ligue.
+</Warning>
+
+## Armadilhas
+
+- **Gatilho em breve.** Novo lead criado, Mensagem recebida, Propriedade alterada
+  e Lead inativo estão indisponíveis hoje, nem pela API. Um fluxo com esses
+  gatilhos não pode ser ligado. Ver
+  [o catálogo](/produto/trigger-flow/blocos#de-onde-vem-cada-gatilho).
+- **Ações do fluxo disparam outros fluxos.** Mover o lead, pôr ou tirar tag,
+  "Definir responsável" e "Encerrar atendimento" dentro de um fluxo disparam os fluxos
+  de Kanban, tag, responsável alterado e conversa encerrada. Monte os fluxos sem
+  laço: um fluxo nunca deve recriar o evento que o disparou.
+- **`{{lead.column}}` e `{{lead.tags}}` trazem ids**, não nomes. Para o nome da
+  coluna de destino, use `{{trigger.column.name}}` no gatilho de Kanban.
+- **Foto do início:** depois de "Mover no Kanban", `{{lead.column}}` ainda mostra a
+  coluna antiga.
+- **Ações em massa no CRM não disparam fluxos.**
+- **Texto livre fora da janela de 24h falha** na conexão oficial e derruba a
+  execução. Antes de "Enviar texto" ou mídia, use a condição **Janela de 24h** e,
+  no Não, envie um template.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Qual a diferença entre um fluxo e as automações nativas?">
+As nativas (follow-up, reengajamento, webhooks, transbordo por inatividade) têm
+agendamento próprio e são ligadas ao ciclo de interação do lead. O fluxo reage a
+um evento e executa uma sequência de ações na hora, sem espera. Ver
+[Visão geral das automações](/produto/automacoes/visao-geral).
+</Accordion>
+<Accordion title="Dá para esperar um tempo entre duas ações?">
+Não. O editor não tem bloco de espera: os passos rodam em sequência, logo um após
+o outro. Para mensagens depois de um tempo, use
+[Follow-up](/produto/automacoes/follow-up).
+</Accordion>
+<Accordion title="O fluxo roda para leads que já estavam na coluna quando liguei?">
+Não. O fluxo reage a eventos que acontecem depois de ligado.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Trigger Flow: catálogo de blocos](/produto/trigger-flow/blocos)
+- [Trigger Flow: disparar pela API e receber webhooks](/produto/trigger-flow/api)
+- [Trigger Flow: execuções e depuração](/produto/trigger-flow/execucoes)
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- [Janela de 24h](/comecar/janela-de-24h)
+- Termos para buscar: "Trigger Flow", "fluxo", "gatilho", "condição", "variáveis do fluxo".

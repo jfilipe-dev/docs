@@ -1,0 +1,206 @@
+---
+title: "Disparar fluxos e webhook de entrada"
+description: "Referência dos dois endpoints do Trigger Flow: POST /flows/trigger (gatilho, lead, trigger_event, idempotency_key, resposta com matched, dispatched e runs) e POST /hooks/{path} (payload cru vira {{trigger.body}}), com a tabela dos gatilhos, as variáveis, os códigos de resposta e exemplos."
+---
+
+Dois endpoints rodam fluxos do [Trigger Flow](/produto/trigger-flow/conceitos) a partir
+de outro sistema. Os dois respondem **202** assim que os fluxos entram na fila.
+
+| Endpoint | Para quê |
+|---|---|
+| `POST /flows/trigger` | Avisar que um evento aconteceu com um lead. Você monta o corpo e recebe o detalhe de cada fluxo. |
+| `POST /hooks/{path}` | Receber o JSON de um sistema que você não controla (ERP, formulário, gateway de pagamento). |
+
+Como configurar o fluxo no editor e quando usar cada um: [Trigger Flow: disparar pela
+API](/produto/trigger-flow/api).
+
+<Note>
+**A rota avisa, não faz.** `/flows/trigger` com `lead.tag_added` não põe a tag: só roda os
+fluxos desse gatilho. E o contrário também vale: [`POST /leads/{numero}/tag`](/api/leads) e
+`PATCH /leads/{numero}/kanban` já rodam os fluxos de tag e de Kanban sozinhos. Chamar
+`/flows/trigger` depois deles roda o fluxo duas vezes.
+</Note>
+
+## `POST /flows/trigger`
+
+### Corpo
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `trigger_type` | string | Sim | Um dos gatilhos da tabela abaixo. |
+| `lead_number` | string | Um dos dois | Número do lead, com ou sem o 9º dígito. |
+| `lead_id` | string | Um dos dois | Id do lead (de `GET /leads/{numero}`). |
+| `trigger_event` | objeto | Depende do gatilho | O que aconteceu. Mande só ids: nomes de tag e coluna a Zatten busca. |
+| `idempotency_key` | string | Não | Repetir a mesma chave, para o mesmo lead e gatilho, em **24 horas** não roda os fluxos de novo. |
+| `attendant_id` | string | Não | Se vier, tem de ser o projeto da chave. Senão, 403. Melhor não mandar. |
+
+### Gatilhos
+
+Os gatilhos marcados **em breve** estão indisponíveis hoje: a rota aceita o tipo, mas não
+existe fluxo ligado com ele, e a resposta vem com `matched: 0`.
+
+| `trigger_type` | `trigger_event` | Variáveis no fluxo |
+|---|---|---|
+| `lead.created` (em breve) | — | — |
+| `lead.first_message` | — (já dispara sozinho; use só para reprocessar) | `trigger.message.text`, `trigger.message.type` |
+| `lead.message_received` (em breve) | `message_text` | `trigger.message.text`, `trigger.message.type` |
+| `lead.column_changed` | `to_column_id`; `from_column_id` se o fluxo filtra a origem | `trigger.column.id`, `trigger.column.name` |
+| `lead.tag_added`, `lead.tag_removed` | `tag_id` | `trigger.tag.id`, `trigger.tag.name` |
+| `lead.property_changed` (em breve) | `property` (o **slug**), `value` | `trigger.property.slug`, `trigger.property.value` |
+| `lead.assignee_changed` | `department_id`, `user_email` ou `user_id` (os que se aplicam) | `trigger.assignee.*`, `trigger.previous_assignee.*`, `trigger.actor.*` |
+| `lead.conversation_closed` | — | `trigger.thread.id` |
+| `lead.inactive` (em breve) | — | — |
+| `webhook.inbound` | `path`, `body` (prefira `/hooks`) | `trigger.body` |
+| `lead.ai_toggled` | `enabled` | — (o editor não tem esse gatilho) |
+
+Em todo disparo pela API, o fluxo também recebe `trigger.lead_id`, `trigger.lead_number` e
+`trigger.source` (`"api"`). As variáveis do lead (`lead.name`, `lead.property.<slug>`…)
+estão em [Trigger Flow: blocos](/produto/trigger-flow/blocos).
+
+### Resposta: 202
+
+```json
+{
+  "message": "Flows dispatched",
+  "attendant_id": "p40j3t00-0000-4000-8000-000000000006",
+  "lead": { "id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d", "number": "5511999998888" },
+  "trigger_type": "lead.tag_added",
+  "matched": 2,
+  "dispatched": 1,
+  "deduped": false,
+  "runs": [
+    { "run_id": "9c1e…", "flow_id": "…", "flow_name": "Boas-vindas VIP", "status": "running", "reason": null },
+    { "run_id": "4b2f…", "flow_id": "…", "flow_name": "Outro fluxo", "status": "skipped",
+      "reason": "tag_id: esperado \"8f2a…\", evento trouxe \"3c1b…\"" }
+  ]
+}
+```
+
+| Campo | O que é |
+|---|---|
+| `matched` | Fluxos **ligados** com esse gatilho. |
+| `dispatched` | Quantos de fato começaram a rodar. Menor que `matched` não é erro. |
+| `deduped` | `true`: a `idempotency_key` já foi usada nas últimas 24 horas. Nada rodou. |
+| `runs[].status` | `running` (começou) ou `skipped` (o filtro do gatilho não casou). |
+| `runs[].reason` | Qual filtro não casou, quando `skipped`. |
+
+O 202 quer dizer "despachado", não "terminou". O resultado de cada execução fica em
+[Execuções](/produto/trigger-flow/execucoes), no painel.
+
+### Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Unknown trigger type: …` | `trigger_type` fora da tabela. |
+| 400 | `Either lead_number or lead_id is required` | Faltou o lead. |
+| 403 | `attendant_id does not match the authenticated attendant` | `attendant_id` de outro projeto. |
+| 404 | `Lead … not found for this attendant` | Lead inexistente no projeto. |
+
+### Exemplos
+
+```bash
+# Tag aplicada no SEU sistema (não pela API da Zatten): rode os fluxos de "Tag adicionada"
+curl -X POST "https://api.zatten.com/api/v1/flows/trigger" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "trigger_type": "lead.tag_added",
+    "lead_number": "5511999998888",
+    "trigger_event": { "tag_id": "b2c1d0e9-0000-4000-8000-000000000001" },
+    "idempotency_key": "crm-evt-01HXYZ"
+  }'
+```
+
+## `POST /hooks/{path}`
+
+A URL que se cola num sistema de terceiro. O gatilho é sempre `webhook.inbound`; o
+`{path}` é o **Path** do gatilho **Webhook recebido** no fluxo.
+
+### Partes da requisição
+
+| Parte | O que vai | Obrigatório |
+|---|---|---|
+| Caminho `{path}` | O Path do gatilho (minúsculas, números e hífen) | Sim |
+| Query `lead_number` ou `lead_id` | O lead | Um dos dois |
+| Query `idempotency_key` | Repetir em 24 horas não roda de novo | Não (recomendado: webhooks reenviam) |
+| Header `x-api-key` | A chave do projeto | Sim |
+| Corpo | O JSON do remetente, cru. Objeto, lista ou vazio. | Não |
+
+O corpo inteiro vira `{{trigger.body}}`:
+
+```text
+{ "pedido_id": 9182, "cliente": { "nome": "Ana" } }
+{{trigger.body.pedido_id}}     → 9182
+{{trigger.body.cliente.nome}}  → Ana
+```
+
+### Resposta: 202
+
+```json
+{ "message": "Flow triggered" }
+```
+
+A resposta é a mesma **mesmo se nenhum fluxo casar** com o path. Não traz ids de execução.
+Para saber se rodou, veja as Execuções do fluxo no painel.
+
+### Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Either lead_number or lead_id is required in the query string` | Faltou o lead na query. |
+| 400 | `Webhook path is required` | Caminho vazio. |
+| 404 | `Lead … not found for this attendant` | Lead inexistente no projeto. |
+
+### Exemplo
+
+```bash
+curl -X POST "https://api.zatten.com/api/v1/hooks/erp-pedido-fechado?lead_number=5511999998888&idempotency_key=pedido-9182" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "pedido_id": 9182, "cliente": { "nome": "Ana" } }'
+```
+
+## Qual usar?
+
+| | `/flows/trigger` | `/hooks/{path}` |
+|---|---|---|
+| Gatilho | Qualquer um, no corpo | Sempre `webhook.inbound` |
+| Lead | No corpo | Na query |
+| Corpo | Envelope da Zatten | O JSON do remetente, sem mudança |
+| Resposta | Detalhe por fluxo (`matched`, `runs`) | Só a confirmação |
+| Quando | Você monta a chamada | O remetente não se adapta |
+
+<Visibility for="agents">
+- Idempotência: chave = gatilho + lead + `idempotency_key`, por 24 h. Sem a chave, cada chamada roda de novo.
+- `/hooks`: o corpo só é lido com `Content-Type: application/json`; sem isso, `trigger.body` chega vazio e o fluxo roda assim mesmo.
+- `/hooks`: um fluxo antigo sem Path responde a qualquer `/hooks/…` do projeto.
+- Gatilhos em breve (`lead.created`, `lead.message_received`, `lead.property_changed`, `lead.inactive`): aceitos pela rota, mas sem fluxo ativo; `matched` = 0.
+- Todo disparo é por um lead; não há disparo em lote.
+- O que a API de leads já dispara sozinha: `PATCH /leads/{numero}/kanban` → `lead.column_changed`; `POST`/`DELETE /leads/{numero}/tag` → `lead.tag_added`/`lead.tag_removed`; `PATCH /leads/{numero}/assignee` → `lead.assignee_changed` quando o responsável muda de fato; `PATCH /leads/{numero}/thread` → `lead.conversation_closed`. Não disparam: `PATCH /leads/{numero}/properties` (`lead.property_changed`) e `toggle-attendant-response` (`lead.ai_toggled`). Não repita com `/flows/trigger` o que já disparou.
+</Visibility>
+
+## Armadilhas
+
+- **O corpo do `/hooks` precisa ser JSON.** Sem `Content-Type: application/json`, o fluxo
+  roda com `{{trigger.body}}` vazio. Formulário (`form-urlencoded`) não funciona direto.
+- **202 não quer dizer que rodou.** No `/hooks`, um path errado também dá 202.
+- **O lead precisa existir.** Número que nunca falou com o projeto nem foi importado dá 404.
+- **Sem `idempotency_key`, reenvio roda de novo.** Sistemas de webhook reenviam em falha;
+  use um id do evento de origem como chave.
+- **Propriedade pela API não roda fluxos.** E o gatilho **Propriedade alterada** está em
+  breve: hoje não há fluxo para rodar depois de `PATCH /leads/{numero}/properties`.
+- **Mover e pôr tag pela API já rodam os fluxos.** Repetir com `/flows/trigger` roda o fluxo
+  duas vezes.
+- **Gatilho em breve não roda.** `lead.created`, `lead.message_received`,
+  `lead.property_changed` e `lead.inactive` dão `matched: 0`.
+- **A chave vai no header, não na URL.** Se o sistema de origem não deixa pôr header,
+  ele não consegue chamar o `/hooks`.
+
+## Para saber mais
+
+- [Trigger Flow: disparar pela API e receber webhooks](/produto/trigger-flow/api)
+- [Trigger Flow: conceitos](/produto/trigger-flow/conceitos),
+  [blocos](/produto/trigger-flow/blocos), [execuções](/produto/trigger-flow/execucoes)
+- [Leads](/api/leads), [Limites](/api/limites), [Erros](/api/erros)
+- Termos para buscar: "idempotency key", "inbound webhook", "webhook retries", "event-driven
+  automation".

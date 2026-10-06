@@ -1,0 +1,296 @@
+---
+title: "Leads"
+description: "Leia para consultar e alterar um lead pela API: dados do lead, conversas, anotação, propriedades, tags, coluna do funil e responsável, com corpo, resposta, erros, exemplos e o que cada mudança dispara (ou não) no projeto. Também: como obter uma lista de leads, já que não há endpoint de listagem."
+---
+
+As rotas de lead ficam em `/leads/{numero}`, em que `{numero}` é o número do WhatsApp
+do lead, só dígitos, com DDI (ver [Identificar o lead](/api/identificar-o-lead)). Se o
+lead não existe no projeto da chave, toda rota daqui responde **404**
+`Lead with number … not found`.
+
+| Método e caminho | O que faz |
+|---|---|
+| `GET /leads/{numero}` | Dados do lead |
+| `GET /leads/{numero}/threads` | Conversas do lead |
+| `PATCH /leads/{numero}/notes` | Escreve a anotação |
+| `PATCH /leads/{numero}/properties` | Preenche uma propriedade |
+| `POST /leads/{numero}/tag` | Põe uma tag |
+| `DELETE /leads/{numero}/tag` | Tira uma tag |
+| `PATCH /leads/{numero}/kanban` | Move para uma coluna do funil |
+| `PATCH /leads/{numero}/assignee` | Troca departamento e responsável |
+
+Ligar ou desligar a IA e encerrar o atendimento ficam em [Controle da IA](/api/controle-da-ia).
+Notificar o responsável fica em [Notificar responsável](/api/notificar-responsavel).
+
+## Como obter uma lista de leads?
+
+**Não existe endpoint para listar ou buscar leads.** A API age sobre um lead que você
+já conhece. Para trabalhar com vários leads:
+
+- **Exportação:** **Contatos → Exportar** gera um CSV com nome, telefone, coluna e tags de
+  todos os contatos. Filtre a planilha e use a coluna `telefone`. Ver [Contatos](/produto/contatos).
+- **Do seu sistema:** os números ou ids que o seu CRM, ERP ou planilha já tem.
+- **Dos webhooks:** guarde `lead.id` e `lead.wa_id` de cada evento recebido. Ver
+  [Webhooks de saída](/api/webhooks-de-saida).
+
+Para a mesma ação em muitos leads (pôr tag, mover), as ações em massa de **Contatos**
+costumam ser mais simples. Se for pela API, espace as chamadas ([Limites](/api/limites)).
+
+## `GET /leads/{numero}`
+
+Devolve os dados do lead.
+
+```bash
+curl "https://api.zatten.com/api/v1/leads/5511999998888" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+**200**
+
+```json
+{
+  "lead": {
+    "id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d",
+    "name": "Maria Souza",
+    "phone": "5511999998888",
+    "ai_status": "active",
+    "kanban_column": { "id": "c0l00000-0000-4000-8000-000000000003", "name": "Novo lead" },
+    "current_tags": [{ "id": "b2c1d0e9-0000-4000-8000-000000000001", "name": "Clareamento" }],
+    "metadata": { "cidade": "Campinas", "convenio": "Unimed" },
+    "annotation": "Pediu orçamento de clareamento.",
+    "assigned_to_user": { "id": "u5e7r000-0000-4000-8000-000000000004", "name": "Ana Lima" },
+    "assigned_to_team": { "id": "d3p70000-0000-4000-8000-000000000005", "name": "Comercial" },
+    "created_at": "2026-10-01T09:12:44.512+00:00"
+  }
+}
+```
+
+| Campo | O que é |
+|---|---|
+| `id` | Id do lead. É o `lead_id` de `/automations/trigger` e `/flows/trigger`. |
+| `name` | Nome. Some quando o lead não tem nome. |
+| `phone` | Número como está gravado. |
+| `ai_status` | `active` (IA respondendo) ou `inactive` (IA pausada **ou** desligada). Para saber qual dos dois, use o [webhook](/api/webhooks-de-saida) ou religue e pause de novo. |
+| `kanban_column` | Coluna atual, com id e nome. Some se o lead está sem coluna. |
+| `current_tags` | Tags do lead, com id e nome. |
+| `metadata` | Propriedades preenchidas, em `{ "slug": "valor" }`. |
+| `annotation` | A anotação do lead. |
+| `assigned_to_user`, `assigned_to_team` | Responsável e departamento, com id e nome. |
+| `created_at` | Quando o lead foi criado. |
+
+Campos sem valor **não aparecem** no JSON. Trate ausência como vazio.
+
+## `GET /leads/{numero}/threads`
+
+Lista as conversas (threads) do lead, da mais nova para a mais antiga.
+
+```bash
+curl "https://api.zatten.com/api/v1/leads/5511999998888/threads" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+**200**
+
+```json
+{
+  "threads": [
+    { "thread_id": "zt-thread-3kQ9xV2mB7pL1sR8tY4wZa", "created_at": "2026-10-06T14:03:21+00:00", "closed_at": null },
+    { "thread_id": "zt-thread-9aB2cD4eF6gH8iJ0kL1mNo", "created_at": "2026-09-12T10:00:02+00:00", "closed_at": "2026-09-13T18:22:40+00:00" }
+  ]
+}
+```
+
+`closed_at: null` é a conversa aberta. Use o `thread_id` em
+[`GET /messages/history`](/api/historico).
+
+## `PATCH /leads/{numero}/notes`
+
+Escreve na anotação do lead.
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `note` | string | Sim | O texto. Não pode ser vazio. |
+| `delete_previous_note` | boolean | Não | Padrão `false`: **acrescenta** ao fim da anotação atual, separado por `;` e quebra de linha. `true`: **substitui** a anotação inteira. |
+
+```bash
+curl -X PATCH "https://api.zatten.com/api/v1/leads/5511999998888/notes" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "note": "Prefere contato à tarde." }'
+```
+
+**200** `{ "message": "Update note successfully" }`
+
+Não dá para apagar a anotação pela API (`note` vazio é 400). Para zerar, substitua por um
+texto curto ou limpe no painel.
+
+## `PATCH /leads/{numero}/properties`
+
+Preenche **uma** [propriedade](/produto/propriedades) do lead.
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `property` | string | Sim | O **slug** da propriedade (não o nome). Ver `GET /properties` em [Catálogos](/api/catalogos). |
+| `value` | string | Sim | O valor, como texto (mesmo número ou data). Não pode ser vazio. Em propriedade com valores pré-definidos, precisa ser exatamente um deles. |
+
+```bash
+curl -X PATCH "https://api.zatten.com/api/v1/leads/5511999998888/properties" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "property": "convenio", "value": "Unimed" }'
+```
+
+**200** `{ "message": "Update property successfully" }`
+
+| Código | `error` | Causa |
+|---|---|---|
+| 404 | `Property not found` | Não há propriedade com esse slug no projeto. |
+| 400 | `Value "…" is not allowed for property "…". Allowed values: …` | Valor fora da lista. A mensagem traz os valores aceitos. |
+| 400 | `Property "…" is an enum property but has no configured values` | Lista fechada sem nenhum valor cadastrado. |
+| 400 | `Value must be at least 1 character long` | `value` vazio. |
+| **200** | `Property … already has value "…"` (no campo `error`) | O lead já tinha esse valor. Nada mudou. Trate como sucesso. |
+
+Para mudar várias propriedades, faça uma chamada por propriedade. Não dá para apagar o
+valor de uma propriedade pela API.
+
+## `POST` e `DELETE /leads/{numero}/tag`
+
+Põe (`POST`) ou tira (`DELETE`) uma tag. O corpo é o mesmo nos dois.
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `tag_id` | string | Sim | O **id** da tag (não o nome). Vem de `GET /tags` ou de **Copiar ID** na tela de tags. |
+
+```bash
+curl -X POST "https://api.zatten.com/api/v1/leads/5511999998888/tag" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "tag_id": "b2c1d0e9-0000-4000-8000-000000000001" }'
+```
+
+| Rota | Sucesso | Erros |
+|---|---|---|
+| `POST` | **201** `{ "message": "Tag added successfully" }` | 404 `Tag … not found` (tag de outro projeto ou id errado); **409** `Lead already has tag …` |
+| `DELETE` | **200** `{ "message": "Tag removed successfully" }` | **409** `Lead does not have tag …` |
+
+O 409 quer dizer "já está como você queria". Trate como sucesso numa sincronização.
+
+## `PATCH /leads/{numero}/kanban`
+
+Move o lead para uma coluna do funil.
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `column_id` | string | Sim | O **id** da coluna. Vem de `GET /kanban` ou de **Copiar ID** no gerenciar colunas. |
+
+```bash
+curl -X PATCH "https://api.zatten.com/api/v1/leads/5511999998888/kanban" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "column_id": "c0l00000-0000-4000-8000-000000000009" }'
+```
+
+| Código | Corpo | Quando |
+|---|---|---|
+| 200 | `{ "message": "Update kanban successfully" }` | Moveu. |
+| 204 | (vazio) | O lead já estava nessa coluna. |
+| 404 | `Kanban column not found` | Id errado ou de outro projeto. |
+
+## `PATCH /leads/{numero}/assignee`
+
+Põe o lead num departamento e escolhe o responsável, ou deixa o rodízio escolher.
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `department_id` | string | Sim | Id do [departamento](/produto/departamentos). Vem de **Copiar ID** na tela de Departamentos. |
+| `user_email` | string (e-mail) | Não | E-mail do usuário que vai ser o responsável. Precisa ser membro do departamento. |
+| `user_id` | string (uuid) | Não | Alternativa ao e-mail. Não mande os dois. |
+
+Sem `user_email` e sem `user_id`, o **rodízio** do departamento escolhe: recebe quem
+está há mais tempo sem receber, entre os membros com **Receber Leads** ligado. Quem já é o
+responsável fica fora do sorteio.
+
+```bash
+curl -X PATCH "https://api.zatten.com/api/v1/leads/5511999998888/assignee" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "department_id": "d3p70000-0000-4000-8000-000000000005", "user_email": "ana@clinicasorriso.com.br" }'
+```
+
+**200**
+
+```json
+{
+  "message": "Update assignee successfully",
+  "changed": true,
+  "team_id": "d3p70000-0000-4000-8000-000000000005",
+  "user_id": "u5e7r000-0000-4000-8000-000000000004"
+}
+```
+
+`changed: false` quer dizer que o lead já estava com esse responsável nesse
+departamento: nada foi gravado e ninguém perdeu a vez no rodízio.
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Send either user_email or user_id, not both` | Os dois juntos. |
+| 400 | `Invalid user email` / `Invalid user id` | Formato errado. |
+| 404 | `User with email … not found` / `User with id … not found` | Usuário inexistente. |
+| 404 | `Department with id … not found` | Departamento inexistente no projeto. |
+| 404 | `User with … not found in department …` | O usuário não é membro desse departamento. |
+| 400 | `Department … has no user available to receive leads` | Rodízio sem ninguém com **Receber Leads** ligado. |
+
+## O que cada mudança dispara
+
+| Mudança pela API | Efeitos no projeto | Não faz |
+|---|---|---|
+| Mover no funil | Aplica **Desativar IA** e **Transbordo** da coluna; envia conversões, o webhook `LEAD_KANBAN_UPDATED` e roda os fluxos **Movido no Kanban**. | Não aciona **Disparar automações** da coluna. |
+| Pôr ou tirar tag | Webhooks `LEAD_TAG_ADDED` / `LEAD_TAG_REMOVED`; roda os fluxos **Tag adicionada** / **Tag removida**. | — |
+| Propriedade | Grava o valor. | Não roda fluxos (o gatilho **Propriedade alterada** está em breve). |
+| Responsável | Roda os fluxos de **Responsável alterado** quando muda de fato; registra no histórico do lead. | Não manda notificação ao novo responsável. |
+| Anotação | Grava o texto. | — |
+
+O gatilho **Propriedade alterada** está indisponível hoje (em breve), também pela API:
+preencher uma propriedade não roda fluxo nenhum. Mover e pôr tag já rodam os fluxos
+sozinhos: não chame [`/flows/trigger`](/api/fluxos-e-webhook-de-entrada) de novo para o
+mesmo evento, ou o fluxo roda duas vezes. Para agendar automações, chame
+[`/automations/trigger`](/api/automacoes) (só na conexão oficial).
+
+<Visibility for="agents">
+- GET lead → `{lead: {id, name?, phone, ai_status: "active"|"inactive", kanban_column?: {id,name}, current_tags?: [{id,name}], metadata?: {slug: value}, annotation?, assigned_to_user?: {id,name}, assigned_to_team?: {id,name}, created_at}}`. Campos `undefined` são omitidos.
+- `ai_status: "inactive"` = `ai_response_block_until` no futuro (pausada ou desligada).
+- threads → `{threads: [{thread_id, created_at, closed_at|null}]}`, ordem `created_at` desc.
+- notes → 200; append com separador `";\n"`; `delete_previous_note` aceita boolean ou `"true"`/`"false"`.
+- properties → 200 `{message}`; mesmo valor → 200 `{error: "Property … already has value …"}`.
+- tag POST → 201 / 404 / 409; DELETE → 200 / 409.
+- kanban → 200 / 204 (sem corpo) / 404.
+- assignee → 200 `{message, changed, team_id, user_id}`. O campo `source` não é aceito com chave de projeto (400).
+- Fluxos: kanban → `lead.column_changed` (com `to_column_id` e `from_column_id`); tag → `lead.tag_added` / `lead.tag_removed`; assignee → `lead.assignee_changed` quando muda de fato; properties e notes → nenhum.
+</Visibility>
+
+## Armadilhas
+
+- **Tag e coluna vão pelo id; propriedade vai pelo slug.** Nome não funciona em nenhum dos
+  três. Pegue os ids em [Catálogos](/api/catalogos).
+- **Mover para coluna com "Desativar IA" desliga a IA do lead.** Diga isso a quem pediu.
+- **Mover pela API não dispara automações.** Se precisar, chame `POST /automations/trigger`
+  depois (só na conexão oficial).
+- **Propriedade pela API não roda fluxos.** O gatilho **Propriedade alterada** está em
+  breve. Mover e pôr ou tirar tag já rodam os fluxos de Kanban e de tag.
+- **Propriedade com o mesmo valor volta 200 com `error`.** Não trate esse `error` como
+  falha.
+- **`ai_status: "inactive"` não diz se é pausa ou desligamento.**
+- **Nota acrescenta por padrão.** Uma integração que reenvia a mesma nota a cada evento
+  vai repetir o texto. Use `delete_previous_note: true` se a nota for "estado atual".
+- **Responsável fora do departamento dá 404.** Adicione o usuário ao departamento no
+  painel antes.
+
+## Para saber mais
+
+- [Catálogos](/api/catalogos): ids de colunas e tags, slugs de propriedades
+- [Controle da IA](/api/controle-da-ia), [Notificar responsável](/api/notificar-responsavel)
+- [Funil (Kanban)](/produto/funil-kanban), [Tags](/produto/tags),
+  [Propriedades](/produto/propriedades), [Departamentos](/produto/departamentos),
+  [Contatos](/produto/contatos)
+- Termos para buscar: "PATCH vs POST REST", "409 Conflict idempotent", "round-robin
+  assignment".

@@ -1,0 +1,100 @@
+---
+title: "WhatsApp oficial (Cloud API) e coexistência"
+description: "Leia para conectar um número pela API oficial da Meta, escolher o tipo de integração, entender a coexistência com o app WhatsApp Business e migrar a conexão entre projetos."
+---
+
+A conexão oficial liga o número do projeto à API do WhatsApp da Meta (Cloud API) pelo **Embedded Signup**, o login do Facebook dentro do painel. É a conexão recomendada: é estável, não depende de celular ligado e libera templates aprovados, campanhas, reengajamento e conversões para o Meta Ads. O mesmo fluxo aceita um número que já usa o app WhatsApp Business, que continua funcionando no celular (**coexistência**).
+
+## Antes de começar
+
+- O projeto precisa de **assinatura ativa**. Sem ela, a tela mostra "Plano Necessário" (para o admin, que pode assinar ali) ou "Configuração Pendente" (para os demais papéis).
+- Tenha acesso a uma conta do **Meta Business** (Business Manager) do cliente final, ou crie uma durante o fluxo.
+- Para a integração com anúncios, a conta de anúncios precisa estar vinculada no Meta Business Suite.
+- Libere **pop-ups** para o painel no navegador. O login do Facebook abre numa janela própria.
+- Cadastre uma **forma de pagamento** na conta do WhatsApp Business na Meta. Sem ela, a Meta não entrega as mensagens de serviço (as respostas do agente). Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+## Conectar
+
+<Steps>
+<Step title="Escolha o método">
+Em **WhatsApp**, clique em **Conectar via Meta**.
+</Step>
+<Step title="Informe o número e o tipo de integração">
+Digite o número e escolha uma das duas integrações (tabela abaixo).
+</Step>
+<Step title="Conclua o login da Meta">
+Na janela do Facebook, escolha ou crie a conta Meta Business, a conta do WhatsApp Business e o número. Para coexistência, escolha conectar o número que já usa o app WhatsApp Business e siga as instruções no celular.
+</Step>
+<Step title="Confira o Checklist da Conexão">
+De volta ao painel, o **Checklist da Conexão** mostra quatro itens: conta aprovada pela Meta, número registrado, nome de exibição aprovado e qualidade do número saudável. Se o número não estiver registrado, use **Registrar Número**. O botão **Atualizar** busca os dados de novo na Meta.
+</Step>
+</Steps>
+
+### Os dois tipos de integração
+
+| Tipo | O que libera | Quando escolher |
+|---|---|---|
+| **WhatsApp Business** | Envio e recebimento de mensagens, templates aprovados, gestão do perfil do WhatsApp. | Atendimento e automação, sem tráfego pago para o WhatsApp. |
+| **WhatsApp Business + Anúncios** (BETA) | Tudo do anterior + rastreamento dos leads que chegam por anúncio Click-to-WhatsApp + eventos de conversão enviados à Meta. | O cliente faz tráfego pago para o WhatsApp e quer medir conversões. Exige conta de anúncios vinculada. |
+
+As conversões são configuradas depois, em **Automações**. Veja [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta).
+
+## Coexistência com o app WhatsApp Business
+
+Na coexistência, o mesmo número funciona ao mesmo tempo no app WhatsApp Business do celular e na Zatten.
+
+- **A mensagem que alguém manda pelo app aparece no CRM** como resposta humana.
+- **Ela pausa a IA naquele lead**, pelo tempo da **Pausa humana** do agente (em minutos). Isso evita que o agente responda por cima da pessoa. Com a pausa em 0, o eco do app não pausa. A pausa só estende: se o lead já estava pausado por mais tempo, nada muda. Veja [Pausa humana](/engenharia-de-ia/pausa-humana).
+- **Algumas conversas iniciadas por anúncio não aparecem no CRM.** Para responder a elas existe a automação [Resposta para mensagens não visíveis](/produto/automacoes/mensagens-nao-visiveis).
+- **A janela de 24h e a cobrança da Meta valem igual à oficial.**
+
+## Migrar a conexão para outro projeto
+
+O admin pode mover a conexão oficial de um projeto para outro da mesma conta, sem refazer o login na Meta. Use quando o cliente final trocou de projeto (por exemplo, você recriou o projeto do zero).
+
+1. Em **WhatsApp**, no projeto que tem a conexão, clique em **Trocar projeto** (só aparece para o admin).
+2. Escolha o projeto de destino. Só aparecem projetos sem conexão do WhatsApp e sem assinatura ativa.
+3. Confirme.
+
+O que acontece:
+
+- a conexão e a **assinatura** passam para o projeto de destino;
+- as mensagens do WhatsApp passam a ser processadas pelo projeto de destino;
+- o projeto de origem é desativado.
+
+Se algo falhar no meio, a Zatten desfaz a troca.
+
+## Remover a conexão
+
+Em **WhatsApp**, **Remover conexão**. O número deixa de receber e enviar pela Zatten. Remover é obrigatório antes de trocar de método (para QR Code) e antes de excluir o projeto.
+
+## Armadilhas
+
+- **Pop-up bloqueado** faz o login da Meta não abrir. Libere pop-ups e tente de novo.
+- **"Os dados atuais não estão mais válidos pela Meta"** significa que a autorização caiu (senha trocada, permissão removida no Business Manager). Refaça a conexão.
+- **Limite de requisições da Meta**: se aparecer "Limite de requisições atingido", espere alguns minutos antes de clicar em **Atualizar** de novo.
+- **Excluir um projeto com conexão oficial é bloqueado.** Remova a conexão antes.
+- **Depois de migrar, confira o projeto de destino:** templates do WhatsApp (use sincronizar na aba de templates), automações e o agente ligado.
+- **Qualidade do número baixa** reduz o limite de mensagens que a Meta deixa enviar. Acompanhe no Checklist. Veja [Follow-up e reengajamento que não queimam o número](/playbooks/follow-up-e-reengajamento).
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://youtube.com/embed/bBDmzfVIbsE"
+  title="Vídeo: whatsapp oficial e coexistencia"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Qual conexão escolher](/comecar/conexoes-whatsapp).
+- [Janela de 24h, templates e o que dá para enviar](/comecar/janela-de-24h).
+- [Templates do WhatsApp](/produto/templates-whatsapp).
+- Meta: [coexistência com o app WhatsApp Business](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users), [limites de mensagens](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits), [qualidade de template](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-quality), [Click-to-WhatsApp](https://developers.facebook.com/documentation/ads-commerce/marketing-api/ad-creative/messaging-ads/click-to-whatsapp), [Conversions API para mensagens](https://developers.facebook.com/documentation/ads-commerce/conversions-api/business-messaging).
+- Termos para buscar: "Embedded Signup", "WhatsApp Business app coexistence", "message echoes", "display name approval", "phone number quality rating".

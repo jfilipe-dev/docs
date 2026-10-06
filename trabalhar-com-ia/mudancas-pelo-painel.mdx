@@ -1,0 +1,178 @@
+---
+title: "Mudanças feitas pelo painel"
+description: "Leia ao abrir um cliente e depois de cada escrita: como o assistente usa a revision, o snapshot depois de cada escrita e o diff para descobrir o que alguém mudou pelo painel, e como registrar isso na MEMORIA.md."
+---
+
+Outras pessoas mexem no projeto pelo painel: o dono da agência, a equipe do cliente
+final, o suporte. O assistente descobre essas **mudanças externas** comparando a
+`revision` do projeto com a última que ele conhece e, quando ela muda, comparando o
+template atual com o último **snapshot**. O resultado vai para a `MEMORIA.md`.
+
+Isso também é o desfazer da agência: a Zatten guarda versões só do agente (o
+config do LangChain Agent). Colunas, tags, propriedades e automações não têm
+histórico na Zatten. Sem snapshot, não há como voltar.
+
+## As três peças
+
+| Peça | O que é | Onde fica |
+|---|---|---|
+| `revision` | A impressão digital do template. Duas leituras sem mudança devolvem a mesma; qualquer mudança em algo que viaja no template a troca. | Vem em toda resposta de `get_template`. |
+| Snapshot | A resposta de `get_template` gravada **depois** de cada escrita. | `clientes/<cliente>/snapshots/AAAA-MM-DD_HHMM_<assunto>.json` |
+| `MEMORIA.md` | **Vigente** (o que vale hoje, com a última `revision` conhecida e o nome do último snapshot) e **Histórico** (uma entrada datada por evento, só acrescenta). | `clientes/<cliente>/MEMORIA.md` |
+
+A `revision` muda com o que está no template: colunas, tags, propriedades,
+automações, departamentos, templates da Meta e o config do agente (inclusive um
+rascunho salvo e não publicado). Ela **não** muda com leads, conversas, membros de
+departamento, campanhas ou conexão, que não fazem parte do template.
+
+## Ao abrir um cliente
+
+<Steps>
+  <Step title="Ler o projeto">
+    Chamar `get_template` com o `project_id` do `CLIENTE.md`.
+  </Step>
+  <Step title="Comparar a revision">
+    Comparar com a `revision` registrada no Vigente da `MEMORIA.md`.
+    - **Igual:** nada mudou. Seguir com o pedido.
+    - **Diferente:** alguém mudou o projeto fora do assistente. Ir para o passo 3.
+  </Step>
+  <Step title="Fazer o diff contra o último snapshot">
+    Comparar o template atual com o snapshot citado no Vigente. Ver "Como fazer o
+    diff" abaixo.
+  </Step>
+  <Step title="Registrar e atualizar">
+    - Acrescentar ao Histórico uma entrada **"Mudança externa"** com o que mudou.
+    - Gravar um snapshot novo (assunto `mudanca-externa`).
+    - Atualizar o Vigente: a `revision` nova, o snapshot novo e o que passou a valer.
+  </Step>
+  <Step title="Contar para a pessoa">
+    Em uma ou duas linhas, nos termos do painel: "Desde 02/10, alguém criou a tag
+    **Retorno** e desligou o follow-up **Lembrete 72h** pelo painel."
+  </Step>
+</Steps>
+
+Na primeira vez com o cliente (diagnóstico), não há com o que comparar: a leitura
+vira a linha de base, com snapshot `..._diagnostico.json` e a `revision` no
+Vigente. Ver [Diagnóstico de um projeto](/trabalhar-com-ia/diagnostico).
+
+## Depois de cada escrita
+
+A resposta de `update_template` **não traz a `revision` nova**, de propósito. Por
+isso o assistente relê.
+
+1. `update_template` (depois do plano e do "sim").
+2. `get_template` de novo.
+3. Gravar o snapshot: `AAAA-MM-DD_HHMM_<assunto>.json`, com a resposta inteira
+   (`project_id`, `project_name`, `revision` e `template`).
+4. Atualizar o Vigente com a `revision` nova e o nome do snapshot.
+5. Acrescentar a entrada no Histórico, no mesmo formato do relatório.
+
+Escritas feitas pelo navegador (publicar, enviar template à Meta) também entram no
+Histórico. Se mudaram algo do template, releia e grave snapshot do mesmo jeito.
+
+### Por que o snapshot é depois, e não antes?
+
+Para dizer "alguém mexeu no painel" com precisão, o assistente precisa do último estado
+que **ele** conhece, que é o de depois da própria escrita. O "antes" da escrita
+seguinte é o "depois" da anterior. Um snapshot por escrita basta.
+
+Comparar com o snapshot de antes obrigaria o assistente a separar o que ele mesmo mudou
+do que outra pessoa mudou, e ele erraria. Comparar com o Vigente também não serve:
+o Vigente é texto, não JSON.
+
+## Como fazer o diff
+
+Compare **bloco a bloco**, e dentro de cada bloco **item a item pela chave**, não
+linha a linha. A ordem dos itens não importa.
+
+| Bloco | Chave do item |
+|---|---|
+| `columns`, `tags`, `attendant_teams` | `slug` |
+| `properties` | `slug` (ou `name`, se não houver) |
+| `follow_ups`, `webhooks`, `integration_webhooks`, `mcps`, `conversions`, `custom_actions`, `quick_messages`, `meta_templates`, `inactivity_handovers`, `flows` | `name` |
+| `llm_attendant` | campo a campo |
+| `langchain.config` | campo a campo; `tools[]` pelo `name` |
+
+Para cada bloco, liste: **criado**, **removido**, **alterado** (campo, antes →
+depois). Uma forma rápida de achar os blocos que mudaram, antes de olhar item a
+item:
+
+```bash
+cd clientes/clinica-sorriso
+jq -S '.template' snapshots/2026-10-02_1530_follow-up.json > /tmp/antes.json
+jq -S '.template' /tmp/atual.json > /tmp/depois.json
+diff <(jq -c 'to_entries[] | {k: .key, v: .value}' /tmp/antes.json) \
+     <(jq -c 'to_entries[] | {k: .key, v: .value}' /tmp/depois.json) | cut -c1-200
+```
+
+Relate nos termos do painel, não do JSON: "a coluna **Agendado** passou a desligar a
+IA", não "`columns[3].shutdown_ai: false → true`".
+
+## Formato da MEMORIA.md
+
+```markdown clientes/clinica-sorriso/MEMORIA.md
+## Vigente
+- Última revision conhecida: 9f3a12c4 (06/10/2026 14:32)
+- Último snapshot: snapshots/2026-10-06_1432_follow-up.json
+- Motor: LangChain Agent. Versão no ar: v12 (rascunho v13 pendente de publicar)
+- Follow-ups ativos: Lembrete 1h, Lembrete 24h, Lembrete 72h
+- Regras do cliente: nunca falar preço de implante pelo WhatsApp
+
+## Histórico
+### 06/10/2026 14:32 — Follow-up de 72h
+- Pedido: criar um terceiro lembrete, 72h depois da última interação.
+- Feito: follow-up "Lembrete 72h" criado, ligado, com o template "lembrete_consulta".
+- Não feito: nada.
+- Ficou de fora sem ser apagado: nada.
+- Para você fazer no painel: nada.
+- Snapshot: snapshots/2026-10-06_1432_follow-up.json
+
+### 05/10/2026 09:10 — Mudança externa
+- Desde 02/10, pelo painel: criada a tag "Retorno"; desligado o follow-up "Lembrete 72h".
+- Snapshot: snapshots/2026-10-05_0910_mudanca-externa.json
+```
+
+O Vigente é **reescrito** quando algo muda. O Histórico **só recebe** entradas
+novas; nunca se edita uma entrada antiga.
+
+## Como desfazer com um snapshot
+
+Para voltar um bloco ao estado de um snapshot, o assistente envia aquele bloco do
+snapshot por `update_template`, com plano e "sim", como qualquer escrita. Itens que
+foram **criados** depois do snapshot não somem: o MCP nunca apaga. Eles aparecem como
+"ficou de fora sem ser apagado", e apagar é com uma pessoa, no painel. Ver
+[Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona).
+
+Para o agente (o config do LangChain Agent), prefira restaurar a versão pelo
+histórico de versões do painel. Ver [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao).
+
+## Armadilhas
+
+- **Snapshot sem segredo.** O template lido pelo MCP traz a chave do modelo, a do
+  LangSmith e os headers preenchidos. Antes de gravar o snapshot, troque esses
+  valores por `"<removido>"` (regra em
+  [Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia#snapshots)). Por
+  isso o diff não mostra se uma chave mudou: para isso, compare só se o campo
+  existe, nunca o valor.
+- **Nunca restaure um campo `"<removido>"`.** Ao usar um snapshot para desfazer,
+  omita as chaves e os headers na escrita. Mandar o marcador grava o marcador.
+- **Rascunho muda a revision.** Alguém salvar o agente no painel sem publicar já
+  troca a `revision`. Não é erro; registre como mudança externa.
+- **Escrita recusada por revision velha.** Se `update_template` responde que o
+  projeto mudou desde a leitura, nada foi gravado. Trate como mudança externa:
+  releia, faça o diff, conte para a pessoa e refaça o plano sobre o estado novo.
+- **Snapshot antes da escrita não substitui o de depois.** Sem o de depois, a
+  próxima comparação acusa como "externa" a mudança que o próprio assistente fez.
+- **O diff só vê o template.** Lead movido, conversa encerrada, membro adicionado a
+  departamento e campanha disparada não aparecem.
+
+
+## Para saber mais
+
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona)
+- [Organizar sua agência no computador](/trabalhar-com-ia/organizar-a-agencia)
+- [As regras que o assistente segue](/trabalhar-com-ia/regras)
+- jq, manual oficial: https://jqlang.org/manual/
+- Termos para buscar: "JSON diff por chave", "jq -S sort keys", "optimistic
+  concurrency revision".

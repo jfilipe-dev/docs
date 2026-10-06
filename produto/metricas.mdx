@@ -1,0 +1,131 @@
+---
+title: "Métricas"
+description: "Leia para entender a tela Métricas de um projeto: contatos (anúncio x orgânico), mensagens, IA x humano, tokens, o gasto com IA (aproximado, zerado no LangChain Agent), o funil, conversões e campanhas, como cada número é contado e o que ele não diz."
+---
+
+A tela **Métricas** resume um projeto mês a mês: quantos contatos chegaram (e
+quantos vieram de anúncio), quantas mensagens foram trocadas, quanto a IA
+respondeu e quantos tokens usou, o funil atual e as conversões enviadas à Meta.
+Use para acompanhar o projeto, montar o relatório do cliente final e medir tokens
+para [estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia).
+
+## Onde fica no painel
+
+Menu **Métricas** (`/metrics`). Todos os papéis veem, inclusive o visualizador.
+
+No topo, escolha o **mês**. A tela abre no mês atual. O mês vai do dia 1 às 23h59
+do último dia, **em UTC** (21h no horário de Brasília).
+
+## Como ler cada parte
+
+### Funil de Conversão
+
+Quantos leads estão **agora** em cada coluna do funil, com o total de "leads no
+pipeline". É uma foto do momento: **não muda com o mês escolhido**. Leads sem
+coluna não entram.
+
+### Os cards do mês
+
+| Card | O que conta | Detalhe |
+|---|---|---|
+| **Contatos** | Leads novos no mês | Dividido em **Meta** (vieram de anúncio Click-to-WhatsApp) e **Orgânico** (o resto). |
+| **Mensagens** | Mensagens **Recebidas** (do lead) e **Enviadas** (pelo projeto) | |
+| **Tokens** | Tokens de **Input** (entrada) e **Output** (saída) do modelo | Soma de todas as chamadas da IA no mês. |
+| **Automação** | Mensagens do **Agente** (IA) e do **Humano** | Mostra quanto do atendimento a IA resolveu. |
+| **Gastos com IA (aproximado)** | Estimativa em dólar do que a IA custou no mês | Só o motor antigo preenche. No LangChain Agent fica **zerado**. Ver a nota abaixo. |
+
+<Warning>
+**No LangChain Agent, o gasto com IA fica zerado.** O card soma um preço por
+mensagem que só o motor antigo grava. No motor antigo, é uma estimativa da Zatten,
+não a fatura do provider. Para o custo real, use o painel de uso do provider
+(OpenAI ou OpenRouter) e o
+[LangSmith](/engenharia-de-ia/langsmith), que mostra tokens e custo por conversa.
+O roteiro completo está em [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia).
+</Warning>
+
+### Gráficos por dia
+
+- **Contatos por dia**: Meta Ads x Orgânico.
+- **Mensagens por dia**: Recebidas x Enviadas.
+- **Tokens por dia**: Input x Output.
+- **IA x humano por dia**: Agente IA x Humano.
+- **Conversões por dia**: eventos de conversão enviados à Meta no período (ver
+  [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta)).
+- **Leads por campanha**: as origens de anúncio que mais trouxeram leads.
+
+### Dados Detalhados
+
+Tabela com três abas:
+
+| Aba | Colunas |
+|---|---|
+| **Dados Diários** | Data, Leads Total, Leads Meta, Leads Orgânico, Msgs Recebidas, Msgs Enviadas, Tokens Total, Tokens Input, Tokens Output, Msgs IA, Gastos ($), Msgs Humano |
+| **Campanhas** | Origem/Campanha, Título, Leads, Tipo de mídia, Tipo de origem |
+| **Conversões** | Data, um total por evento (LeadSubmitted, ViewContent, AddToCart, CartAbandoned, InitiateCheckout e Purchase) e Valor Total (R$) das compras |
+
+## Como funciona por trás
+
+- Os números de contatos, mensagens, tokens e gasto vêm de um resumo diário do
+  projeto, somado no mês.
+- **Meta x orgânico:** um lead conta como Meta quando a primeira mensagem dele veio
+  de um anúncio Click-to-WhatsApp (a Meta informa a origem). Anúncio que leva a um
+  link `wa.me` comum chega como orgânico.
+- **Campanhas** agrupa os leads de anúncio pela URL de origem do anúncio, com o
+  título e o tipo de mídia que a Meta envia.
+- **Conversões** conta os eventos que a Zatten enviou para a Meta no mês. Só existem
+  para leads que vieram de anúncio.
+
+## Medir tokens por atendimento
+
+Para estimar custo, use a aba **Dados Diários** de um período representativo:
+
+- tokens de entrada por resposta = Tokens Input ÷ Msgs IA
+- tokens de saída por resposta = Tokens Output ÷ Msgs IA
+
+Multiplique pelo número médio de respostas da IA num atendimento. O passo a passo
+está em [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia).
+
+## Pelo MCP
+
+O MCP não lê métricas. Para um relatório, o assistente abre `/metrics` pelo
+navegador ([Usar o painel pelo navegador](/trabalhar-com-ia/navegador)) ou monta os
+números pela API de histórico ([A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia)).
+
+## Armadilhas
+
+- **O gasto fica zerado no LangChain Agent.** Zero não quer dizer "de graça". Antes
+  de dizer ao cliente quanto a IA custou, confira no provider ou no LangSmith.
+- **O funil não é do mês.** Comparar o funil de dois meses na tela não funciona: ele
+  sempre mostra o agora.
+- **Virada do mês em UTC.** Mensagens das 21h às 23h59 (Brasília) do último dia caem
+  no mês seguinte.
+- **Orgânico não quer dizer "sem marketing".** Quer dizer só que a Meta não marcou
+  o lead como vindo de anúncio Click-to-WhatsApp.
+- **Conversões só existem na conexão oficial.** Na conexão não oficial o gráfico e
+  a aba de conversões ficam vazios.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Por que o gasto da tela está zerado (ou diferente da fatura)?">
+No LangChain Agent, o card fica zerado: ele soma um preço por mensagem que só o
+motor antigo grava. No motor antigo, é uma estimativa da Zatten; a fatura
+considera o preço real de cada modelo, o cache de prompt e o raciocínio. Para o
+custo real, use o provider e o [LangSmith](/engenharia-de-ia/langsmith).
+</Accordion>
+<Accordion title="Consigo ver métricas de vários projetos juntos?">
+Não nesta tela. Ela mostra o projeto aberto.
+</Accordion>
+<Accordion title="Dá para exportar?">
+Não há botão de exportar. Copie da tabela Dados Detalhados ou monte pela API.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Estimar o custo de IA de um cliente](/trabalhar-com-ia/estimar-custo-de-ia)
+- [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- [Observabilidade com LangSmith](/engenharia-de-ia/langsmith)
+- [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta)
+- Custos no LangSmith: https://docs.langchain.com/langsmith/cost-tracking
+- Termos para buscar: "tokens de entrada e saída", "Click-to-WhatsApp", "custo por atendimento".

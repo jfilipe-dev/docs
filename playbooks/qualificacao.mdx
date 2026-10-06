@@ -1,0 +1,163 @@
+---
+title: "Qualificação de leads"
+description: "Leia para montar um agente que qualifica antes de passar para vendas: definir os critérios, gravar as respostas em propriedades de lista, escrever a regra no prompt, mover no funil, passar o lead qualificado para o comercial e medir a taxa de qualificação."
+---
+
+Qualificar é descobrir, na conversa, se o lead tem perfil para comprar, e só então gastar o tempo de um vendedor com ele. Na Zatten, o agente faz as perguntas, grava cada resposta numa **propriedade**, decide pelo critério escrito no prompt, **move o lead no funil** e passa o qualificado para o **departamento comercial**. O vendedor recebe o lead com os dados já preenchidos.
+
+## Antes de começar: escreva os critérios
+
+Sente com o cliente final e responda três perguntas. Sem isso, o agente não tem como decidir.
+
+1. **Que dados separam um bom lead de um ruim?** Três a cinco, no máximo. Exemplos: tipo de imóvel e faixa de preço (imobiliária), área do direito e urgência (advocacia), número de alunos e prazo de início (cursos).
+2. **Qual combinação é "qualificado"?** Escreva como regra: "faixa a partir de R$ 400 mil **e** prazo até 6 meses".
+3. **O que fazer com quem não qualifica?** Encerrar com educação, oferecer outro produto, nutrir com follow-up.
+
+<Tip>
+Comece por um critério curto e ajuste com as conversas reais. Cinco perguntas antes de qualquer resposta útil cansam o lead; responda a dúvida dele e pergunte no meio da conversa.
+</Tip>
+
+## As peças do projeto
+
+| Peça | O que criar | Por quê |
+|---|---|---|
+| **Propriedades** (lista, vínculo **contato**) | Uma por critério: `tipo_imovel`, `faixa_preco`, `prazo_compra` | Lista fechada: o agente só grava um valor da lista e não inventa variações. O dado fica no lead para a equipe, filtros e relatórios. |
+| **Colunas** | Novo contato → Em qualificação → Qualificado → Desqualificado → Atendimento comercial | Cada etapa da decisão vira uma coluna visível no Kanban e nas Métricas. |
+| **Departamento** | Comercial, com os vendedores recebendo leads | O rodízio escolhe o vendedor de cada lead qualificado. Veja [Departamentos](/produto/departamentos). |
+| **Ações da Zatten** | Preencher propriedade (uma por critério), Mover no funil (uma por coluna), Direcionar para departamento (Comercial), Transferir para humano | Veja [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten). |
+| **Tags** (opcional) | Só as que você vai usar para **segmentar campanhas** ou **filtrar automações**, ex.: "Interesse: lançamento" | Veja a decisão "propriedade ou tag?" abaixo. |
+
+Deixe as propriedades com **enviar para a IA** ligado, para o agente ver o que já foi respondido e não perguntar de novo. A opção vem ligada por padrão e só se muda pelo template do projeto (MCP ou JSON). Veja [Propriedades](/produto/propriedades).
+
+## Passo a passo
+
+<Steps>
+<Step title="Crie as propriedades em lista">
+Em **Contatos → Propriedades**, crie uma propriedade por critério, com **Valores pré-definidos**. Decida antes de qualquer lead preencher: depois que há texto livre gravado, a propriedade não vira lista.
+
+Faixas fechadas funcionam melhor que números soltos: "Até 300 mil", "300 a 600 mil", "Acima de 600 mil".
+</Step>
+<Step title="Crie as colunas e o departamento">
+Coluna **Atendimento comercial** com a chave **Desativar IA** (o vendedor assume). Departamento **Comercial** com os vendedores e **Receber Leads** ligado.
+</Step>
+<Step title="Adicione as ações ao agente">
+Para cada propriedade, uma ação **Preencher propriedade**. Em **Quando usar no seu atendimento**, escreva os valores aceitos:
+
+```text
+Use assim que o cliente disser quanto pretende investir.
+Valores aceitos: "Até 300 mil", "300 a 600 mil", "Acima de 600 mil".
+Use exatamente um deles. Se ele disser um valor, escolha a faixa.
+```
+
+Depois: **Mover no funil** para Em qualificação, Qualificado e Desqualificado; **Direcionar para departamento** Comercial; **Transferir para humano**.
+</Step>
+<Step title="Escreva a regra no prompt">
+Veja o exemplo abaixo.
+</Step>
+<Step title="Teste os dois lados e publique">
+No [chat de teste](/engenharia-de-ia/testar), faça um lead que qualifica e um que não qualifica. Confira as propriedades gravadas e a coluna final. Publique a versão.
+</Step>
+</Steps>
+
+### Exemplo de prompt
+
+```text
+# Qualificação
+Antes de passar para um corretor, descubra três coisas, uma pergunta por vez
+e no meio da conversa, não como formulário:
+- tipo de imóvel (propriedade tipo_imovel)
+- quanto pretende investir (propriedade faixa_preco)
+- em quanto tempo quer comprar (propriedade prazo_compra)
+
+Grave cada resposta assim que o cliente disser. Antes de perguntar, olhe o
+bloco "Contexto do lead atual": não pergunte o que já está preenchido.
+
+Na primeira resposta do cliente, mova para "Em qualificação".
+
+# Critério
+Qualificado: faixa_preco "300 a 600 mil" ou "Acima de 600 mil" E prazo_compra
+"Até 6 meses".
+
+Se qualificado:
+1. Mova para "Qualificado".
+2. Direcione para o departamento "Comercial". Espere a resposta desta ação.
+3. Diga ao cliente que um corretor vai falar com ele por aqui e transfira para
+   humano. No motivo, resuma em uma linha: tipo, faixa e prazo.
+
+Se não qualificado:
+- Responda as dúvidas, ofereça o material sobre financiamento e mova para
+  "Desqualificado". Não transfira.
+```
+
+## Decisões e o porquê
+
+**Propriedade ou tag?** Tag é sim ou não; propriedade guarda um valor. Grave os critérios em propriedades. Crie uma tag só quando for **segmentar por ela**: a [campanha](/produto/campanhas) filtra propriedade apenas por "está preenchida", não por um valor específico, e os filtros de follow-up só aceitam tags e colunas. Exemplo: para mandar um lançamento só a quem quer imóvel acima de 600 mil, o agente também põe a tag "Alto padrão".
+
+**Por que lista e não texto livre?** Com lista, o agente recebe os valores válidos e, se errar, a resposta da ação diz quais são aceitos, e ele corrige. Em **Contatos**, o filtro por lista escolhe o valor exato; em texto livre, "contém".
+
+**Por que vínculo contato?** O perfil do lead (faixa, tipo de imóvel) continua verdadeiro depois de encerrar o atendimento. Vínculo conversa apagaria esses dados a cada encerramento.
+
+**Por que "Adicionar tag", e não "Definir tag única", para temperatura?** **Definir tag única** apaga **todas** as outras tags do lead, inclusive as de origem e de interesse. Para temperatura (frio, morno, quente), prefira uma propriedade em lista.
+
+**Por que direcionar e esperar antes de transferir?** **Transferir para humano** avisa só o **responsável** do lead. **Direcionar para departamento** troca o responsável pelo vendedor da vez no rodízio. O modelo pode pedir as duas ações no mesmo passo, e elas rodam ao mesmo tempo: o aviso pode ir para o responsável antigo. Sem responsável, ninguém é avisado. O playbook de [transbordo](/playbooks/transbordo) mostra um jeito que não depende da ordem.
+
+**Por que a coluna Atendimento comercial desliga a IA?** O vendedor conduz até o fim. Com a IA ligada, o agente responderia por cima dele depois que a [pausa humana](/engenharia-de-ia/pausa-humana) acabasse. **Transferir para humano** já desliga a IA do lead; a coluna garante o mesmo quando um vendedor move o lead à mão.
+
+## O que entregar ao vendedor
+
+O vendedor abre o lead em **Conversas** e vê, no painel do lead, as propriedades preenchidas, as tags e a conversa inteira. O motivo da transferência vai na notificação.
+
+Para ter um resumo pronto nas **Anotações**, monte um fluxo no [Trigger Flow](/produto/trigger-flow/conceitos):
+
+- Gatilho **Movido no Kanban**, para a coluna Qualificado.
+- Ação **Atualizar anotação**: `Tipo: {{lead.property.tipo_imovel}} · Faixa: {{lead.property.faixa_preco}} · Prazo: {{lead.property.prazo_compra}}`.
+
+## Desqualificados
+
+- Não descarte: mova para **Desqualificado** e deixe a IA ligada para responder dúvidas.
+- Um follow-up filtrado só por essa coluna, com um template de conteúdo útil, pode trazer o lead de volta mais tarde. Veja o [playbook de follow-up](/playbooks/follow-up-e-reengajamento).
+- Tire **Desqualificado** do filtro de todos os outros follow-ups.
+
+## Anúncios: avise a Meta de quem qualificou
+
+Se o lead veio de anúncio Click-to-WhatsApp, ligue uma [conversão](/produto/automacoes/conversoes-meta) `LeadSubmitted` à coluna **Qualificado**. A Meta passa a otimizar a campanha para leads qualificados, não só para conversas. Veja o [playbook de anúncios](/playbooks/anuncios-ctwa).
+
+## Como medir
+
+| O que | Onde |
+|---|---|
+| Taxa de qualificação | Qualificado ÷ (Qualificado + Desqualificado), pelo Funil de Conversão em [Métricas](/produto/metricas). Foto do momento: anote no mesmo dia de cada mês. |
+| Perfil dos leads | Em **Contatos**, filtre por propriedade e valor. |
+| Leads parados | Em **Em qualificação** há muitos dias: o agente pergunta demais, ou falta follow-up. |
+| Qualidade da decisão | Leia conversas que terminaram em Desqualificado. Se havia bons leads ali, ajuste o critério. |
+
+## Pelo MCP
+
+Viajam: propriedades (`is_enum`, `values`, `scope`, `send_to_ai`), colunas, tags, departamentos (sem os membros), as ações da Zatten no bloco `langchain` e os fluxos. Os membros do departamento Comercial e a publicação da versão ficam para uma pessoa, no painel.
+
+<Visibility for="agents">
+- Propriedade de qualificação: `{ "slug": "faixa_preco", "name": "Faixa de preço", "scope": "lead", "is_enum": true, "send_to_ai": true, "values": [{ "value": "Até 300 mil" }, { "value": "300 a 600 mil" }, { "value": "Acima de 600 mil" }] }`.
+- Ação de propriedade: o parâmetro em `parameters.properties` é o **slug** (`faixa_preco`), nunca o nome. Com o nome, a propriedade é gravada vazia e a ação responde `OK`.
+- Para mudar a regra de uma ação, altere `_zatten.note` e o fim de `description` com o mesmo texto.
+- Departamento criado pelo MCP nasce sem membros: avise que alguém precisa adicioná-los, senão o transbordo não avisa ninguém.
+</Visibility>
+
+## Armadilhas
+
+- **Critério vago no prompt** ("lead com bom perfil") faz o agente decidir diferente a cada conversa. Escreva a regra com os valores da lista.
+- **Texto livre preenchido não vira lista.** Decida o tipo da propriedade antes de ligar o agente.
+- **Parâmetro com o nome em vez do slug** grava vazio, sem erro (só no JSON escrito à mão).
+- **Departamento Comercial sem ninguém recebendo** deixa o lead sem responsável, e a transferência não avisa ninguém.
+- **Definir tag única** apaga as outras tags do lead.
+- **"Enviar para a IA" desligado** faz o agente perguntar de novo o que já foi respondido.
+- **Campanha não filtra por valor de propriedade.** Se vai segmentar por um critério, grave também uma tag.
+
+## Para saber mais
+
+- [Propriedades personalizadas](/produto/propriedades) e [Tags](/produto/tags)
+- [Funil (Kanban)](/produto/funil-kanban) e [Departamentos](/produto/departamentos)
+- [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten)
+- [Escrever um bom prompt](/engenharia-de-ia/prompt) e [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado)
+- [Transbordo para humano bem feito](/playbooks/transbordo)
+- Playbooks por nicho: [Imobiliárias](/playbooks/nichos/imobiliarias), [Advocacia](/playbooks/nichos/advocacia), [Cursos](/playbooks/nichos/cursos)
+- Termos para buscar: "lead qualification", "BANT", "lead scoring", "MQL e SQL", "handoff de marketing para vendas".

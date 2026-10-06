@@ -1,0 +1,249 @@
+---
+title: "Imobiliárias"
+description: "Leia para montar ou revisar o projeto de uma imobiliária ou corretor: qualificação por perfil, busca no catálogo, agendamento de visita, passagem para o corretor, funil, propriedades, automações, configurações recomendadas, métricas e erros comuns."
+---
+
+O agente de uma imobiliária **qualifica o perfil** (comprar ou alugar, tipo,
+região, faixa de valor), **mostra opções reais do catálogo** e **agenda a
+visita**. A negociação é do corretor. Uma conversa termina bem quando o lead tem
+uma visita marcada ou foi passado, qualificado, para um corretor.
+
+Serve também para loteamentos, construtoras e outras vendas consultivas de alto
+valor.
+
+## O objetivo do atendimento
+
+| | |
+|---|---|
+| **Conversão** | Visita agendada. Depois, proposta e contrato, com o corretor. |
+| **A IA faz** | Responde na hora, qualifica, busca imóveis, manda os links, agenda e lembra a visita, retoma quem sumiu. |
+| **O corretor faz** | Visita, negociação, proposta, documentação, financiamento. |
+| **Nunca** | Imóvel ou preço que não veio do catálogo; promessa de aprovação de crédito; negociação de valor. |
+
+## Funil recomendado
+
+| Coluna | O que significa | Quem move | Desativar IA | Transbordo | Disparar automações |
+|---|---|---|---|---|---|
+| **Novo Contato** (entrada) | Chegou; a IA está qualificando | Automático | Não | Não | Não |
+| **Qualificado** | Finalidade, tipo, região e faixa conhecidos | Agente | Não | Não | Não |
+| **Visita agendada** | Imóvel, data e hora confirmados | Agente ou corretor | Não | Não | Não |
+| **Visitou** | A visita aconteceu | Corretor | Não | Não | Sim |
+| **Com corretor** | O corretor conduz (proposta, dúvida que a IA não resolve) | Agente, transbordo por inatividade, falha do modelo | Sim (junto) | **Sim** | Não |
+| **Ganho** | Contrato fechado | Corretor | Sim | Não | Não |
+| **Perdido** | Desistiu ou fora do perfil | Agente ou corretor | Não | Não | Não |
+
+- **"Com corretor" é a coluna de transbordo.** Serve para a proposta e para
+  qualquer passagem para humano. O aviso vai para o responsável do lead.
+- **"Visitou" é movida pelo corretor**, com **Disparar automações**, para o
+  follow-up pós-visita começar quando ele arrasta o card.
+- **Ganho desliga a IA**: depois do contrato, o relacionamento é do corretor.
+
+O modelo de nicho "Imobiliárias" cria Novo Contato, Qualificação, Visita,
+Proposta, Ganho e Perdido, sem coluna de transbordo. Renomeie pelo `slug`, crie
+"Visitou" e ligue **Transbordo** em "Proposta" (ou renomeie para "Com corretor").
+
+## Departamentos
+
+Um departamento por equipe de corretores, com rodízio: **Vendas** e **Locação**
+(e **Captação**, se a imobiliária capta imóveis pelo WhatsApp). O agente direciona
+o lead assim que sabe a finalidade, e o corretor escolhido pelo rodízio é quem
+recebe o aviso do transbordo. Veja [Departamentos](/produto/departamentos).
+
+## Tags
+
+| Tag | Vínculo | Quem põe | Para quê |
+|---|---|---|---|
+| **Proprietário** | Contato | Agente | Quer anunciar ou vender o próprio imóvel. Vai para Captação, não para o funil de compra. |
+| **Cliente** | Contato | Corretor, no Ganho | Marco. Segmenta campanhas de indicação e novos lançamentos. |
+
+O modelo de nicho usa as tags Compra, Aluguel e Visita Agendada. Compra e aluguel
+são uma **propriedade** (finalidade); visita agendada é uma **coluna**.
+
+## Propriedades
+
+| Propriedade (slug) | Tipo | Valores | Vínculo | Enviar para a IA |
+|---|---|---|---|---|
+| Finalidade (`finalidade`) | Lista | Comprar, Alugar | Contato | Sim |
+| Tipo de imóvel (`tipo_imovel`) | Lista | Apartamento, Casa, Sala comercial, Terreno, Outro | Contato | Sim |
+| Região (`regiao`) | Lista | Os bairros ou regiões atendidos, mais Outra | Contato | Sim |
+| Faixa de valor (`faixa_de_valor`) | Lista | As faixas da imobiliária, separadas para compra e aluguel | Contato | Sim |
+| Quartos (`quartos`) | Lista | 1, 2, 3, 4 ou mais | Contato | Sim |
+| Imóvel de interesse (`imovel_de_interesse`) | Texto | Código do imóvel | Conversa | Sim |
+
+As quatro primeiras são essenciais. Quartos e imóvel de interesse ajudam o
+corretor, mas cada uma é mais uma tool. O perfil fica no **contato**: continua
+valendo se o atendimento for encerrado e serve para campanhas de lançamento por
+região e faixa. Se o lead mudar de ideia, o agente regrava.
+
+## Tools
+
+**Ações da Zatten:**
+
+| Tool | Quando usar |
+|---|---|
+| `@properties_update_finalidade`, `_tipo_imovel`, `_regiao`, `_faixa_de_valor` | Assim que o lead informar. Valores aceitos no "Quando usar". |
+| `@department_select_vendas`, `@department_select_locacao` | Logo depois de saber a finalidade. |
+| `@kanban_move_qualificado` | Com finalidade, tipo, região e faixa preenchidos. |
+| `@kanban_move_visita_agendada` | Com imóvel, data e hora confirmados. |
+| `@kanban_move_com_corretor` | O lead quer fazer proposta, pede uma pessoa ou pergunta o que a IA não sabe. Mande a despedida antes. |
+| `@kanban_move_perdido` | Desistiu ou o perfil não tem imóvel na carteira. |
+| `@tag_add_proprietario` | Quer anunciar um imóvel. Depois, direcione para Captação. |
+| `@schedule_add_lembrete_visita` | Modo **A IA decide**: 2 horas antes da visita. |
+
+**Catálogo:** uma [tool HTTP](/engenharia-de-ia/tools/http) `buscar_imoveis` no
+sistema ou site da imobiliária, com os filtros (finalidade, tipo, região, valor
+máximo, quartos), devolvendo no máximo 5 imóveis com código, título, valor,
+bairro e link do anúncio. Sem API, uma [skill](/engenharia-de-ia/skills) curta
+com os destaques da semana e o link da busca no site.
+
+**Agenda de visitas:** a agenda compartilhada da imobiliária pela
+[Composio](/engenharia-de-ia/tools/composio) (uma conta por projeto) ou pelo
+sistema dela. Sem agenda, o agente coleta dia e período preferidos e move para
+"Com corretor".
+
+São cerca de 14 tools. Ligue **Filtrar tools**
+([Limites e segurança](/engenharia-de-ia/limites-e-seguranca)).
+
+## Esqueleto do prompt
+
+```markdown
+# Identidade
+Você é a Bia, assistente da Imobiliária Horizonte, no WhatsApp.
+
+# Objetivo
+Entender o que o cliente procura, mostrar opções reais e agendar a visita.
+
+# Tom
+Consultivo, sem pressa e sem pressão. Uma pergunta por vez. Texto simples.
+
+# Fluxo de atendimento
+1. Pergunte se quer comprar ou alugar (@properties_update_finalidade) e
+   direcione (@department_select_vendas ou @department_select_locacao).
+2. Pergunte tipo, região e faixa de valor, salvando cada um.
+3. Com os quatro, @kanban_move_qualificado e busque com @buscar_imoveis.
+4. Mostre até 3 imóveis, um por linha: código, bairro, valor e link.
+5. Se gostar de um, ofereça horários de visita, confirme e
+   @kanban_move_visita_agendada. Agende o lembrete (@schedule_add_lembrete_visita).
+
+# Por etapa
+- Visitou: pergunte o que achou. Se quiser avançar, @kanban_move_com_corretor.
+  Se não gostou, pergunte o porquê e busque de novo.
+
+# Quando passar para o corretor
+Proposta, contraproposta, financiamento, documentação, pedido de falar com
+alguém: avise que o corretor vai chamar e use @kanban_move_com_corretor.
+
+# O que nunca fazer
+- Citar imóvel, valor ou condição que não veio de @buscar_imoveis.
+- Negociar valor ou prometer aprovação de financiamento.
+- Dizer que enviou fotos: envie o link do anúncio.
+```
+
+## Automações
+
+| Automação | Configuração | Por quê |
+|---|---|---|
+| **Lembrete de visita** | Ação **Agendar mensagem**, template utilitário `lembrete_visita`, 2 horas antes | Reduz visita perdida, que custa a tarde do corretor. |
+| **Retomada** (follow-up) | Colunas Novo Contato e Qualificado; 2 horas, 24 horas e 72 horas | Decisão de imóvel é lenta; três toques espaçados. |
+| **Reengajamento** | Colunas Novo Contato e Qualificado; 60 minutos antes de a janela fechar | Texto livre antes de precisar de template. Só na conexão oficial. |
+| **Pós-visita** (follow-up) | Coluna Visitou; 4 horas | "O que achou do imóvel?" no mesmo dia. A IA responde e encaminha. |
+| **Transbordo por inatividade** | Origem Qualificado; 120 minutos; destino Com corretor; mensagem dentro e fora do horário | Lead qualificado que parou de responder recebe a ligação de um corretor. |
+| **Conversões** (só com anúncios) | `LeadSubmitted` em Qualificado; `InitiateCheckout` em Visita agendada; `Purchase` em Ganho, com a comissão média | O Meta Ads aprende a trazer quem visita, não quem só pergunta. |
+
+Lembretes costumam ser **Utilitário**; retomada com novas opções, **Marketing**.
+Veja [Follow-up e reengajamento que não queimam o número](/playbooks/follow-up-e-reengajamento)
+e [Anúncios Click-to-WhatsApp com conversões](/playbooks/anuncios-ctwa).
+
+## Configurações recomendadas
+
+| Configuração | Valor | Por quê |
+|---|---|---|
+| [Buffer](/engenharia-de-ia/buffer) | 8 a 10 segundos | O lead manda print do anúncio e a pergunta em mensagens separadas. |
+| [Pausa humana](/engenharia-de-ia/pausa-humana) | 120 a 240 minutos | O corretor conversa por mais tempo. Na passagem definitiva, a coluna de transbordo desliga a IA. |
+| [Modelo](/engenharia-de-ia/escolher-o-modelo) | Intermediário, com **Imagem** | Cruza filtros, catálogo e agenda; lê prints de anúncios. |
+| Temperatura | 0 a 0,3 | O modelo de nicho vem com 0,7. |
+| Raciocínio | Baixo | Ajuda a cruzar faixa, região e resultado da busca. |
+| [Segmentação](/engenharia-de-ia/segmentacao-e-voz) | Ligada, com no máximo 3 imóveis por resposta | Lista longa vira muitas mensagens. |
+| [Mídia](/engenharia-de-ia/midia) | Áudio e imagem liberados | Lead de imóvel manda muito áudio. |
+| [Resiliência](/engenharia-de-ia/resiliencia) | Tentativas 2, fallback de outro fabricante, falha do agente movendo para Com corretor | Lead de alto valor não pode ficar sem resposta. |
+| Horário de funcionamento do agente | 24h | Quem procura imóvel pesquisa à noite. |
+
+## Métricas
+
+| Métrica | Como medir |
+|---|---|
+| Taxa de qualificação | Leads que chegaram a Qualificado ÷ leads novos |
+| Visitas agendadas e realizadas | Visita agendada; Visitou ÷ Visita agendada |
+| Propostas | Leads que chegaram a Com corretor depois de Visitou |
+| Leads por campanha e conversões | [Métricas](/produto/metricas), abas Campanhas e Conversões |
+| Custo de IA por visita | Custo real ([LangSmith](/engenharia-de-ia/langsmith) ou provider) ÷ visitas |
+| Motivo de perda | Leitura de amostras de conversas em Perdido |
+
+## Pelo MCP
+
+<Visibility for="agents">
+```json
+{
+  "attendant_teams": [
+    { "name": "Vendas", "default": true },
+    { "name": "Locação", "default": false }
+  ],
+  "properties": [
+    { "slug": "finalidade", "name": "Finalidade", "description": "Comprar ou alugar",
+      "scope": "lead", "is_enum": true, "send_to_ai": true,
+      "values": [{ "value": "Comprar" }, { "value": "Alugar" }] },
+    { "slug": "faixa_de_valor", "name": "Faixa de valor", "description": "Faixa de preço do imóvel procurado",
+      "scope": "lead", "is_enum": true, "send_to_ai": true,
+      "values": [{ "value": "Compra até R$ 400 mil" }, { "value": "Compra acima de R$ 400 mil" },
+                 { "value": "Aluguel até R$ 2.500" }, { "value": "Aluguel acima de R$ 2.500" }] }
+  ],
+  "inactivity_handovers": [
+    { "name": "Qualificado parado 2h", "delay": 120, "target_column_name": "Com corretor",
+      "source_column_names": ["Qualificado"], "source_tag_names": [],
+      "within_hours_message": "Vou pedir para um corretor te chamar, tudo bem?",
+      "outside_hours_message": "Um corretor te chama amanhã a partir das 9h.",
+      "business_hours_enabled": true }
+  ],
+  "conversions": [
+    { "name": "Qualificado", "event": "LeadSubmitted", "column_name": "Qualificado", "value": null },
+    { "name": "Visita agendada", "event": "InitiateCheckout", "column_name": "Visita agendada", "value": null }
+  ]
+}
+```
+
+- Com `business_hours_enabled: true`, mande também `business_hours` (`timezone` e
+  `schedule` com os sete dias), como no exemplo da página de
+  [transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade).
+- O modelo de nicho cria o departamento "Atendimento" como padrão. Para virar
+  "Vendas", renomeie pelo `slug` em vez de criar outro padrão.
+- Departamentos novos nascem sem membros: avise a pessoa para adicionar os
+  corretores no painel.
+- Mantenha exatamente um departamento com `default: true`.
+</Visibility>
+
+## Erros comuns
+
+- **Catálogo no prompt.** Imóvel vendido continua sendo oferecido e o preço fica
+  velho. Busque na hora, ou mande o link da busca.
+- **Compra e aluguel na mesma faixa de valor.** "Até 3 mil" não diz nada sem a
+  finalidade. Separe as faixas.
+- **Região em texto livre.** "Centro", "centro", "região central" quebram a busca e
+  as campanhas por bairro.
+- **Transbordo sem corretor responsável.** Sem direcionar para o departamento
+  antes, o aviso pode não chegar a ninguém.
+- **Promessa de financiamento.** "Você consegue financiar" não é papel da IA.
+- **"Enviei as fotos".** O agente manda texto; o link do anúncio leva às fotos.
+- **Corretor que não move o card.** Sem mover para Visitou, o follow-up pós-visita
+  não sai. Combine o processo com a equipe.
+- **Proprietário tratado como comprador.** Quem quer anunciar o imóvel vai para
+  Captação.
+
+## Para saber mais
+
+- [Qualificação de leads](/playbooks/qualificacao), [Agendamento](/playbooks/agendamento), [Transbordo para humano bem feito](/playbooks/transbordo)
+- [Tool HTTP](/engenharia-de-ia/tools/http) e [Montar sua API](/engenharia-de-ia/tools/montar-sua-api)
+- [Departamentos](/produto/departamentos)
+- [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- Meta, Conversions API para mensagens: https://developers.facebook.com/documentation/ads-commerce/conversions-api/business-messaging
+- Termos para buscar: "qualificação de leads imobiliários", "agendamento de visita
+  imóvel", "speed to lead", "Click-to-WhatsApp imobiliária".

@@ -1,0 +1,134 @@
+---
+title: "Tags"
+description: "Leia para criar tags, escolher o vínculo certo (contato ou conversa), entender o que acontece com elas ao encerrar o atendimento e onde as tags são usadas por automações, campanhas e pelo agente."
+---
+
+A **tag** é uma etiqueta colorida no lead. Serve para marcar o que importa
+("Quente", "Pediu orçamento", "Cliente"), filtrar contatos e conversas, segmentar
+campanhas e decidir quais automações valem para cada lead. Cada tag tem um
+**vínculo**: fica no **contato** para sempre ou só na **conversa** atual.
+
+## Onde fica no painel
+
+- **Contatos → aba Tags**: criar, editar e excluir as tags do projeto.
+- **Painel do lead** (em **Conversas**): pôr e tirar tags de um lead.
+- **Contatos → Lista**: coluna **Tags**, filtro **Filtrar por Tags** e as ações em massa
+  **Adicionar** e **Remover** tag.
+- **Kanban e Conversas**: filtro por tags.
+
+## Como configurar
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Nome** | Como a tag aparece. Automações, campanhas, o agente e o template se referem a ela por este nome | Obrigatório |
+| **Descrição** | Para que serve a tag. Ajuda a equipe e quem configura o agente | Vazio |
+| **Vínculo** | **Contato** (permanece após encerrar a conversa) ou **Conversa** (removida ao encerrar a conversa) | Contato |
+| **Cor** | Cor em hexadecimal | — |
+
+### Contato ou conversa?
+
+| Vínculo | Use para | Exemplo |
+|---|---|---|
+| **Contato** | O que é verdade sobre a pessoa e continua valendo | "Cliente", "VIP", "Plano anual", "Não perturbe" |
+| **Conversa** | O que vale só para este atendimento | "Pediu orçamento", "Aguardando documento", "Reclamação" |
+
+## Como funciona por trás
+
+- **Ao encerrar o atendimento**, as tags de vínculo **Conversa** saem do lead e ficam
+  guardadas no histórico daquela conversa (**Conversas anteriores**). As de vínculo
+  **Contato** continuam. Veja [Encerrar atendimento](/produto/encerrar-atendimento).
+- **O agente vê as tags do lead** no contexto de cada resposta, pelo nome. Veja
+  [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado).
+- **O agente pode pôr e tirar tags** com as ações da Zatten (adicionar, definir e
+  remover tag), cada uma apontando para uma tag específica. Veja
+  [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten).
+- **Automações filtram por tag.** Num follow-up, reengajamento ou webhook por
+  inatividade, basta o lead ter **uma** das tags do filtro; filtro vazio vale para
+  todos. Veja [Follow-up](/produto/automacoes/follow-up).
+- **Campanhas filtram por tag** junto com coluna e propriedades. Veja
+  [Campanhas](/produto/campanhas).
+- **Pôr ou tirar uma tag** pode disparar o webhook de eventos de tags e os fluxos com
+  os gatilhos "tag adicionada" e "tag removida". Veja
+  [Webhooks de eventos](/produto/automacoes/webhooks) e
+  [Trigger Flow: blocos](/produto/trigger-flow/blocos).
+
+### Excluir uma tag
+
+- Se o agente usa a tag numa tool, a tela pede confirmação e **a tool sai do agente
+  junto** com a tag.
+- **Antes de excluir, tire a tag dos leads.** Filtre por ela em **Contatos → Lista**,
+  selecione todos e use **Remover**.
+- **Revise as automações que filtram pela tag.** Um follow-up ou webhook por
+  inatividade que filtrava só por ela pode deixar de valer para qualquer lead.
+
+## Pelo MCP
+
+As tags viajam no bloco `tags` do template.
+
+- **Renomeie pelo `slug`.** Sem o `slug`, um nome novo cria outra tag e a antiga vira
+  órfã.
+- **Cor obrigatória**, no formato `#RRGGBB` (seis dígitos).
+- **A escrita nunca apaga tag.** Tag que não veio fica como órfã, intacta.
+- Follow-ups, webhooks por inatividade, transbordos e fluxos apontam para tags **pelo
+  nome**. Tag inexistente é retirada do filtro, com nota.
+- Se o agente usa a tag numa tool, ao renomear mande também o bloco `langchain` na mesma
+  escrita.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Obrigatório |
+| `color` | string | Obrigatório, `#RRGGBB` |
+| `description` | string ou null | |
+| `scope` | `lead` ou `conversation` | `lead` = vínculo Contato; `conversation` = vínculo Conversa |
+| `slug` | string ou null | Chave de identidade; renomeia |
+
+```json
+{
+  "tags": [
+    { "slug": "cliente", "name": "Cliente", "color": "#10B981", "scope": "lead" },
+    { "slug": "pediu_orcamento", "name": "Pediu orçamento", "color": "#F59E0B",
+      "scope": "conversation", "description": "Lead pediu preço neste atendimento" }
+  ]
+}
+```
+</Visibility>
+
+## Armadilhas
+
+- **Vínculo errado some com a tag.** Uma tag "Cliente" com vínculo **Conversa** sai do
+  lead no primeiro encerramento. Revise o vínculo de cada tag antes de pôr automações em
+  cima dela.
+- **Nomes repetidos.** O painel aceita duas tags com o mesmo nome, mas automações,
+  tools e template as distinguem pelo nome. Use nomes únicos.
+- **Filtro de contatos por várias tags pede todas.** Em **Contatos**, marcar duas tags
+  mostra só quem tem as duas. Já nos filtros de automação, basta uma.
+- **Excluir é para tag sem uso.** Tire a tag dos leads e das automações antes de
+  excluir.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Tag ou propriedade?">
+Tag é sim ou não ("é cliente"). Propriedade guarda um valor ("plano: anual", "cidade:
+Campinas"). Se a resposta tem mais de duas opções, use uma
+[propriedade](/produto/propriedades) com lista de valores.
+</Accordion>
+<Accordion title="Tag ou coluna?">
+Coluna é a etapa do funil: o lead está em uma só. Tags se acumulam. Use coluna para
+"onde o lead está" e tag para "o que se sabe dele".
+</Accordion>
+<Accordion title="Como pôr uma tag em muitos leads de uma vez?">
+Em **Contatos → Lista**, filtre, selecione e use **Adicionar**. Na importação por CSV,
+dá para escolher uma tag para todos os contatos do arquivo.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Propriedades personalizadas](/produto/propriedades)
+- [Funil (Kanban)](/produto/funil-kanban)
+- [Contatos](/produto/contatos)
+- [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- Termos para buscar: "segmentação de leads", "tagueamento de CRM".

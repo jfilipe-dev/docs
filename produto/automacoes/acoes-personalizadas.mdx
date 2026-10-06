@@ -1,0 +1,175 @@
+---
+title: "Ações personalizadas (botões no lead)"
+description: "Leia para criar botões no lead que fazem uma chamada HTTP quando um humano clica: método, URL, headers, query, corpo, variáveis {{lead.*}}, confirmação, payload padrão, tempo limite de 10 s e como o endpoint deve responder."
+---
+
+Ação personalizada é um **botão no lead** que chama um endereço HTTP seu quando **um humano clica**. Serve para levar o lead para outro sistema com um clique: "Criar pedido no ERP", "Enviar para o financeiro", "Gerar contrato". Quem decide é a pessoa no CRM, não o agente.
+
+## Onde fica no painel
+
+- **Configurar:** **Automações → Ações personalizadas**. Admin e editor.
+- **Usar:** os botões aparecem na seção **Ações** do painel do lead no chat e no modal do lead no Kanban. Qualquer usuário com acesso ao projeto pode clicar.
+
+Só aparecem as ações **ligadas**, na ordem da lista (as setas mudam a ordem).
+
+## Como configurar
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Nome** | Texto do botão. Obrigatório. O ícone ao lado abre a biblioteca de ícones. | Ícone `webhook` |
+| **Descrição** | Nota interna. | — |
+| **Requisição** | Método (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) e URL. A URL precisa começar com `https://` e aceita variáveis. | `POST` |
+| **Headers (opcional)** | Enviados na chamada, por exemplo `Authorization: Bearer …`. Nome só com letras, números, `_` ou `-`. **Não aceitam variáveis.** | — |
+| **Parâmetros na URL (opcional)** | Acrescentados como `?chave=valor`. Aceitam variáveis. | — |
+| **Parâmetros no corpo (opcional)** | Viram um JSON com essas chaves. Aceitam variáveis. Não aparece em `GET` e `DELETE`. Sem nenhum, vai o payload padrão. | Payload padrão |
+| **Cor de destaque** | Cor do botão. Obrigatória. | — |
+| **Pedir confirmação** | Mostra "Executar "Nome"? Esta ação enviará os dados do lead para o sistema configurado." antes de chamar. | Desligado |
+
+### Variáveis
+
+Use o botão `{ }` no campo para inserir. Valem na **URL**, nos **parâmetros na URL** e nos **parâmetros no corpo**.
+
+| Variável | Valor |
+|---|---|
+| `{{lead.id}}` | Id do lead na Zatten |
+| `{{lead.number}}` | Número do WhatsApp |
+| `{{lead.name}}` | Nome do lead |
+| `{{lead.column}}` | **Nome** da coluna atual |
+| `{{lead.tags}}` | **Nomes** das tags, separados por vírgula |
+| `{{lead.thread_id}}` | Id da conversa atual |
+| `{{lead.property.<slug>}}` | Valor da propriedade, pelo slug (por exemplo `{{lead.property.cpf}}`) |
+
+Variável que não existe, ou propriedade sem valor, vira **texto vazio**, nunca o `{{…}}` literal.
+
+## Como funciona por trás
+
+### A chamada
+
+- Sai dos servidores da Zatten, não do navegador. A URL e os headers nunca chegam ao navegador de quem clica.
+- Com corpo (`POST`, `PUT`, `PATCH`): `Content-Type: application/json`.
+- **Tempo limite: 10 segundos.** Sem nova tentativa.
+- Não há assinatura. Para autenticar, use um header (por exemplo `Authorization`).
+
+### O corpo
+
+**Com parâmetros no corpo**, o JSON tem só essas chaves, e **todos os valores são texto**:
+
+```json
+{ "telefone": "5511999998888", "etapa": "Orçamento enviado", "cpf": "12345678900" }
+```
+
+**Sem parâmetros no corpo**, vai o payload padrão:
+
+```json
+{
+  "action": { "id": "9a8b7c6d-0000-4000-8000-000000000010", "name": "Criar pedido no ERP" },
+  "triggered_by": {
+    "user_id": "u5e7r000-0000-4000-8000-000000000004",
+    "email": "ana@agencia.com",
+    "role": "editor"
+  },
+  "tenant_id": "a1b2c3d4-0000-4000-8000-000000000002",
+  "attendant_id": "p40j3t00-0000-4000-8000-000000000006",
+  "lead": {
+    "id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d",
+    "name": "Maria Souza",
+    "wa_id": "5511999998888",
+    "thread_id": "zt_8d7c6b5a",
+    "tags": [{ "id": "b2c1d0e9-0000-4000-8000-000000000001", "name": "Clareamento" }],
+    "kanban": { "id": "c0l00000-0000-4000-8000-000000000009", "name": "Orçamento enviado" },
+    "properties": [
+      { "slug": "cidade", "label": "Cidade", "value": "Campinas" }
+    ]
+  },
+  "triggered_at": "2026-10-06T14:20:11.512Z"
+}
+```
+
+`triggered_by` diz quem clicou. `attendant_id` é o id do projeto. `lead.kanban` é `null` se o lead não tem coluna.
+
+### Como o endpoint deve responder
+
+O retorno vira um aviso na tela de quem clicou:
+
+| Resposta | O que a pessoa vê |
+|---|---|
+| 2xx com JSON `{"message": "Pedido 123 criado"}` | Aviso verde com "Pedido 123 criado" |
+| 2xx sem corpo | "Ação enviada com sucesso." |
+| Erro (4xx, 5xx) com JSON `{"error": "CPF inválido"}` | Aviso vermelho com "CPF inválido" |
+| Erro sem mensagem | "O webhook retornou erro (500)." |
+| Mais de 10 s sem resposta | "O webhook demorou demais para responder." |
+| Endereço inacessível | "Não foi possível conectar ao webhook." |
+
+A mensagem é lida, nesta ordem, dos campos `message`, `msg`, `error` ou `detail` do JSON. Se a resposta for texto puro, aparecem os primeiros 200 caracteres. Responda com uma frase curta, em português, que diga o que aconteceu.
+
+<Tip>
+Se o seu processo demora mais de 10 segundos (gerar um PDF, chamar várias APIs), responda logo `{"message": "Pedido recebido, em processamento"}` e continue em segundo plano.
+</Tip>
+
+## Pelo MCP
+
+Bloco `custom_actions`.
+
+- Identificado por `name`. O estado é `is_active` (boolean), não `status`.
+- Sem `webhook_url`, a ação nasce **pendente**: sem endereço, desligada e com o selo **Pendente** na lista. Só liga com endereço. Importar um JSON ou duplicar um projeto leva o endereço e os headers preenchidos, como vieram da origem: confira se eles servem ao projeto novo.
+- `webhook_url`, `headers`, `query_params` e `body_params` vazios não gravam por cima dos atuais.
+- `get_template` traz URL e headers preenchidos, inclusive tokens. Nunca mostre esses valores ao cliente.
+
+<Visibility for="agents">
+```json
+{
+  "custom_actions": [
+    {
+      "name": "Criar pedido no ERP",
+      "description": "Cria o pedido com os dados do lead",
+      "webhook_url": "https://erp.exemplo.com/api/pedidos?origem=zatten",
+      "method": "POST",
+      "headers": [{ "key": "Authorization", "value": "Bearer <token do cliente>" }],
+      "query_params": [{ "key": "lead", "value": "{{lead.id}}" }],
+      "body_params": [
+        { "key": "telefone", "value": "{{lead.number}}" },
+        { "key": "cpf", "value": "{{lead.property.cpf}}" }
+      ],
+      "icon": "shopping-cart",
+      "color": "#37D67A",
+      "confirm": true,
+      "is_active": true,
+      "order": 0
+    }
+  ]
+}
+```
+`headers`, `query_params`, `body_params`: listas de `{ key, value }`. Chave do header: `[a-zA-Z0-9_-]+`. Chave de parâmetro: `[\w.-]+`.
+</Visibility>
+
+## Armadilhas
+
+- **Variável no header não funciona.** `Bearer {{lead.id}}` vai literalmente para o header. Coloque dados do lead na URL ou no corpo.
+- **Tudo vira texto.** Com parâmetros no corpo, `"valor": "450"` chega como texto, não número. Converta no endpoint.
+- **Definir um parâmetro no corpo troca o payload inteiro.** Quem dependia do payload padrão para de receber `lead`, `triggered_by` e o resto.
+- **`GET` e `DELETE` não levam corpo.** Use parâmetros na URL.
+- **URL com `http://` é recusada** no painel.
+- **10 segundos e acabou.** Processo lento aparece como erro para quem clicou, mesmo que tenha dado certo depois. Responda rápido.
+- **Clique duplo, chamada dupla.** Não há proteção contra dois cliques seguidos em momentos diferentes. Para ações que não podem se repetir (cobrança), ligue **Pedir confirmação** e trate repetição no endpoint (por exemplo, pelo `lead.id` e pela `action.id`).
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="O agente pode clicar nesses botões?">
+Não. Ações personalizadas são só para humanos. Para o agente chamar um sistema externo, use uma [tool HTTP](/engenharia-de-ia/tools/http).
+</Accordion>
+<Accordion title="Dá para disparar a ação sozinha, quando o lead muda de coluna?">
+Não pela ação personalizada. Use um fluxo do [Trigger Flow](/produto/trigger-flow/conceitos) com o gatilho "Movido no Kanban" e a ação de requisição HTTP.
+</Accordion>
+<Accordion title="Quem pode criar e quem pode usar?">
+Admin e editor criam e editam. Qualquer usuário com acesso ao projeto vê os botões ligados e pode clicar.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Visão geral das automações](/produto/automacoes/visao-geral)
+- [Webhooks de eventos](/produto/automacoes/webhooks): para avisar um sistema sem clique.
+- [Tools HTTP do agente](/engenharia-de-ia/tools/http)
+- [Propriedades](/produto/propriedades): o slug usado em `{{lead.property.<slug>}}`.
+- Termos para buscar: "webhook action button", "HTTP request Authorization header Bearer", "Lucide icons".

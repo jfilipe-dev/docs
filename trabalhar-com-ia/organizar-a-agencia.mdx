@@ -1,0 +1,145 @@
+---
+title: "Organizar sua agência no computador"
+description: "Leia para montar o diretório da agência que o assistente usa: AGENTS.md, AGENCIA.md, uma pasta por cliente final com CLIENTE.md, MEMORIA.md, snapshots e .env."
+---
+
+A agência trabalha com o assistente num diretório só, com uma pasta por cliente
+final. Ali ficam o contexto da agência, o de cada cliente, a memória do que foi
+feito e cópias do projeto depois de cada alteração. Na primeira vez, a skill
+monta essa estrutura sozinha.
+
+## A estrutura
+
+```text
+minha-agencia/
+  AGENTS.md            regras fixas, lidas pelo Codex, Cursor e outros
+  CLAUDE.md            aponta para o AGENTS.md (o Claude Code lê este)
+  AGENCIA.md           quem é a agência; lido em toda sessão
+  .gitignore           .env fora do versionamento
+  clientes/
+    clinica-sorriso/
+      CLIENTE.md       project_id, nome exato do projeto, nicho, objetivos, regras
+      MEMORIA.md       ## Vigente e ## Histórico
+      snapshots/       AAAA-MM-DD_HHMM_<assunto>.json
+      .env             chave de API do projeto (nunca versionada)
+    imobiliaria-norte/
+      ...
+```
+
+## O que vai em cada arquivo
+
+### AGENTS.md e CLAUDE.md
+
+As regras fixas da skill, para valerem mesmo quando a skill não for carregada. O
+Claude Code lê `CLAUDE.md`; o Codex e o Cursor leem `AGENTS.md`. Por isso o
+`CLAUDE.md` só aponta para o `AGENTS.md`, e as regras ficam num lugar.
+
+### AGENCIA.md
+
+O documento da agência, compartilhado por todos os clientes:
+
+- site da agência (o assistente pode ler o site para completar o resto);
+- nicho em que atua;
+- canal de vendas;
+- por quanto vende e o que entrega em cada pacote;
+- como trata os clientes (tom, prazos, o que precisa de aprovação do cliente final).
+
+### CLIENTE.md
+
+O contexto de um cliente final:
+
+- `project_id` e o **nome exato** do projeto, como vêm de `list_projects`;
+- nicho e o que o cliente vende;
+- objetivos (por exemplo, "agendar avaliação", "qualificar antes de passar ao
+  corretor");
+- regras do cliente ("nunca falar preço pelo WhatsApp").
+
+É preenchido no [diagnóstico](/trabalhar-com-ia/diagnostico), na primeira vez que
+o assistente abre o cliente. O que não dá para inferir do projeto, ele pergunta.
+
+### MEMORIA.md
+
+Duas seções, com papéis diferentes:
+
+- **Vigente:** o que vale hoje. Reescrita quando muda. Inclui a última `revision`
+  conhecida do projeto.
+- **Histórico:** só acrescenta, nunca reescreve. Uma entrada datada por evento.
+
+Cada entrada do Histórico traz:
+
+- data;
+- o pedido;
+- o que mudou;
+- o que não foi feito e por quê;
+- o que ficou para fazer no painel;
+- o nome do snapshot.
+
+Mudanças feitas por outra pessoa no painel também entram, como "mudança externa".
+Veja [Mudanças feitas pelo painel](/trabalhar-com-ia/mudancas-pelo-painel).
+
+### snapshots/
+
+O template do projeto lido **depois** de cada escrita, com nome
+`AAAA-MM-DD_HHMM_<assunto>.json`. Serve para dois fins:
+
+- **perceber mudança externa:** se a revision do projeto mudou, o assistente
+  compara o estado atual com o último snapshot e diz o que mudou;
+- **desfazer à mão:** a Zatten guarda versões só do agente. Colunas, tags e
+  automações não têm histórico, e o snapshot é o único registro do estado
+  anterior.
+
+**O snapshot nunca leva chave.** O `get_template` devolve credenciais preenchidas;
+antes de gravar, o assistente troca por `"<removido>"`:
+
+- todo campo `api_key` (do modelo, dos modelos de reserva, da transcrição, do
+  LangSmith, do motor antigo e `eleven_labs_api_key`);
+- os valores de todos os `headers` (de tools HTTP, servidores MCP e ações
+  personalizadas);
+- os valores de `query_params` e `body_params` das ações personalizadas.
+
+Endereços (`url`, `webhook_url`) ficam, porque o diff precisa deles. Ao usar um
+snapshot para desfazer, nunca devolva um campo com `"<removido>"`: omita-o, e a
+Zatten mantém o valor atual.
+
+Um snapshot por escrita basta: o "antes" de uma escrita é o "depois" da anterior.
+
+### .env
+
+A chave de API do projeto, para a [API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia).
+Uma por cliente. O `.env` precisa estar no `.gitignore` **antes** da primeira
+chave.
+
+## Um cliente ativo por vez
+
+No início da sessão, o assistente declara com qual cliente vai trabalhar e usa o
+`project_id` do `CLIENTE.md`. Ele não adivinha o projeto pelo nome.
+
+Outro cliente só entra como leitura e citado em voz alta: "usando o follow-up da
+Clínica Sorriso como referência para a Imobiliária Norte". Escrever em dois
+clientes na mesma tarefa exige dois planos e dois "sim".
+
+## Git é opcional
+
+A skill sugere `git init` e funciona sem ele. Com git, o histórico do diretório
+vira mais uma camada de registro.
+
+## Armadilhas
+
+- **Snapshot gravado com chave.** Se um snapshot antigo foi salvo antes desta
+  regra, ele tem chaves dentro: apague-o ou troque os valores por `"<removido>"`,
+  e confira que ele nunca foi para um commit.
+- **`.env` fora do `.gitignore`** vaza a chave do projeto no primeiro commit. A
+  skill confere isso, mas confira também.
+- **Nome do projeto mudou no painel.** O MCP exige o nome exato. Se a escrita for
+  recusada por nome, atualize o `CLIENTE.md` com o nome que veio de
+  `list_projects`.
+- **O Vigente não substitui o snapshot.** O Vigente é texto escrito pelo
+  assistente; só o snapshot dá para comparar com o projeto.
+
+
+## Para saber mais
+
+- [As regras que o assistente segue](/trabalhar-com-ia/regras)
+- [Diagnóstico de um projeto](/trabalhar-com-ia/diagnostico)
+- [Mudanças feitas pelo painel](/trabalhar-com-ia/mudancas-pelo-painel)
+- Termos para buscar: "AGENTS.md", "CLAUDE.md memory", "gitignore .env".

@@ -1,0 +1,167 @@
+---
+title: "Histórico de mensagens"
+description: "Leia para ler a conversa de um lead pela API: GET /messages/history em texto pronto para IA (llm_format=true) ou em JSON (llm_format=false, com input_tokens e output_tokens por mensagem), como escolher a conversa com thread_id, o limite de mensagens, a ordem e os erros."
+---
+
+`GET /messages/history` devolve as mensagens de **uma conversa** de um lead, junto com
+os dados do lead. Há dois formatos:
+
+| `llm_format` | Devolve | Para quê |
+|---|---|---|
+| `true` (padrão) | Um texto corrido, em inglês, com o resumo do lead e as mensagens | Colar no contexto de outra IA |
+| `false` | JSON: lista de mensagens e objeto do lead, com tokens por mensagem | Relatórios, análises, cálculo de custo |
+
+## Parâmetros (query)
+
+| Parâmetro | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `leadNumber` | string | Sim | Número do lead, só dígitos, com DDI. **10 a 15 caracteres.** Note o nome em camelCase. |
+| `thread_id` | string | Não | A conversa a ler. Sem ele, vale a **conversa aberta** do lead. Os ids vêm de `GET /leads/{numero}/threads`. |
+| `llm_format` | `true` ou `false` | Não | Padrão `true`. |
+
+## Quais mensagens vêm
+
+- As **mais recentes** da conversa, até o limite de histórico do projeto (campo
+  `message_quantity` do agente, mínimo 20). Não é a conversa inteira.
+- Em ordem da **mais recente para a mais antiga**.
+- Só mensagens enviadas, entregues ou lidas. Mensagens que falharam ou ainda estão na
+  fila não vêm.
+- Texto, áudio (pela transcrição), contato, botão e template. Imagem e documento só vêm
+  se foram processados para a IA. Vídeo não vem.
+
+## Resposta com llm_format=false
+
+```json
+{
+  "message_history": [
+    {
+      "from": "ATTENDANT",
+      "type": "TEXT",
+      "message": "Claro! O clareamento custa R$ 900 em até 3x.",
+      "status": "READ",
+      "source": "WA_API",
+      "input_tokens": 3120,
+      "output_tokens": 58,
+      "created_at": "2026-10-06T14:03:40.120+00:00"
+    },
+    {
+      "from": "LEAD",
+      "type": "TEXT",
+      "message": "Oi, queria saber o valor do clareamento",
+      "status": "READ",
+      "source": "WA_API",
+      "input_tokens": null,
+      "output_tokens": null,
+      "created_at": "2026-10-06T14:03:21.000+00:00"
+    }
+  ],
+  "lead": {
+    "id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d",
+    "name": "Maria Souza",
+    "phone": "5511999998888",
+    "ai_status": "active",
+    "kanban_column": { "id": "c0l00000-0000-4000-8000-000000000003", "name": "Novo lead" },
+    "current_tags": [{ "id": "b2c1d0e9-0000-4000-8000-000000000001", "name": "Clareamento" }],
+    "metadata": { "cidade": "Campinas" },
+    "annotation": "Pediu orçamento de clareamento.",
+    "assigned_to_user": { "id": "u5e7r000-0000-4000-8000-000000000004", "name": "Ana Lima" },
+    "assigned_to_team": { "id": "d3p70000-0000-4000-8000-000000000005", "name": "Comercial" },
+    "created_at": "2026-10-01T09:12:44.512+00:00"
+  }
+}
+```
+
+### Campos de cada mensagem
+
+| Campo | O que é |
+|---|---|
+| `from` | Quem escreveu: `LEAD` (o lead), `ATTENDANT` (o agente, e também mensagens enviadas pela API), `USER` (um humano da equipe, pelo CRM ou pelo app). |
+| `type` | `TEXT`, `AUDIO`, `IMAGE`, `DOCUMENT`, `CONTACT`, `BUTTON`, `TEMPLATE`. Projetos no motor antigo podem trazer também chamadas de função. |
+| `message` | O texto. Áudio: a transcrição. Imagem e documento: a legenda (pode vir vazia). |
+| `status` | `SENT`, `DELIVERED` ou `READ`. |
+| `source` | O canal. Hoje sempre `WA_API`. |
+| `input_tokens`, `output_tokens` | Tokens de entrada e de saída do modelo para gerar aquela resposta. `null` quando a mensagem não passou por modelo (do lead, de um humano, da API). `null` não é zero: não some como zero. |
+| `created_at` | Data e hora, ISO 8601. |
+
+Os campos do `lead` são os mesmos de `GET /leads/{numero}`. Ver [Leads](/api/leads).
+
+<Tip>
+Para estimar o custo de IA de um projeto, some `input_tokens` e `output_tokens` das
+mensagens do agente e multiplique pelo preço por token do modelo. Passo a passo em
+[Estimar o custo de IA de um cliente](/trabalhar-com-ia/estimar-custo-de-ia).
+</Tip>
+
+## Resposta com llm_format=true
+
+```json
+{
+  "context": "\nLead Information:\nThe lead identified by ID 6f1c2b9e-… is named Maria Souza and has the phone number 5511999998888.\nIt was created on 2026-10-01T09:12:44.512+00:00.\nIn the kanban, this lead is currently in the column \"Novo lead\".\n…\nConversation History:\nAt 06/10/2026, 14:03:40, the ATTENDANT said: \"Claro! O clareamento custa R$ 900 em até 3x.\". At 06/10/2026, 14:03:21, the LEAD said: \"Oi, queria saber o valor do clareamento\".\n---\nLegend:\n- LEAD: the potential client.\n- USER: the account owner interacting directly.\n- ATTENDANT: the AI agent responding on behalf of the account.\n"
+}
+```
+
+O texto é em inglês, com as datas em UTC no formato brasileiro, e na mesma ordem do
+JSON (mais recente primeiro). Não traz tokens.
+
+## Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Phone number is required` / `Invalid phone number` | Faltou `leadNumber`, ou ele tem menos de 10 ou mais de 15 caracteres. |
+| 400 | `Invalid boolean value` | `llm_format` diferente de `true`/`false`. |
+| 404 | `Lead with phone number … not found` | O número não é um lead do projeto. |
+| 404 | `No thread found for lead …` | Sem `thread_id`, e o lead não tem conversa aberta (atendimento encerrado). |
+| 404 | `Thread … not found for lead …` | O `thread_id` não existe ou é de outro lead. |
+| 404 | `Attendant with id … not found` | Projeto de um tipo muito antigo, sem suporte ao histórico. |
+
+## Exemplos
+
+```bash
+# Conversa aberta, em JSON
+curl -G "https://api.zatten.com/api/v1/messages/history" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  --data-urlencode "leadNumber=5511999998888" \
+  --data-urlencode "llm_format=false"
+
+# Uma conversa encerrada, pelo id
+curl -G "https://api.zatten.com/api/v1/messages/history" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  --data-urlencode "leadNumber=5511999998888" \
+  --data-urlencode "thread_id=zt-thread-3kQ9xV2mB7pL1sR8tY4wZa" \
+  --data-urlencode "llm_format=false"
+```
+
+## Ler todas as conversas de um lead
+
+<Steps>
+<Step title="Liste as conversas">
+`GET /leads/{numero}/threads` devolve cada conversa com `thread_id`, `created_at` e
+`closed_at` (`null` na aberta). Ver [Leads](/api/leads).
+</Step>
+<Step title="Leia cada uma">
+Chame `GET /messages/history` com o `thread_id` de cada conversa.
+</Step>
+</Steps>
+
+## Armadilhas
+
+- **Não é a conversa inteira.** Vem só até o limite de histórico do projeto. Conversa
+  longa fica cortada nas mais recentes.
+- **A ordem é da mais nova para a mais antiga.** Inverta antes de mostrar como chat.
+- **Atendimento encerrado dá 404 sem `thread_id`.** O lead fica sem conversa aberta até
+  falar de novo. Busque o id em `/threads`.
+- **`leadNumber` com formatação dá 400.** Mande só dígitos.
+- **Tokens `null` não são zero.** Mensagens do lead e de humanos não têm tokens; mensagens
+  do agente anteriores à contagem também podem vir `null`.
+- **Mensagem pela API aparece como `ATTENDANT`.** Para separar o que o agente escreveu do
+  que sua integração mandou, `input_tokens` ajuda: mensagem da API vem com `null`.
+- **Dados pessoais.** O histórico traz o que o lead escreveu. Não guarde em relatório mais
+  do que precisa.
+
+## Para saber mais
+
+- [Leads](/api/leads): `GET /leads/{numero}/threads`
+- [Estimar o custo de IA de um cliente](/trabalhar-com-ia/estimar-custo-de-ia)
+- [Conversas longas](/engenharia-de-ia/conversas-longas): o limite de histórico do agente
+- [Encerrar atendimento](/produto/encerrar-atendimento)
+- Termos para buscar: "input tokens output tokens", "LLM context window", "conversation
+  history API".

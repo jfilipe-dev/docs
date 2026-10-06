@@ -1,0 +1,60 @@
+---
+title: "O que é a Zatten"
+description: "Leia para entender o que a Zatten é, para quem ela foi feita e como a agência ganha dinheiro com ela."
+---
+
+A Zatten é a infraestrutura white-label para agências que vendem atendimento com IA no WhatsApp. Num único painel, com a marca da agência, ficam o CRM, o funil, as automações, as campanhas e o agente de IA que conversa com os leads. A agência vende a solução para o cliente final, e a Zatten não aparece para ele.
+
+## Para quem é
+
+A Zatten foi feita para a **agência**: quem monta e opera atendimento com IA para vários clientes (clínicas, imobiliárias, escritórios, academias, lojas). Cada cliente final vira um **projeto** separado, com o próprio número de WhatsApp, o próprio agente, o próprio funil e a própria equipe.
+
+O cliente final também pode entrar no painel, com o acesso que a agência der a ele. Ele vê a marca da agência, nunca a da Zatten.
+
+## O que vem em cada projeto
+
+| Parte | O que faz | Onde ler mais |
+|---|---|---|
+| **Agente de IA** | Conversa com os leads no WhatsApp, usa ferramentas (mover no funil, aplicar tag, chamar uma API, agendar mensagem) e passa para um humano quando precisa. | [Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona) |
+| **CRM e chat ao vivo** | Todas as conversas em tempo real. Um humano pode responder, e a IA pausa. | [Conversas e chat](/produto/conversas-e-chat) |
+| **Funil (Kanban)** | Colunas com regras próprias: desligar a IA, fazer transbordo, disparar automações. | [Funil](/produto/funil-kanban) |
+| **Tags e propriedades** | Organizam e qualificam os leads. A IA pode preencher. | [Tags](/produto/tags), [Propriedades](/produto/propriedades) |
+| **Automações** | Follow-up, reengajamento, webhooks, transbordo por inatividade, conversões para o Meta Ads, Trigger Flow. | [Visão geral das automações](/produto/automacoes/visao-geral) |
+| **Campanhas** | Envio de template para uma lista filtrada de leads. | [Campanhas](/produto/campanhas) |
+| **Departamentos** | Distribuem os leads entre os atendentes humanos. | [Departamentos](/produto/departamentos) |
+| **Métricas e logs** | Mensagens, IA x humano, tokens e gasto, funil, conversões. | [Métricas](/produto/metricas) |
+| **API, webhooks e MCP** | Integram o projeto com outros sistemas e com o assistente de IA da própria agência (Claude Code, Codex). | [API](/api/visao-geral), [Trabalhar com IA](/trabalhar-com-ia/visao-geral) |
+
+Todas essas partes existem em todos os planos. O plano só muda os limites. Veja [Planos, limites e cobrança](/comecar/planos-e-limites).
+
+## O modelo de negócio
+
+1. A agência assina um plano da Zatten **por projeto**, ou seja, por número de WhatsApp.
+2. A IA é **BYOK** (do inglês *bring your own key*): a agência, ou o cliente final, usa a própria chave da OpenAI ou do OpenRouter e paga o consumo direto ao provedor, sem acréscimo da Zatten.
+3. As mensagens do WhatsApp na conexão oficial são cobradas pela Meta, direto na conta do WhatsApp Business.
+4. A agência define quanto cobra do cliente final. O preço é livre.
+
+As três contas estão explicadas em [Quanto custa operar um projeto](/comecar/custos-de-operacao). Como montar o preço está em [Quanto cobrar do cliente final](/comecar/quanto-cobrar).
+
+## O que a Zatten é e o que não é
+
+| A Zatten é | A Zatten não é |
+|---|---|
+| Infraestrutura para a agência montar e operar atendimento com IA. | Uma agência. Ela não atende o cliente final da agência. |
+| White-label: o painel sai com o nome, o logo, as cores e o domínio da agência. | Um produto com a marca Zatten para o cliente final. |
+| Um CRM de WhatsApp com IA, funil e automações. | Um provedor de IA. O consumo da IA é pago ao provedor (OpenAI ou OpenRouter). |
+| Conectada ao WhatsApp pela API oficial da Meta ou por QR Code. | Um provedor de WhatsApp. As mensagens da conexão oficial são cobradas pela Meta. |
+| Operável por IA: skill, MCP e API para o Claude Code, o Codex e outros assistentes. | Uma ferramenta que exige programar. O painel faz tudo sem código. |
+
+## O motor do agente
+
+Todo projeto novo nasce no **LangChain Agent**, o motor da Zatten. Ele traz modelos de reserva, novas tentativas, versões com publicação, skills, servidores MCP, ferramentas HTTP e observabilidade com LangSmith. Projetos antigos podem estar ainda no motor anterior, que é legado: a recomendação é migrar. Veja [LangChain Agent x motor antigo](/engenharia-de-ia/langchain-x-motor-antigo).
+
+## Para saber mais
+
+- [Agência, cliente final e projeto](/comecar/agencia-cliente-e-projeto): como a conta se organiza.
+- [Criar a conta e o primeiro projeto](/comecar/criar-conta-e-projeto): o passo a passo.
+- [Conectar o WhatsApp: qual conexão escolher](/comecar/conexoes-whatsapp).
+- [Glossário](/inicio/glossario): os termos usados em toda a doc.
+- Site: [zatten.com](https://www.zatten.com) e [planos](https://www.zatten.com/planos).
+- Termos para buscar: "white-label WhatsApp CRM", "BYOK", "WhatsApp Business Platform", "agente de IA no WhatsApp".

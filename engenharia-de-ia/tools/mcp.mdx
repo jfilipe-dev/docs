@@ -1,0 +1,150 @@
+---
+title: "Servidores MCP no agente"
+description: "Leia para ligar um servidor MCP ao agente do LangChain Agent: o que é, os tipos de conexão (HTTP, SSE; stdio não roda no ambiente do agente), cabeçalhos de autenticação, os servidores prontos (Context7, DeepWiki, Firecrawl), por que os filtros de tools não filtram e por que a aprovação fica desligada."
+---
+
+Um **servidor MCP** é um serviço que entrega **várias tools de uma vez** ao
+agente, num formato padrão (Model Context Protocol). Você cadastra o servidor, e o
+agente passa a ver todas as tools que ele expõe, com nome, descrição e parâmetros
+definidos pelo próprio servidor.
+
+Use MCP quando já existe um servidor pronto para o que o cliente final precisa
+(busca na web, uma agenda, um sistema que publica MCP). Para chamar uma API
+específica com controle total do que vai e volta, prefira a
+[tool HTTP](/engenharia-de-ia/tools/http).
+
+## Onde fica no painel
+
+Editor do agente → **Tools** → **Adicionar** → **Servidor MCP**. Aparecem os
+servidores prontos e a opção **Servidor customizado**.
+
+## Como configurar
+
+| Campo | O que faz |
+|---|---|
+| **Nome** | Identifica o servidor na lista (`meu_servidor`). Não é o nome das tools: essas vêm do servidor. |
+| **Conexão** | **HTTP** (recomendado), **SSE** ou **Processo local (stdio)**, que não funciona no ambiente do agente (veja abaixo). |
+| **Endereço** | URL do servidor, em HTTP e SSE. Ex.: `https://mcp.exemplo.com/mcp`. |
+| **Cabeçalhos** | Em HTTP e SSE. É onde vai a autenticação: `Authorization` = `Bearer <chave>`. |
+| **Comando**, **Argumentos**, **Variáveis de ambiente** | Só em stdio: o programa que o agente inicia, os argumentos separados por espaço e as variáveis. |
+
+### Qual conexão usar
+
+- **HTTP:** o padrão atual do MCP para servidores remotos. Use sempre que o
+  servidor oferecer.
+- **SSE:** formato anterior de servidor remoto. Use só se o servidor não tiver
+  HTTP.
+- **Processo local (stdio):** não use. O config aceita, mas o ambiente onde o
+  agente roda não tem `npx` (Node) nem `uvx`, que são os comandos que quase todo
+  servidor stdio usa. O comando não é encontrado, a lista de tools não é montada
+  e o agente **não responde** naquela mensagem. Se o servidor que você quer só
+  existe em stdio, rode-o num serviço seu que o exponha por HTTP e cadastre esse
+  endereço com a conexão **HTTP**.
+
+## Servidores prontos
+
+| Servidor | Para que serve | Endereço | Autenticação |
+|---|---|---|---|
+| **Context7** | Documentação atualizada de bibliotecas e frameworks. | `https://mcp.context7.com/mcp` | Nenhuma |
+| **DeepWiki** | Documentação de repositórios públicos do GitHub. | `https://mcp.deepwiki.com/mcp` | Nenhuma |
+| **Firecrawl** | Busca na web e leitura de páginas. | `https://mcp.firecrawl.dev/mcp` | `Authorization: Bearer <chave>`. A chave sai do painel da conta em firecrawl.dev. |
+
+Context7 e DeepWiki servem a agentes técnicos (suporte de software, por exemplo).
+Para um agente de atendimento, o mais útil costuma ser o **Firecrawl**, que dá ao
+agente busca na web e leitura de páginas (o site do cliente final, por exemplo).
+
+## Como funciona por trás
+
+- O agente **se conecta ao servidor a cada resposta** e pede a lista de tools.
+  Isso acrescenta o tempo da conexão a cada mensagem.
+- **Todas** as tools do servidor vão para o modelo. Um servidor com 20 tools são
+  20 tools no contexto. Veja [quantas tools é demais](/engenharia-de-ia/tools/visao-geral).
+- O nome, a descrição e os parâmetros de cada tool vêm do servidor e não são
+  editáveis. A regra de quando usar vai no [prompt](/engenharia-de-ia/prompt).
+- Se o servidor estiver fora do ar ou recusar a chave, o agente não consegue
+  montar a lista de tools e não responde naquela mensagem. A falha acontece antes
+  do modelo, então a [Falha do agente](/engenharia-de-ia/resiliencia) não age: o
+  lead não recebe nada, o servidor tenta o lote de novo até 3 vezes e, se
+  continuar falhando, grava o erro no chat e dispara o webhook de erro.
+
+### Filtros de tools: hoje não filtram
+
+O config aceita `allowed_tools` (só estas) e `blocked_tools` (todas menos estas),
+mas **hoje eles não têm efeito**: toda tool do servidor chega ao modelo. O painel
+não mostra esses campos.
+
+Não use esses filtros como controle de segurança. Para limitar o que o agente pode
+fazer, use um servidor que exponha só as tools necessárias, ou troque por tools
+HTTP específicas.
+
+### Aprovação: mantenha desligada
+
+O config tem `require_approval`, que pausaria a conversa até uma pessoa aprovar
+cada chamada. O painel **não tem** onde aprovar: com a aprovação ligada, a
+conversa fica parada para sempre. Por isso:
+
+- o painel grava sempre desligado;
+- o `update_template` força desligado e devolve nota;
+- **depois de migrar do motor antigo**, confira: um servidor MCP que tinha
+  "solicitar aprovação" no motor antigo pode chegar com a aprovação ligada.
+  Desligue no JSON do config.
+
+## Pelo MCP
+
+O servidor viaja no bloco `langchain` do template do projeto, como uma tool
+`type: "mcp"`. O `get_template` devolve os cabeçalhos preenchidos: nunca mostre a
+chave na conversa nem a grave em arquivo (o snapshot troca os headers por
+`"<removido>"`).
+
+O bloco `mcps` do template é do **motor antigo**. No LangChain Agent, os
+servidores ficam no bloco `langchain`.
+
+<Visibility for="agents">
+```json
+{
+  "type": "mcp",
+  "name": "firecrawl",
+  "transport": "http",
+  "url": "https://mcp.firecrawl.dev/mcp",
+  "headers": { "Authorization": "Bearer <chave>" },
+  "command": "",
+  "args": [],
+  "env": {},
+  "allowed_tools": null,
+  "blocked_tools": null,
+  "require_approval": false
+}
+```
+
+| Campo | Tipo | Padrão | Status |
+|---|---|---|---|
+| `name` | string | obrigatório | Nome do servidor, não das tools. |
+| `transport` | `http` / `sse` / `stdio` | `http` | |
+| `url`, `headers` | string, objeto de strings | `""`, `{}` | HTTP e SSE. |
+| `command`, `args`, `env` | string, lista, objeto | `""`, `[]`, `{}` | stdio. |
+| `allowed_tools`, `blocked_tools` | lista ou null | null | Inertes: aceitos e ignorados. |
+| `require_approval` | boolean | `false` | Manter `false`. |
+</Visibility>
+
+## Armadilhas
+
+- **Servidor com muitas tools** enche o contexto e confunde o modelo.
+- **stdio não roda.** O ambiente do agente não tem `npx` nem `uvx`: o agente fica sem resposta. Use HTTP.
+- **Filtros não filtram.** `allowed_tools` e `blocked_tools` são ignorados.
+- **Aprovação ligada trava a conversa.** Confira depois de migrar do motor antigo.
+- **Servidor fora do ar** deixa o agente sem resposta. Use servidores estáveis e
+  com chave válida.
+- **Servidor de terceiros recebe o que o modelo manda**, inclusive dados do lead
+  que estiverem na conversa. Avalie com o cliente final.
+- **Chave no cabeçalho** viaja no template. Trate como segredo.
+
+## Para saber mais
+
+- [Tools: visão geral](/engenharia-de-ia/tools/visao-geral)
+- [Limites e segurança](/engenharia-de-ia/limites-e-seguranca)
+- [LangChain Agent x motor antigo](/engenharia-de-ia/langchain-x-motor-antigo) (MCP substitui a busca na web do motor antigo)
+- MCP, introdução: https://modelcontextprotocol.io/docs/getting-started/intro
+- MCP, especificação: https://modelcontextprotocol.io/specification/latest
+- MCP, índice para IA: https://modelcontextprotocol.io/llms.txt
+- LangChain, MCP: https://docs.langchain.com/oss/python/langchain/mcp
+- Termos para buscar: "Model Context Protocol", "MCP server", "streamable HTTP", "MCP SSE transport".

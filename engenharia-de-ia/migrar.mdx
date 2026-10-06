@@ -1,0 +1,272 @@
+---
+title: "Migrar para o LangChain Agent (e reverter)"
+description: "Leia antes de migrar um projeto do motor antigo para o LangChain Agent: quem pode, o que é convertido e o que é descartado, o teste automático, o checklist de antes e depois, e como funciona a volta (só pelo suporte)."
+---
+
+Migrar passa o agente de um projeto do motor antigo para o **LangChain Agent**, o
+motor da Zatten. É um clique no painel. Prompt, modelo, chave, funções, skills e
+servidores MCP são convertidos, e um teste automático confere se o agente
+responde. A migração não apaga nada do motor antigo.
+
+A recomendação é migrar todo projeto que ainda está no motor antigo. O porquê está
+em [LangChain Agent x motor antigo](/engenharia-de-ia/langchain-x-motor-antigo).
+
+## Quem pode migrar
+
+- Usuários com papel **admin** ou **editor** no projeto.
+- Contas liberadas para migrar. Se o botão **Migrar** não aparece na tela
+  **Agente** de um projeto no motor antigo, fale com o [suporte da Zatten pelo WhatsApp](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0).
+
+O assistente (Claude Code, Codex) **não migra** pelo MCP: a migração é sempre no
+painel, por uma pessoa.
+
+## Antes de migrar
+
+Faça isto no motor antigo, antes do clique. Corrigir depois dá mais trabalho.
+
+- [ ] **Anote o que não tem equivalente.** Se o agente usa busca na web, code
+  interpreter ou base de arquivos, planeje o substituto (MCP Firecrawl, tool HTTP,
+  skill). Ver [LangChain Agent x motor antigo](/engenharia-de-ia/langchain-x-motor-antigo).
+- [ ] **Confira a chave do modelo.** A migração copia a chave do motor antigo.
+  Confirme que ela é válida e tem saldo no provider
+  ([Providers](/engenharia-de-ia/providers)).
+- [ ] **Confira as funções.** Funções sem URL, sem schema ou com nome repetido são
+  descartadas. Complete ou apague antes.
+- [ ] **Tenha uma coluna de transbordo e uma função que move para ela.** Com isso,
+  a migração já liga a transferência para humano quando o modelo falha. Sem isso,
+  o lead recebe a mensagem de erro sem ser transferido.
+- [ ] **Desligue a aprovação dos servidores MCP.** A migração copia a aprovação, e
+  no LangChain Agent um MCP com aprovação trava a conversa: o agente fica
+  esperando uma aprovação que o painel não oferece.
+- [ ] **Confira a interpretação de áudio, imagem e PDF.** Deixe ligado o que o
+  agente deve entender. A chave de áudio vira a transcrição no novo motor, e as
+  três continuam filtrando a mídia na entrada da conexão oficial.
+- [ ] **Escolha um horário calmo.** A migração publica na hora: a próxima mensagem
+  de qualquer lead já é respondida pelo novo motor.
+
+## Como migrar
+
+<Steps>
+<Step title="Abra o agente">
+No menu **Agente** do projeto (no motor antigo), clique em **Migrar**.
+</Step>
+<Step title="Leia e confirme">
+O aviso diz que nada é perdido e que a volta não é feita pela tela. Marque
+**Entendi e quero migrar** e clique em **Migrar**.
+</Step>
+<Step title="Leia o resultado">
+A tela mostra quantas tools foram migradas, o resultado do **teste** ("o agente
+respondeu" ou "o agente falhou", com o erro) e as **notas**: funções descartadas,
+recursos sem equivalente, falta de coluna de transbordo. Anote tudo antes de
+fechar.
+</Step>
+<Step title="Abra o agente">
+Clique em **Abrir o agente**. A tela recarrega no builder do LangChain Agent.
+</Step>
+</Steps>
+
+## O que a migração faz
+
+1. Cria o agente no LangChain Agent com a configuração montada a partir do motor
+   antigo.
+2. Troca o motor do projeto e **publica** essa configuração na hora.
+3. Manda um "Olá" de teste ao agente e mostra a resposta ou o erro.
+
+As conversas em andamento continuam. Na primeira mensagem de cada lead depois da
+migração, o agente recebe as últimas mensagens da conversa como histórico (a
+quantidade do motor antigo, no mínimo 20).
+
+### O que é convertido
+
+| No motor antigo | No LangChain Agent |
+|---|---|
+| Prompt | Instruções do agente (`system_prompt`) |
+| OpenRouter | Provider `openrouter` |
+| OpenAI | Provider `openai` |
+| Modelo e chave | Os mesmos |
+| Temperatura | A mesma (padrão 0) |
+| Top P | Em `provider_options.top_p` |
+| Max tokens | O mesmo, com teto de **8192** |
+| Raciocínio | O mesmo nível. Sem raciocínio (`NONE`) vira **Padrão** |
+| — | **Enviar dados** (contexto do lead) ligado |
+| Interpretação de áudio | Transcrição ligada ou desligada igual |
+| Ações da Zatten e webhooks | Tools HTTP |
+| Integrações Composio | Tools Composio |
+| Skills | Tools skill, com o conteúdo dentro da configuração |
+| Servidores MCP ativos | Tools MCP (com a aprovação, se havia) |
+| Coluna de transbordo + função que move para ela | **Falha do agente** move o lead para essa coluna |
+
+### O que é descartado
+
+- Funções sem URL, sem schema ou com nome repetido.
+- Integração Composio sem toolkit ou ação definida.
+- Skill sem conteúdo.
+- Servidor MCP inativo ou sem URL.
+- Busca na web, code interpreter e base de arquivos (sem equivalente direto).
+- Verbosidade e Contexto v2 (o LangChain Agent não usa).
+
+### O que fica desligado e você liga depois
+
+A migração não liga **Tentativas** (retry), **Fallback**, **Monitoramento**
+(LangSmith), resumo de histórico nem limites. Configure no builder depois de
+migrar.
+
+## O teste automático
+
+Depois de migrar, a Zatten manda "Olá" ao agente, numa conversa de teste que não
+chega a nenhum lead.
+
+- **"Teste: o agente respondeu"**: o modelo, a chave e as tools carregaram. Ainda
+  faça o checklist abaixo.
+- **"Teste: o agente falhou"**: mostra o erro do provider. Os mais comuns:
+
+| Erro | Causa provável | O que fazer |
+|---|---|---|
+| HTTP 401 | Chave inválida ou de outro provider | Corrija a **API Key** em **Configurações do modelo** |
+| HTTP 402 ou 429 com "quota" / "credits" | Sem saldo no provider | Coloque crédito ([Providers](/engenharia-de-ia/providers)) |
+| HTTP 400 citando `max_tokens` | Limite acima do que o modelo aceita | Baixe **Max Tokens** |
+| HTTP 404 ou "model not found" | Modelo inexistente ou sem acesso para essa chave | Escolha outro modelo |
+
+Com o teste falhando, o projeto **já está** no LangChain Agent e os leads recebem a
+mensagem de erro. Corrija na hora, ou peça a volta ao [suporte da Zatten pelo WhatsApp](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0).
+
+## Depois de migrar
+
+- [ ] **Leia as notas de novo** e recrie as tools descartadas no builder.
+- [ ] **Confira a chave do modelo** em **Configurações do modelo → API Key** e o
+  saldo no provider.
+- [ ] **Salve uma vez no builder e teste um áudio.** Salvar acerta o nome do modelo
+  de transcrição para o provider do projeto. Em projetos na OpenAI, a migração grava
+  o nome no formato do OpenRouter, que a OpenAI recusa. Depois de salvar e
+  publicar, mande um áudio no chat de teste e confira se o agente entendeu.
+- [ ] **Confira os servidores MCP.** Se algum veio com aprovação, remova o servidor
+  e adicione de novo pelo builder (servidores adicionados pelo builder vêm sem
+  aprovação). Ver [Servidores MCP no agente](/engenharia-de-ia/tools/mcp).
+- [ ] **Monte os substitutos** de busca na web, code interpreter ou base de arquivos.
+- [ ] **Ligue a resiliência**: **Tentativas** (2 a 3), um modelo de **Fallback** de
+  outro provider e **Falha do agente** com uma coluna de transbordo. Ver
+  [Resiliência](/engenharia-de-ia/resiliencia).
+- [ ] **Ligue o Monitoramento** (LangSmith) para ver as primeiras conversas reais
+  ([Observabilidade com LangSmith](/engenharia-de-ia/langsmith)).
+- [ ] **Teste os casos principais** no chat do builder: uma ação da Zatten (mover
+  no funil, tag), uma tool HTTP, uma skill, uma imagem e um áudio
+  ([Testar o agente](/engenharia-de-ia/testar)).
+- [ ] **Publique** as correções. Salvar só cria rascunho.
+- [ ] **Acompanhe as primeiras conversas** em **Conversas** e em
+  [Logs](/produto/logs).
+
+<Note>
+Se uma nota disser que as tools deixam de receber `name` e `created_at` no corpo:
+hoje elas recebem esses dois campos sempre que o lead tem nome e data de criação.
+Só faltam quando estão vazios. Mesmo assim, confira os webhooks que dependem
+deles.
+</Note>
+
+## Reverter (voltar ao motor antigo)
+
+A volta **não é feita pela tela**. Quem reverte é o **suporte da Zatten**: peça
+pelo [WhatsApp do suporte](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0) (o diálogo de migração também tem o link **falar
+com o suporte**). Diga o nome do projeto.
+
+O que acontece na volta:
+
+- O projeto volta ao motor antigo, com o prompt, as funções, as skills e os MCPs
+  **como estavam antes da migração**. Nada disso foi apagado.
+- **O que você mudou no builder depois de migrar não volta** para o motor antigo:
+  tools novas, ajustes de prompt, fallback. Fica guardado no agente do LangChain.
+- Se o projeto não tem chave no motor antigo, ele precisa de uma antes de ser
+  ativado.
+- A volta grava o motor antigo **da OpenAI**, mesmo que o projeto estivesse no
+  OpenRouter antes de migrar. Se o projeto era do OpenRouter, diga isso na
+  mesma mensagem ao suporte, ao pedir a volta.
+
+Migrar de novo depois de uma volta **atualiza o mesmo agente**: cria uma versão
+nova, montada outra vez a partir do motor antigo, e a publica. As versões
+anteriores continuam no histórico e podem ser restauradas
+([Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)).
+
+## Pelo MCP
+
+- O assistente **não migra nem reverte**. Ele pode diagnosticar
+  (`llm_attendant.llm`), recomendar e guiar a pessoa pelo painel.
+- Depois da migração, o assistente trabalha no bloco `langchain`. Uma escrita
+  desse bloco sempre desliga a aprovação das tools, com nota. É outro jeito de
+  corrigir um MCP migrado com aprovação.
+- Num projeto ainda no motor antigo, o bloco `langchain` é ignorado na escrita.
+
+<Visibility for="agents">
+Roteiro para o assistente guiar uma migração:
+
+1. `get_template` → confirmar `llm_attendant.llm` em `OPENAI_RESPONSES` ou
+   `OPEN_ROUTER`.
+2. Listar para a pessoa: `web_search`, `code_interpreter` (true?), funções sem
+   `url` em `llm_attendant.functions`, `mcps[].request_approval`, colunas com
+   `transhipment: true`, `audio_interpretation`/`image_interpretation`/`pdf_interpretation`.
+3. Pedir que a pessoa migre no painel (admin/editor) e cole o resultado (teste e
+   notas).
+4. `get_template` de novo → `llm_attendant.llm == "LANGCHAIN_AGENT"`.
+5. Conferir no bloco `langchain.config`:
+   - `model.api_key` presente (o `get_template` devolve a chave preenchida; nunca
+     mostrar). Na escrita, omita ou devolva intacta; `""` apaga a chave;
+   - `settings.transcription.model`: `whisper-1` se `model.provider == "openai"`,
+     `openai/whisper-1` se `openrouter`;
+   - nenhuma tool com `require_approval: true`;
+   - `settings.error_handling.handoff_tool` apontando para uma tool `http` de
+     `kanban.move` para a coluna de transbordo;
+   - `model.retry.enabled`, `model.fallback.enabled`.
+6. Propor uma escrita do bloco `langchain` com as correções. A pessoa publica no
+   painel.
+
+Conversão de `reasoning`: `NONE` → omitido; `LOW`…`XHIGH` →
+`provider_options.reasoning.effort` em minúsculas. `max_tokens` =
+`min(antigo ?? 4096, 8192)`.
+</Visibility>
+
+## Armadilhas
+
+- **A migração publica na hora.** Não há rascunho para revisar antes: o teste e o
+  checklist de depois são a revisão.
+- **Transcrição com o nome errado na OpenAI** até o primeiro salvar no builder.
+  Áudios ficam sem entender.
+- **MCP com aprovação trava a conversa** do lead que acionar aquela tool.
+- **Retry e fallback vêm desligados.** Sem eles, uma falha do provider vai direto
+  para a mensagem de erro.
+- **Max tokens alto demais** (o motor antigo aceitava valores muito maiores) é
+  cortado em 8192. No OpenRouter, um valor alto também reserva mais crédito por
+  chamada.
+- **Remigrar sobrescreve o builder** com uma versão nova montada do motor antigo.
+  O que estava no builder fica só no histórico de versões.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Os leads percebem a migração?">
+Não, se o teste passou e o checklist foi feito. As conversas continuam, com o
+histórico recente.
+</Accordion>
+<Accordion title="Posso migrar só para testar e voltar?">
+Pode, mas a volta é pelo [suporte da Zatten pelo WhatsApp](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0) e a migração publica na hora. Para testar sem
+risco, migre fora do horário de pico e faça o checklist de depois logo em
+seguida.
+</Accordion>
+<Accordion title="As métricas e o histórico de conversas se perdem?">
+Não. Mensagens, leads, funil e métricas ficam na Zatten e não mudam com o motor.
+</Accordion>
+<Accordion title="O botão Migrar não aparece. E agora?">
+Confira se seu papel é admin ou editor. Se for, a conta ainda não está liberada
+para migrar: fale com o [suporte da Zatten pelo WhatsApp](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [LangChain Agent x motor antigo](/engenharia-de-ia/langchain-x-motor-antigo)
+- [Resiliência: retry, fallback e erro](/engenharia-de-ia/resiliencia)
+- [Mídia: áudio, imagem e PDF](/engenharia-de-ia/midia)
+- [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)
+- [Diagnóstico de um projeto](/trabalhar-com-ia/diagnostico)
+- LangChain, agentes: https://docs.langchain.com/oss/python/langchain/agents
+- LangChain, memória de curto prazo (histórico da conversa): https://docs.langchain.com/oss/python/langchain/short-term-memory
+
+**Termos para buscar:** "LangChain agent migration", "LangGraph assistant
+versions", "whisper-1 transcription model name", "human in the loop interrupt".

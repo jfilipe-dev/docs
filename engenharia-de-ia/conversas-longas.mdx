@@ -1,0 +1,191 @@
+---
+title: "Conversas longas: resumo e limpeza de contexto"
+description: "Leia quando as conversas ficam longas, caras ou o agente começa a esquecer ou errar: o que o agente guarda da conversa, o resumo automático do histórico, o descarte de resultados antigos de tools e o histórico trazido na migração."
+---
+
+O LangChain Agent guarda a conversa inteira do lead e a reenvia ao modelo a cada
+resposta, junto com o prompt, as tools e o contexto do lead. Numa conversa longa, a
+entrada cresce a cada mensagem: fica mais cara, mais lenta e, no limite, passa do
+tamanho que o modelo aceita. Dois ajustes seguram isso:
+
+- **Resumir histórico** troca a parte antiga da conversa por um resumo.
+- **Descartar resultados** apaga resultados antigos de tools, que ocupam muito e
+  envelhecem rápido.
+
+Os dois vêm desligados.
+
+## O que o agente guarda da conversa
+
+- **Tudo da conversa atual:** as mensagens do lead, as respostas do agente, cada
+  chamada de tool e o que ela devolveu, e as [skills](/engenharia-de-ia/skills)
+  carregadas.
+- **O que aconteceu sem a IA.** Antes de cada resposta, a Zatten envia ao agente as
+  mensagens que ele ainda não viu desde a última resposta dele: o que o lead mandou
+  enquanto a IA estava pausada ou desligada e o que a equipe respondeu (identificado
+  como "Atendente humano"). Assim, ao voltar de uma [pausa humana](/engenharia-de-ia/pausa-humana),
+  o agente sabe o que o humano disse. Mídia enviada pelo lado da empresa entra como
+  aviso ("[Imagem enviada]"), sem o arquivo.
+- **Só a conversa atual.** [Encerrar o atendimento](/produto/encerrar-atendimento)
+  começa uma conversa nova, e o agente começa sem o histórico da anterior. O que
+  precisa sobreviver entre conversas vai em notas, tags ou propriedades do lead
+  (que entram no [contexto injetado](/engenharia-de-ia/contexto-injetado)).
+
+Para ver o tamanho real de cada chamada, use o [LangSmith](/engenharia-de-ia/langsmith)
+ou as Métricas ([Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia)).
+
+## Resumir histórico
+
+Quando a conversa passa do gatilho, as mensagens antigas viram um resumo e as
+mais recentes seguem inteiras.
+
+**Onde fica:** menu **Agente** (`/project`) → ícone de configurações ao lado do
+**Modelo** → **Resumir histórico**.
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Resumir a partir de** | Gatilho por tamanho, em **tokens** do histórico. | 4.000 ao ligar pelo painel (mínimo 500) |
+| **Ou depois de** | Gatilho por número de **mensagens**. | Vazio |
+| **Preservar as últimas** | Quantas mensagens recentes ficam inteiras, fora do resumo. | 20 |
+
+Pelo menos um gatilho é obrigatório. Com os dois, vale o que for atingido primeiro.
+
+**Como funciona por trás:**
+
+- O resumo é feito por uma chamada extra ao modelo, só quando o gatilho é atingido.
+  Por padrão usa o **mesmo modelo e a mesma chave** do agente.
+- O resumo **substitui** as mensagens antigas na memória da conversa. O texto
+  original continua no chat do painel, mas o agente passa a ver só o resumo.
+- Se o resumo falhar (o provider caiu, por exemplo), a resposta segue sem resumir.
+  O lead não fica sem resposta por causa disso.
+- Chamadas de tool e seus resultados contam como mensagens.
+
+**Valores de partida:** para atendimento comercial de WhatsApp, gatilho entre 8.000
+e 20.000 tokens e **Preservar as últimas** em 20. Gatilho baixo demais resume a
+toda hora (mais chamadas e perda de detalhe); alto demais deixa cada resposta cara.
+Ajuste olhando o tamanho real das chamadas no LangSmith.
+
+## Descartar resultados
+
+Resultados de tools ocupam muito espaço (uma consulta de estoque, uma lista de
+horários) e perdem valor rápido. Este ajuste apaga os resultados antigos e mantém
+os mais recentes, sem tocar no que foi conversado.
+
+**Onde fica:** menu **Agente** → ícone de ajustes ao lado de **Tools**
+(**Comportamento das Tools**) → **Descartar resultados**.
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Descartar a partir de** | Tamanho do contexto, em **tokens**, a partir do qual começa a apagar. | 100.000 (mínimo 1.000 no painel) |
+| **Preservar os últimos** | Quantos resultados de tool mais recentes ficam intactos. | 3 |
+
+O resultado apagado vira o texto `[cleared]` no lugar do conteúdo. O modelo sabe que
+a tool foi chamada, mas não vê mais o que ela devolveu.
+
+<Warning>
+A [skill](/engenharia-de-ia/skills) carregada é um resultado de tool. Pelo painel, o
+`load_skill` é protegido automaticamente quando você salva. Pelo MCP ou pela API,
+inclua `"exclude_tools": ["load_skill"]` em cada item de `edits`.
+</Warning>
+
+## Qual usar
+
+| Situação | Use |
+|---|---|
+| Conversas de muitos dias, com muita troca de mensagens | Resumir histórico |
+| Agente que chama tools com respostas grandes (catálogo, agenda, CRM externo) | Descartar resultados |
+| Os dois casos | Os dois juntos. Com o padrão de 100.000 tokens, o descarte quase nunca age se o resumo dispara antes; baixe o gatilho do descarte se as tools devolvem muito |
+| Conversas curtas (até umas 30 mensagens) com poucas tools | Nenhum |
+
+## Histórico na migração
+
+Quando um lead que já conversava no motor antigo manda a primeira mensagem depois da
+[migração](/engenharia-de-ia/migrar), a Zatten envia ao agente as **últimas mensagens
+da conversa atual**, limitadas pelo campo `message_quantity` do agente (mínimo 20).
+O mesmo vale para qualquer conversa que começa no LangChain Agent já com mensagens
+gravadas.
+
+`message_quantity` não aparece no editor do LangChain Agent. Muda pelo template, no
+bloco `llm_attendant`. Com muitas mensagens trazidas, a primeira resposta pode
+passar do gatilho do resumo e resumir tudo de uma vez.
+
+Depois dessa primeira resposta, o histórico cresce mensagem a mensagem, como em
+qualquer conversa.
+
+## Pelo MCP
+
+Os dois ajustes ficam em `langchain.config.settings`. Escrever o bloco `langchain`
+cria uma versão não publicada; o `config` enviado substitui o config inteiro, então
+mande o config completo do `get_template` com a alteração. `message_quantity` fica em
+`llm_attendant` e vale na hora (não é versionado).
+
+<Visibility for="agents">
+```json
+"settings": {
+  "summarization": {
+    "enabled": true,
+    "trigger_tokens": 12000,
+    "trigger_messages": null,
+    "keep_messages": 20,
+    "model": null
+  },
+  "context_editing": {
+    "enabled": true,
+    "token_count_method": "approximate",
+    "edits": [
+      {
+        "trigger": 60000,
+        "keep": 3,
+        "clear_at_least": 0,
+        "clear_tool_inputs": false,
+        "exclude_tools": ["load_skill"],
+        "placeholder": "[cleared]"
+      }
+    ]
+  }
+}
+```
+
+| Campo | Tipo | Padrão | Notas |
+|---|---|---|---|
+| `summarization.enabled` | boolean | `false` | Ligado exige `trigger_tokens` ou `trigger_messages` |
+| `summarization.trigger_tokens` | inteiro ou null | `null` | |
+| `summarization.trigger_messages` | inteiro ou null | `null` | |
+| `summarization.keep_messages` | inteiro | `20` | |
+| `summarization.model` | string ou null | `null` | Só o nome do modelo; usa o provider e a chave do agente. Sem tela |
+| `context_editing.enabled` | boolean | `false` | |
+| `context_editing.token_count_method` | `approximate` ou `model` | `approximate` | Sem tela |
+| `context_editing.edits[].trigger` | inteiro | `100000` | Tokens |
+| `context_editing.edits[].keep` | inteiro | `3` | Resultados mantidos |
+| `context_editing.edits[].clear_at_least` | inteiro | `0` | Sem tela |
+| `context_editing.edits[].clear_tool_inputs` | boolean | `false` | Apaga também os argumentos da chamada. Sem tela |
+| `context_editing.edits[].exclude_tools` | lista de nomes | `[]` | Inclua `load_skill` se houver skill |
+| `context_editing.edits[].placeholder` | string | `"[cleared]"` | Sem tela |
+| `llm_attendant.message_quantity` | inteiro ≥ 20 | — | Teto de mensagens trazidas ao criar a memória da conversa |
+
+O painel mostra só o primeiro item de `edits`, e mexer nos números pela tela grava a
+lista com esse único item: os demais se perdem. Use um item só.
+</Visibility>
+
+## Armadilhas
+
+- **Resumo com gatilho baixo.** O padrão de 4.000 tokens ao ligar pelo painel é
+  baixo para agentes com prompt e tools grandes: o resumo roda quase toda resposta.
+- **Detalhe perdido no resumo.** Número de pedido, valor combinado, endereço: o que
+  o agente precisa lembrar com exatidão deve ir para uma propriedade ou nota do lead
+  (por tool), não depender do histórico.
+- **Skill apagada pela limpeza.** Config escrito pelo MCP sem `load_skill` em
+  `exclude_tools`.
+- **Resultado necessário apagado.** Com **Preservar os últimos** baixo, o agente pode
+  perder o resultado de uma consulta que ainda ia usar e chamar a tool de novo.
+- **Esperar que o agente lembre de outra conversa.** Depois de encerrar o
+  atendimento, a memória começa do zero.
+
+## Para saber mais
+
+- [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado)
+- [Skills do agente](/engenharia-de-ia/skills)
+- [Observabilidade com LangSmith](/engenharia-de-ia/langsmith)
+- [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia)
+- LangChain: [middlewares prontos](https://docs.langchain.com/oss/python/langchain/middleware/built-in) (Summarization, Context editing), [memória de curto prazo](https://docs.langchain.com/oss/python/langchain/short-term-memory), [engenharia de contexto](https://docs.langchain.com/oss/python/langchain/context-engineering)
+- Anthropic: [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- Termos para buscar: "SummarizationMiddleware", "ContextEditingMiddleware", "context window", "context rot", "conversation summarization".

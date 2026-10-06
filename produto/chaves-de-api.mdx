@@ -1,0 +1,130 @@
+---
+title: "Chaves de API do projeto"
+description: "Leia para criar, guardar, renomear ou excluir a chave de API de um projeto (header x-api-key; Bearer na API de template): onde fica, quem pode, o que ela libera, o último uso e a diferença para o token do MCP."
+---
+
+A **chave de API do projeto** autentica as chamadas à API da Zatten: enviar
+mensagem, ler e alterar leads, disparar automações e fluxos. Ela vai no header
+`x-api-key` e **identifica o projeto**: com a chave da Clínica A, só se enxerga e
+se altera a Clínica A. Use para integrar o sistema do cliente final, um n8n ou o
+assistente da agência no dia a dia.
+
+## Onde fica no painel
+
+Menu **API Keys** (`/api-keys`). A lista mostra **Nome**, **Chave secreta** (só o
+começo e o fim), **Criada** e **Último uso**.
+
+Só **admin** e **editor** veem o menu e gerenciam chaves. Gestor e visualizador
+não veem. Ver [Usuários, papéis e permissões](/produto/papeis-e-permissoes).
+
+## Como configurar
+
+<Steps>
+<Step title="Confira o projeto">
+A chave é criada para o projeto aberto no painel. Confira o nome antes.
+</Step>
+<Step title="Crie a chave">
+Em **API Keys**, crie uma chave nova e dê um **Nome** que diga onde ela vai ser
+usada (ex.: "n8n agenda", "ERP clínica", "assistente da agência").
+</Step>
+<Step title="Copie na hora">
+A janela **Salve sua chave** mostra a chave inteira **uma única vez**. Copie e
+guarde num cofre de senhas ou no `.env` do sistema que vai usar. Depois disso, a
+lista só mostra o começo e o fim.
+</Step>
+<Step title="Use no header">
+Toda chamada leva `x-api-key: <chave>`. A única exceção é a
+[API de template](/api/template), que usa a mesma chave em
+`Authorization: Bearer <chave>`. Ver [Autenticação](/api/autenticacao).
+</Step>
+</Steps>
+
+Dá para **renomear** uma chave (o valor não muda) e **excluir**. Excluir corta o
+acesso de quem usa aquela chave.
+
+```bash
+curl https://api.zatten.com/api/v1/leads/5511999998888 \
+  -H "x-api-key: SUA_CHAVE_DE_API"
+```
+
+<Visibility for="agents">
+Formato da chave: `zt-apikey-` seguido de 44 caracteres alfanuméricos. Na lista, a
+chave aparece como os 20 primeiros caracteres, `...` e os 4 últimos. Chave inválida
+dá **401** `Invalid API key`. Mandar `x-api-key` junto com outro header de
+autenticação dá **400**.
+</Visibility>
+
+## Como funciona por trás
+
+- **Escopo:** um projeto. A chave não alcança outros projetos da conta, nem com
+  `attendant_id` no corpo (dá 403).
+- **Quantas:** um projeto pode ter várias chaves. Use uma por sistema; assim dá
+  para excluir uma sem derrubar as outras.
+- **Último uso:** atualizado quando a chave é usada nas rotas da API. As ações
+  executadas pelos fluxos do Trigger Flow não contam: o fluxo roda sem usar a
+  chave.
+- **Limite de requisições:** não há limite fixo publicado. Se a API responder 429,
+  espere o `Retry-After`. Ver [Limites](/api/limites).
+- **Não há permissão parcial:** toda chave lê e altera tudo o que a API do projeto
+  permite.
+
+### Chave de API x token do MCP
+
+| | Chave de API do projeto | Token da conexão de IA (MCP) |
+|---|---|---|
+| Onde se cria | **API Keys**, dentro do projeto | **Configurações → Conectar ferramentas de IA** |
+| Alcance | Um projeto | Os projetos escolhidos na conexão |
+| Para quê | Operar leads e mensagens (API do dia a dia) e a API de template | Ler e escrever o template do projeto pelo MCP |
+| Quem cria | Admin e editor | Só admin |
+
+Ver [A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia) e
+[Instalar a skill e o MCP](/trabalhar-com-ia/instalar).
+
+## Pelo MCP
+
+A chave **não viaja** no template e o MCP não cria chaves. Quem cria é uma pessoa,
+no painel. O assistente guarda a chave no `.env` da pasta do cliente, nunca no
+repositório, e nunca a mostra em texto. Ver
+[Organizar sua agência no computador](/trabalhar-com-ia/organizar-a-agencia).
+
+## Armadilhas
+
+- **Chave no navegador.** Nunca ponha a chave em código de site, app ou formulário
+  público. Quem a vê lê as conversas e manda mensagens em nome do projeto. Chame a
+  API sempre do seu servidor.
+- **Chave do projeto errado.** Como a chave define o projeto, uma chave trocada no
+  `.env` faz o sistema mexer no cliente errado sem erro nenhum. Dê nomes claros.
+- **Perdeu a chave?** Não dá para ver de novo. Crie outra, troque no sistema e
+  exclua a antiga.
+- **Chave vazada:** exclua na hora e crie outra.
+- **Duplicar ou exportar o projeto não leva as chaves de API.** O projeto novo precisa de
+  chave própria.
+- **Chaves que você não criou podem aparecer na lista.** A plataforma cria chaves
+  internas para o próprio projeto, que expiram e são revogadas sozinhas, e a tela de
+  API Keys não as esconde. Não exclua essas chaves e não use para integração: crie
+  uma chave sua, com nome claro. A chave temporária de uma
+  [campanha](/produto/campanhas) em andamento também aparece aqui.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="A chave expira?">
+A chave criada no painel não tem validade: vale até ser excluída. As chaves internas
+que a plataforma cria (e que podem aparecer na lista) expiram sozinhas.
+</Accordion>
+<Accordion title="O white-label muda o endereço da API?">
+Não. A API é sempre `https://api.zatten.com/api/v1`, com qualquer domínio do painel.
+</Accordion>
+<Accordion title="Preciso de chave para o Trigger Flow funcionar?">
+Não para as ações dos fluxos. Precisa só para chamar os fluxos de fora
+(`/flows/trigger` e `/hooks/<path>`). Ver
+[Trigger Flow: disparar pela API](/produto/trigger-flow/api).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [A API: visão geral](/api/visao-geral), [Autenticação](/api/autenticacao), [Limites](/api/limites)
+- [A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia)
+- [Trigger Flow: disparar pela API e receber webhooks](/produto/trigger-flow/api)
+- Termos para buscar: "x-api-key", "chave de API", "401 Invalid API key", "429 Retry-After".

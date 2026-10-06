@@ -1,0 +1,241 @@
+---
+title: "O MCP da Zatten: ferramentas"
+description: "Consulte para saber o que fazem list_projects, get_template, update_template e whoami, o que cada uma pede e devolve, e os erros que cada uma pode dar."
+---
+
+O MCP da Zatten tem quatro ferramentas. Três leem e uma escreve. Todas agem em
+nome da conta da agência, dentro do alcance da conexão criada no painel.
+
+| Ferramenta | Faz | Escreve? |
+|---|---|---|
+| `whoami` | Diz em nome de qual conta o assistente está agindo | Não |
+| `list_projects` | Lista os projetos que a conexão alcança, com id e nome | Não |
+| `get_template` | Lê um projeto inteiro em JSON, com a `revision` | Não |
+| `update_template` | Aplica alterações num projeto: cria e atualiza, nunca apaga | Sim |
+
+## O ciclo de uso
+
+<Steps>
+  <Step title="list_projects">
+    Sempre que a pessoa citar um projeto pelo nome. As outras ferramentas exigem
+    o id **e** o nome exatos.
+  </Step>
+  <Step title="get_template">
+    Guarde a `revision` que vier.
+  </Step>
+  <Step title="Plano e “sim”">
+    Mostre o que vai mudar. Veja [as regras](/trabalhar-com-ia/regras).
+  </Step>
+  <Step title="update_template">
+    Com a `revision` da leitura e só os blocos que mudam.
+  </Step>
+  <Step title="Leia as notes e releia o projeto">
+    A resposta não traz a revision nova. Para registrar o estado novo (snapshot)
+    ou editar de novo, chame `get_template` outra vez.
+  </Step>
+</Steps>
+
+## O par project_id + project_name
+
+`get_template` e `update_template` pedem o id do projeto **e** o nome exato, como
+vieram de `list_projects`. O servidor confere os dois contra o banco. Se não
+casarem, recusa e diz de quem é o id enviado.
+
+É a trava mais barata contra mexer no cliente errado: quem confunde dois projetos
+erra o id ou o nome, e errar os dois do mesmo jeito é muito menos provável.
+
+## whoami
+
+Confirma a conta conectada. Use antes de alterar qualquer coisa, para dizer à
+pessoa em nome de quem você está agindo.
+
+<Visibility for="agents">
+Entrada: nenhuma.
+
+Resposta:
+
+```json
+{
+  "account_id": "id estável da conta (o mesmo em toda reconexão)",
+  "account_name": "Nome da agência",
+  "can_write": true,
+  "projects_in_scope": 12,
+  "scope": "todos os projetos da conta"
+}
+```
+
+`scope` é `"todos os projetos da conta"` ou `"apenas os projetos marcados nesta conexão"`.
+</Visibility>
+
+## list_projects
+
+Os projetos que a conexão alcança, em ordem de nome. A lista é o limite da
+conexão: projeto que não aparece aqui não pode ser lido nem alterado, nem pelo id.
+
+<Visibility for="agents">
+Entrada: nenhuma.
+
+Resposta:
+
+```json
+{
+  "can_write": false,
+  "projects": [
+    {
+      "id": "uuid",
+      "name": "Clínica Sorriso",
+      "status": "…",
+      "type": "…",
+      "agent": "langchain",
+      "created_at": "2026-09-01T12:00:00Z"
+    }
+  ]
+}
+```
+
+`agent` diz o motor do agente: `langchain` (LangChain Agent) ou `openai` (motor
+antigo). Projeto com `openai` ignora o bloco `langchain` numa escrita.
+</Visibility>
+
+## get_template
+
+O projeto inteiro em JSON: funil, tags, propriedades, skills, automações, fluxos,
+templates da Meta e o agente. A referência de cada bloco está em
+[Referência do template](/trabalhar-com-ia/referencia-do-template).
+
+- O config do agente vem da **versão mais nova**, publicada ou não. Assim quem
+  edita não apaga um rascunho que alguém deixou no painel.
+- Todos os templates da Meta do projeto vêm no bloco `meta_templates`.
+- A `revision` é a marca do estado atual. Duas leituras sem mudança no meio
+  devolvem a mesma; se mudou, alguém mexeu.
+- O JSON traz endereços de webhook e de MCP, headers e as chaves do agente (do
+  modelo e do LangSmith), preenchidos. Trate-o como confidencial: nunca mostre uma
+  chave na conversa nem a grave em arquivo. O snapshot é gravado com as chaves
+  trocadas por `"<removido>"` (ver
+  [Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia#snapshots)).
+
+
+<Visibility for="agents">
+Entrada:
+
+```json
+{ "project_id": "uuid", "project_name": "Clínica Sorriso" }
+```
+
+Resposta:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "revision": "1a2b3c4d",
+  "template": { "version": "1.0", "meta": {}, "llm_attendant": {}, "tags": [], "columns": [] }
+}
+```
+</Visibility>
+
+## update_template
+
+Aplica alterações. Cria o que falta, atualiza o que existe e **nunca apaga**.
+Envie só os blocos que vai mudar: o que não vier não é tocado. Mas o bloco
+enviado é declarado por inteiro, e o que existir no projeto e faltar no bloco
+volta como órfão.
+
+As regras completas (o que conta como "vazio", ligar e desligar, renomear,
+referências por nome, o agente) estão em
+[Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona).
+
+O que `update_template` **não faz**:
+
+- apagar qualquer coisa;
+- publicar a versão do agente (cria uma versão nova, não publicada);
+- enviar template à Meta (o envio é pelo painel);
+- migrar o projeto de motor;
+- reescrever o desenho de um fluxo que já existe;
+- gravar `llm_attendant.functions`;
+- ligar a aprovação humana do agente.
+
+Os assistentes tratam `update_template` como ação destrutiva e costumam pedir
+confirmação. Não é que apague: é que altera a configuração de um cliente real.
+
+<Visibility for="agents">
+Entrada:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "revision": "1a2b3c4d",
+  "template": { "tags": [ /* a lista inteira, editada */ ] }
+}
+```
+
+`template` aceita qualquer subconjunto de blocos. `version`, `meta` e
+`llm_attendant` são obrigatórios só no arquivo completo; num envio parcial, não
+precisam vir. `llm_attendant.functions` não é aceito.
+
+Resposta:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "ok": true,
+  "applied": { "created": 1, "updated": 2 },
+  "changes": [
+    { "op": "create", "entity": "tag", "key": "retorno" },
+    { "op": "update", "entity": "column", "key": "agendado", "fields": ["name"] }
+  ],
+  "orphans": [{ "entity": "tag", "key": "urgente" }],
+  "ambiguous": [{ "entity": "tag", "key": "Follow-up", "count": 2 }],
+  "agent": { "version": 14, "published": false },
+  "notes": ["Versão v14 do agente criada. Publique pelo painel para ativá-la."]
+}
+```
+
+- `changes[].key`: a chave de identidade do item (slug para coluna, tag e
+  departamento; slug ou nome para propriedade; nome para os demais).
+- `agent`: aparece quando o bloco `langchain` ou `skills` foi enviado a um
+  projeto no LangChain Agent. `published` é `false` quando há versão por publicar.
+- A resposta **não traz `revision`**. Releia com `get_template`.
+</Visibility>
+
+## Erros
+
+Quando a operação é recusada, nada é alterado. As mensagens dizem o que fazer:
+
+| Situação | O que o servidor diz | O que fazer |
+|---|---|---|
+| Nome não casa com o id | "O nome informado não corresponde ao projeto. O id … é do projeto …" | Confirme com a pessoa qual projeto e chame `list_projects` de novo |
+| Projeto mudou desde a leitura | "O projeto mudou desde a leitura (revision X → Y). Nada foi alterado." | `get_template`, refaça a edição sobre o estado novo, mostre o plano de novo se mudou algo relevante |
+| Conexão somente leitura | "Este token é somente leitura." | A agência cria uma conexão com *Leitura e edição* |
+| Projeto fora do alcance | "Este projeto não está entre os que esta conexão alcança." | A agência cria uma conexão que alcance o projeto |
+| Projeto inexistente ou de outra conta | "Projeto não encontrado." | Confira o id em `list_projects` |
+| Template vazio | "O template veio vazio: nenhum bloco para alterar." | Envie ao menos um bloco |
+| Campo inválido | "Argumentos inválidos: tags.0.color: …" (caminho de cada campo) | Corrija os campos indicados |
+
+## Armadilhas
+
+- **`ok: true` não quer dizer que tudo foi feito.** Recusas parciais (automação
+  que não ligou por falta de endereço, conversão cuja coluna não existe, template
+  da Meta não enviado) aparecem só nas `notes`.
+- **A revision não vem na resposta da escrita.** Duas escritas seguidas com a
+  mesma revision: a segunda é recusada, porque a primeira já mudou o projeto.
+- **`""` numa chave do `langchain.config` apaga a chave.** A chave do modelo e a
+  do LangSmith só são mantidas quando o campo não vem. Devolva o valor lido ou
+  omita o campo; nunca troque a chave por `""` ou por um texto de exemplo.
+- **Renomear o projeto muda o par.** Se o bloco `meta` trocar o nome do projeto, a
+  próxima chamada precisa do nome novo.
+- **A nota sobre templates da Meta cita uma opção que o MCP não tem.** Quando faltam
+  templates, a nota sugere `submit_meta_templates: true`. Pelo MCP essa opção não
+  existe: o envio à Meta é feito por uma pessoa, no painel (**WhatsApp →
+  Templates**).
+
+## Para saber mais
+
+- [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- [Instalar a skill e o MCP](/trabalhar-com-ia/instalar)
+- [API de template (REST)](/api/template): o mesmo motor, por HTTP, com a chave do projeto.
+- MCP: [especificação, ferramentas](https://modelcontextprotocol.io/specification/latest).
+  Termos para buscar: "MCP tools", "tool annotations destructiveHint".

@@ -1,0 +1,72 @@
+---
+title: "Autenticação"
+description: "Leia para autenticar chamadas à API da Zatten: o header x-api-key com a chave do projeto, onde criar a chave, o que ela alcança e os erros 400 e 401 de autenticação."
+---
+
+Toda chamada à API leva a **chave de API do projeto** no header `x-api-key`. A chave
+identifica o projeto: não existe parâmetro para escolher outro.
+
+```bash
+curl "https://api.zatten.com/api/v1/kanban" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+## Onde criar a chave
+
+No painel, menu **API Keys** (só admin e editor). A chave inteira aparece **uma vez**,
+na criação. Guarde num cofre ou no `.env` do sistema que vai usá-la. Passo a passo em
+[Chaves de API do projeto](/produto/chaves-de-api).
+
+## Regras
+
+| Regra | Detalhe |
+|---|---|
+| Um header por requisição | Mande só `x-api-key`. Mandar outro header de autenticação junto dá **400**. |
+| Escopo | Um projeto. A chave não lê nem altera outros projetos da conta. |
+| Validade | A chave do painel vale até ser excluída. |
+| Permissões | Não há permissão parcial: toda chave lê e altera tudo o que a API permite no projeto. |
+| Último uso | O painel mostra quando a chave foi usada pela última vez. |
+| Limite | Não há limite fixo publicado. Se vier 429, espere o `Retry-After`. Ver [Limites](/api/limites). |
+
+A [API de template](/api/template) usa a mesma chave, mas em outro header
+(`Authorization: Bearer`). É a única exceção.
+
+## Erros de autenticação
+
+| Código | Corpo | Quando |
+|---|---|---|
+| 401 | `{"error": "Missing authentication credentials"}` | Faltou o header `x-api-key`. |
+| 401 | `{"error": "Invalid API key"}` | A chave não existe (digitada errada, excluída, de outro ambiente). |
+| 400 | `{"error": "Cannot use multiple authentication headers simultaneously: …"}` | Foi junto outro header de autenticação. |
+| 403 | `{"error": "attendant_id does not match the authenticated attendant"}` | Só em `/flows/trigger`: o `attendant_id` do corpo não é o projeto da chave. |
+
+<Warning>
+Não insista com uma chave inválida: 401 em loop não muda de resultado. Confira a chave
+antes de tentar de novo. Ver [Limites](/api/limites).
+</Warning>
+
+## Como saber de qual projeto é a chave?
+
+A API não tem uma rota "quem sou eu". Chame `GET /kanban` e compare as colunas com as
+do projeto que você espera. Se não baterem, a chave é de outro projeto.
+
+## Armadilhas
+
+- **Chave no front-end.** Quem vê a chave lê as conversas e manda mensagens em nome do
+  projeto. Chame a API sempre do seu servidor.
+- **Chave do projeto errado.** Não dá erro: a chamada age no outro projeto. Dê nomes
+  claros às chaves e confira com `GET /kanban`.
+- **Perdeu a chave?** Não dá para ver de novo. Crie outra, troque no sistema e exclua a
+  antiga.
+- **Chave vazada:** exclua no painel na hora. As chamadas com ela passam a dar 401.
+- **Duplicar o projeto ou aplicar um template não cria chave de API.** O projeto novo
+  precisa de chave própria. (As chaves que viajam no template são outras: as do modelo e
+  das tools do agente.)
+
+## Para saber mais
+
+- [Chaves de API do projeto](/produto/chaves-de-api)
+- [Limites de requisição](/api/limites), [Erros](/api/erros)
+- [A API do dia a dia para agentes](/trabalhar-com-ia/api-do-dia-a-dia): onde o
+  assistente guarda a chave (`.env` por cliente).
+- Termos para buscar: "x-api-key header", "API key authentication", "401 Unauthorized".

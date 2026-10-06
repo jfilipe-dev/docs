@@ -1,0 +1,221 @@
+---
+title: "Agendamento"
+description: "Leia para montar um agente que marca horário no WhatsApp: qual caminho usar (Composio, servidor MCP, tool HTTP ou link de agendamento), confirmação, lembrete por template, reagendar e cancelar, e o que medir."
+---
+
+Um agente de agendamento consulta a agenda do cliente final, oferece horários, marca, confirma e manda um lembrete antes do compromisso. A Zatten não tem agenda própria: o agente conversa com a agenda que o cliente já usa (Google Agenda, Cal.com, o sistema da clínica) por uma tool, e a Zatten cuida do resto: funil, propriedades, lembrete por template e transbordo.
+
+Este playbook mostra qual caminho escolher, as peças do projeto e o passo a passo.
+
+## Qual caminho usar?
+
+Comece por esta pergunta: **onde a agenda do cliente final mora hoje?**
+
+| Caminho | Quando usar | O agente marca sozinho? | Esforço |
+|---|---|---|---|
+| **[Composio](/engenharia-de-ia/tools/composio)** (Google Agenda, Cal.com e outros apps do catálogo) | A agenda está num app do catálogo da Composio. | Sim | Baixo: conectar a conta e marcar as ações. |
+| **[Servidor MCP](/engenharia-de-ia/tools/mcp)** | O sistema de agenda publica um servidor MCP pronto. | Sim | Baixo, mas você não controla as tools que ele expõe. |
+| **[Tool HTTP](/engenharia-de-ia/tools/http)** | A agenda tem API própria (sistema da clínica, ERP, agenda feita pela agência) ou você quer fixar valores e enxugar a resposta. | Sim | Médio: duas a quatro tools para configurar. |
+| **Link de agendamento** (Cal.com, Calendly) + intermediário | O cliente final prefere que o lead escolha o horário numa página. | Não: o lead marca no link. | Médio: precisa de um intermediário (n8n, Make) para avisar a Zatten. |
+
+<Tip>
+Prefira que o **agente marque**. A conversa termina com o horário fechado, sem o lead sair do WhatsApp. O link é a opção de quem quer começar rápido ou de quem já tem a página de agendamento pronta.
+</Tip>
+
+## As peças do projeto
+
+Monte estas peças antes de escrever o prompt. Os nomes são exemplos; use os do negócio.
+
+| Peça | O que criar | Por quê |
+|---|---|---|
+| **Colunas** | Novo contato → Em atendimento → Agendado → Compareceu → Não compareceu | A coluna diz em que ponto o lead está, para a equipe e para o agente (a etapa vai no contexto). |
+| **Propriedades** (vínculo **conversa**) | `data_agendamento` (texto, ex.: "12/10 às 14h"), `id_agendamento` (texto) | `data_agendamento` alimenta o lembrete. `id_agendamento` permite reagendar e cancelar o compromisso certo. |
+| **Propriedade** (vínculo **contato**) | `servico` ou `especialidade` (lista) | O que o lead quer marcar. Em lista, o agente não inventa variações. |
+| **Templates da Meta** (Utilitário) | `confirmacao_agendamento` e `lembrete_agendamento`, com `{{nome}}` e `{{data_agendamento}}` | Fora da janela de 24h, só template sai. O lembrete quase sempre cai fora da janela. |
+| **Ações da Zatten** no agente | Mover no funil (Agendado), Preencher propriedade (uma por propriedade), Agendar mensagem e Cancelar agendamento (do template de lembrete), Transferir para humano | Veja [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten). |
+| **Tools da agenda** | Consultar horários livres, criar, remarcar e cancelar | Pelo caminho escolhido acima. |
+| **Follow-up** | Para quem ficou em **Em atendimento** sem marcar | Veja o [playbook de follow-up](/playbooks/follow-up-e-reengajamento). |
+
+Deixe **enviar para a IA** ligado nas propriedades de agendamento, para o agente ver a data e o id já gravados. A opção vem ligada por padrão e só se muda pelo template do projeto. Veja [Propriedades](/produto/propriedades).
+
+<Note>
+Use vínculo **conversa** para as propriedades do compromisso. Ao [encerrar o atendimento](/produto/encerrar-atendimento), elas saem do lead e ficam guardadas na conversa, e o próximo agendamento começa limpo. **Mas não encerre antes do lembrete sair:** o template do lembrete já foi montado no agendamento, e um follow-up ou campanha que dependa dessas propriedades falha depois do encerramento.
+</Note>
+
+## Passo a passo: o agente marca
+
+<Steps>
+<Step title="Conecte a agenda">
+**Composio:** em [Integrações](/produto/integracoes-composio), conecte a conta **do cliente final** (a agenda da clínica, não a da agência). No editor do agente, adicione só as ações necessárias. Para o Google Agenda:
+
+| Ação | Nome que o modelo vê | Para quê |
+|---|---|---|
+| Find free slots | `GOOGLECALENDAR_FIND_FREE_SLOTS` | Achar horários livres |
+| Create Event | `GOOGLECALENDAR_CREATE_EVENT` | Marcar |
+| Patch Event | `GOOGLECALENDAR_PATCH_EVENT` | Remarcar |
+| Delete event | `GOOGLECALENDAR_DELETE_EVENT` | Cancelar |
+
+Para o Cal.com, o toolkit `cal` tem ações equivalentes (horários livres, criar, remarcar e cancelar reserva). Confira os nomes e os parâmetros na [página do toolkit](https://docs.composio.dev/toolkits/cal).
+
+**Tool HTTP:** crie uma tool por operação (`consultar_horarios`, `criar_agendamento`, `remarcar_agendamento`, `cancelar_agendamento`). Deixe em **Fixo** tudo o que o modelo não deve escolher (chave, id da agenda, id do serviço) e em **IA** só o essencial (o horário escolhido). Veja [Tool HTTP](/engenharia-de-ia/tools/http) e [Como montar a sua API](/engenharia-de-ia/tools/montar-sua-api).
+</Step>
+<Step title="Crie os templates e espere a aprovação">
+Em **WhatsApp → Templates**, crie os templates de confirmação e de lembrete na categoria **Utilitário**, sem conteúdo promocional (um cupom faz a Meta tratar como Marketing). Um botão de resposta rápida ("Confirmo", "Preciso remarcar") facilita a resposta do lead. Veja [Templates do WhatsApp](/produto/templates-whatsapp).
+</Step>
+<Step title="Adicione as ações da Zatten">
+Mover no funil para **Agendado**, Preencher propriedade para `data_agendamento` e `id_agendamento`, **Agendar mensagem** com o template de lembrete no modo **A IA decide**, **Cancelar agendamento** do mesmo template e Transferir para humano.
+</Step>
+<Step title="Escreva o prompt">
+Use o exemplo abaixo. Ele fixa a ordem das ações e o fuso.
+</Step>
+<Step title="Teste com um lead real e publique">
+O chat de teste chama a agenda de verdade: um teste de "criar" cria o evento. Use uma agenda de teste ou apague depois. Publique a versão e marque um horário pelo WhatsApp, do começo ao fim. Veja [Testar o agente](/engenharia-de-ia/testar).
+</Step>
+</Steps>
+
+### Exemplo de prompt
+
+```text
+# Agendamento
+Seu objetivo é marcar a avaliação do cliente.
+
+1. Pergunte o serviço e preencha a propriedade servico.
+2. Consulte os horários livres antes de oferecer qualquer horário. Ofereça no
+   máximo 3 opções. Nunca invente horário.
+3. Quando o cliente escolher, repita dia e hora e peça confirmação.
+4. Só depois do "sim": crie o evento na agenda, preencha id_agendamento com o id
+   devolvido e data_agendamento no formato "12/10 às 14h".
+5. Mova para "Agendado" e confirme por mensagem, com dia, hora e endereço.
+6. Agende o template "lembrete_agendamento" para 24 horas antes do horário,
+   em ISO 8601 com o fuso de Brasília (ex.: 2026-10-11T14:00:00-03:00).
+   Se o horário for daqui a menos de 24 horas, não agende o lembrete.
+
+Use o bloco "Agora" para saber a data e a hora atuais. Todos os horários são
+no horário de Brasília.
+
+# Remarcar e cancelar
+- Para remarcar: cancele o agendamento do template "lembrete_agendamento",
+  remarque o evento usando id_agendamento, atualize data_agendamento e agende
+  o lembrete de novo.
+- Para cancelar: cancele o evento usando id_agendamento, cancele o agendamento
+  do template "lembrete_agendamento" e confirme o cancelamento.
+
+# Quando chamar um humano
+Se a agenda der erro duas vezes, ou o cliente pedir um encaixe fora dos
+horários livres, avise que vai chamar a recepção e transfira para humano.
+```
+
+Escreva também a regra de cada ação em **Quando usar no seu atendimento**, na própria ação. A regra perto da tool pesa mais na decisão do modelo. Veja [Escrever um bom prompt](/engenharia-de-ia/prompt).
+
+## Decisões e o porquê
+
+**Por que preencher a propriedade antes de agendar o lembrete?** As variáveis do template são preenchidas **no momento do agendamento**, com os dados que o lead tem naquela hora. Se `data_agendamento` estiver vazia, o lembrete não é agendado, e o modelo recebe um erro.
+
+**Por que cancelar antes de reagendar?** Agendar o mesmo template de novo **não substitui** o anterior: o lead receberia os dois lembretes. **Cancelar agendamento** apaga todos os envios futuros daquele template para o lead.
+
+**Por que o fuso no horário?** No modo **A IA decide**, o modelo manda a data e a hora em ISO 8601. Sem o `-03:00` no fim, o horário pode ser lido em outro fuso e o lembrete sai horas antes ou depois. O bloco [Agora](/engenharia-de-ia/contexto-injetado) traz a hora de Brasília, cheia. Se o cliente final atende em outro fuso, diga no prompt como converter.
+
+**Por que template no lembrete, e não texto?** O lembrete sai 24 horas antes, e a janela de 24h do lead quase sempre já fechou. Fora dela, só template aprovado sai. Veja [Janela de 24h](/comecar/janela-de-24h).
+
+**Por que Utilitário?** Confirmação e lembrete de um compromisso que o lead pediu são mensagens de utilidade. A Meta cobra por categoria, e Marketing custa mais. Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+**Confirmação: texto ou template?** Logo depois de marcar, a janela está aberta, então a resposta do agente já é a confirmação. O template de confirmação serve ao caminho do link, em que o lead marca fora da conversa.
+
+## Caminho do link de agendamento
+
+O lead recebe o link, marca na página, e um intermediário avisa a Zatten. Este era o tutorial do Cal.com da doc antiga.
+
+<Steps>
+<Step title="Prepare a página de agendamento">
+No Cal.com (ou similar), crie o tipo de evento e **exija o telefone** no formulário. Sem o telefone, não há como achar o lead na Zatten.
+</Step>
+<Step title="Ponha o link no prompt">
+"Quando o cliente quiser agendar, envie o link https://cal.com/sua-clinica/avaliacao." O agente não vê a agenda; ele só envia o link.
+</Step>
+<Step title="Monte o intermediário">
+No n8n (ou Make), receba o webhook do sistema de agenda (reserva criada, remarcada, cancelada). Para cada evento, chame a API da Zatten com a [chave de API do projeto](/produto/chaves-de-api) no header `x-api-key`:
+
+- `PATCH /api/v1/leads/{numero}/properties` para gravar `data_agendamento` e o status;
+- `PATCH /api/v1/leads/{numero}/kanban` para mover para **Agendado**;
+- `POST /api/v1/messages/template` para mandar `confirmacao_agendamento`.
+
+O intermediário é necessário porque a chamada à Zatten precisa da chave do projeto e do número do lead no formato certo. Veja [Leads](/api/leads), [Mensagens](/api/mensagens) e [Identificar o lead](/api/identificar-o-lead).
+</Step>
+<Step title="Lembrete">
+A API da Zatten não agenda envio. O lembrete fica com o intermediário (um nó de espera até 24 horas antes, que então chama `POST /messages/template`) ou com o próprio sistema de agenda.
+</Step>
+</Steps>
+
+Com o status gravado numa propriedade marcada para ir à IA, o agente sabe se o lead já marcou e responde "sua avaliação está marcada para 12/10 às 14h" sem perguntar.
+
+<Warning>
+Mover o lead pela API aplica as chaves **Desativar IA** e **Transbordo** da coluna e roda os fluxos **Movido no Kanban**, mas **não** aciona **Disparar automações**. Se um follow-up deve começar quando o lead entra em **Agendado**, chame também `POST /api/v1/automations/trigger` (só na conexão oficial) ou monte um fluxo **Movido no Kanban**. Veja [Disparar automações](/api/automacoes) e [Quando as automações disparam](/produto/automacoes/quando-disparam).
+</Warning>
+
+## Comparecimento e no-show
+
+- **No dia:** quem recebe o lead na recepção move para **Compareceu** ou **Não compareceu**, no Kanban.
+- **Não compareceu:** um follow-up filtrado só por essa coluna, com um template oferecendo remarcar. A resposta do lead volta para o agente, que remarca.
+- **Lead respondeu ao lembrete com "Preciso remarcar":** a resposta chega como mensagem do lead e abre a janela de 24h. O agente segue a regra de remarcar do prompt.
+
+## Como medir
+
+| O que | Onde |
+|---|---|
+| Quantos estão em **Agendado**, **Compareceu** e **Não compareceu** | [Métricas](/produto/metricas), Funil de Conversão. É uma foto do momento: anote no mesmo dia de cada mês. |
+| Taxa de comparecimento | Compareceu ÷ (Compareceu + Não compareceu), pela contagem do Kanban. |
+| Agendamentos que vieram de anúncio | [Conversões](/produto/automacoes/conversoes-meta) ligadas à coluna **Agendado** (só para leads de anúncio). Veja o [playbook de anúncios](/playbooks/anuncios-ctwa). |
+| Onde o agente erra | Conversas sem agendamento, lidas no [LangSmith](/engenharia-de-ia/langsmith) ou em Conversas. |
+
+## Pelo MCP
+
+Viajam no template do projeto: colunas, propriedades (com `send_to_ai`), as ações da Zatten e as tools HTTP, MCP e Composio (bloco `langchain`), e os follow-ups. **Não viajam:**
+
+- a conexão da conta na Composio: uma pessoa conecta em **Integrações**;
+- os templates da Meta: o MCP só lê; uma pessoa cria e envia à Meta no painel;
+- a publicação da versão do agente.
+
+<Visibility for="agents">
+- Ação de lembrete: `_zatten.template = "schedule.add"`, `_zatten.target_name = "<nome do template>"`, `_zatten.schedule = { "mode": "by_ia", "templateName": "<nome>", "languageCode": "pt_BR" }`. O modelo vê `schedule_add_<template>` com o parâmetro `scheduled_for` (ISO 8601).
+- Cancelar: `_zatten.template = "schedule.remove"`, mesmo `target_name`. Cancela todos os envios futuros daquele template para o lead.
+- Tool Composio: `{ "type": "composio", "toolkit": "googlecalendar", "action": "find_free_slots", "require_approval": false }`. Nome visto pelo modelo: `GOOGLECALENDAR_FIND_FREE_SLOTS`.
+- Antes de propor o lembrete, confira em `get_template` (bloco `meta_templates`) se o template existe; pergunte se está aprovado. Não prometa envio com template ausente ou pendente.
+- Ligar o follow-up de "não marcou" pede pergunta explícita (regra 4 de [As regras](/trabalhar-com-ia/regras)).
+</Visibility>
+
+## Armadilhas
+
+- **Conta errada na Composio.** A conta conectada vale para todos os leads do projeto. Conecte a agenda do cliente final.
+- **Ações demais.** Marcar todas as ações do Google Agenda põe dezenas de tools no contexto e confunde o modelo. Quatro bastam.
+- **Parâmetros que o lead não sabe.** O id da agenda, o id do serviço: diga no prompt de onde tirar cada um, ou use uma tool HTTP com esses valores fixos.
+- **Lembrete sem fuso** sai na hora errada.
+- **Lembrete duplicado** quando o agente agenda de novo sem cancelar antes.
+- **Lembrete para daqui a menos de 24 horas** sai na hora, porque o horário calculado já passou. A regra do prompt evita isso.
+- **Template com variável vazia** não é agendado. Preencha a propriedade antes.
+- **Testar cria eventos reais.** O chat de teste e o botão Testar chamam a agenda de verdade.
+- **Encerrar o atendimento antes do compromisso** apaga as propriedades de vínculo conversa do lead. O lembrete já agendado sai, mas o agente deixa de ver a data.
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://www.tella.tv/video/cmghx9kfd00030bjpd22l4fbt/embed?b=0&title=0&a=1&loop=0&t=0&muted=0&wt=1"
+  title="Vídeo: agendamento"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten): Agendar mensagem e Cancelar agendamento.
+- [Tools da Composio](/engenharia-de-ia/tools/composio), [Tool HTTP](/engenharia-de-ia/tools/http), [Servidores MCP](/engenharia-de-ia/tools/mcp).
+- [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado): o bloco "Agora".
+- [Templates do WhatsApp](/produto/templates-whatsapp) e [Janela de 24h](/comecar/janela-de-24h).
+- [Playbook: clínicas e saúde](/playbooks/nichos/clinicas).
+- Composio: [Google Agenda](https://docs.composio.dev/toolkits/googlecalendar), [Cal.com](https://docs.composio.dev/toolkits/cal), [catálogo](https://docs.composio.dev/toolkits).
+- Cal.com: [API v2](https://cal.com/docs/api-reference/v2/introduction).
+- Termos para buscar: "find free slots", "ISO 8601 timezone offset", "no-show", "Cal.com webhooks", "appointment reminder template".

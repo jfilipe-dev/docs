@@ -1,0 +1,246 @@
+---
+title: "Como uma escrita funciona"
+description: "Leia antes de chamar update_template: envio parcial, órfãos, renomear pelo slug, ambíguos, campos vazios, ligar e desligar, referências por nome, o agente e como ler a resposta."
+---
+
+Uma escrita (`update_template`) segue uma regra só: **cria o que falta, atualiza
+o que existe e nunca apaga**. O resto desta página são as consequências dessa
+regra, que não se deduzem dos campos do JSON e são onde um assistente erra.
+
+## O bloco que você manda vale por inteiro
+
+Só os blocos presentes são considerados. Mandar `{ "tags": [...] }` mexe só nas
+tags; o funil, as automações e o agente nem são lidos como mudança.
+
+Mas o bloco enviado é a **lista completa** daquele tipo. Se o projeto tem dez tags
+e você manda `tags` com uma, as outras nove viram órfãs.
+
+Para acrescentar um item:
+
+1. pegue a lista que veio no `get_template`;
+2. acrescente o item;
+3. devolva a lista inteira.
+
+<Tip>
+Prefira o envio parcial. O template inteiro tem centenas de KB, e cada bloco a
+mais é uma chance de alterar algo sem querer.
+</Tip>
+
+## O que fica de fora não é apagado
+
+O que existe no projeto e não veio no bloco enviado volta em `orphans`, intacto.
+Para apagar de verdade, uma pessoa usa o painel, onde estão as travas de exclusão
+(por exemplo, não dá para excluir coluna com leads).
+
+Ao reportar, diga "ficou de fora sem ser apagado", não "órfão".
+
+## Como cada item é reconhecido
+
+Para decidir se um item do bloco é novo ou já existe, a escrita usa uma chave de
+identidade:
+
+| Bloco | Chave |
+|---|---|
+| `columns`, `tags`, `attendant_teams` | `slug`; sem slug, o nome |
+| `properties` | `slug`; sem slug, o nome |
+| `skills` | `slug` |
+| `meta_templates` | nome + idioma |
+| `unseen_message` | uma por projeto (chave fixa) |
+| `meta`, `llm_attendant`, `langchain` | um por projeto |
+| demais blocos | o nome (`name`) |
+
+Se a chave casa com um item do projeto, ele é **atualizado**. Se não casa, um
+item novo é **criado**.
+
+### Renomear
+
+Coluna, tag e departamento **renomeiam pelo slug**. Mande o item com o `slug`
+que veio no `get_template` e o `name` novo:
+
+```json
+{ "columns": [ { "slug": "triagem", "name": "Qualificação", "order": 1 } ] }
+```
+
+A coluna continua a mesma, com os mesmos leads.
+
+Se o agente tem tools que apontam para essa coluna (mover no funil, por exemplo),
+mande também o bloco `langchain`, como veio do `get_template`, na mesma escrita.
+Assim as tools passam a usar o nome novo, numa versão não publicada do agente.
+Sem isso, a tool continua com o nome antigo e é descartada, com nota, na próxima
+vez que o bloco `langchain` for enviado. Vale o mesmo para tag e departamento.
+
+Sem o `slug`, a escrita procura pelo nome. "Qualificação" não existe, então nasce
+uma coluna nova, e "Triagem" vira órfã.
+
+Propriedade e skill também têm slug e renomeiam do mesmo jeito. Nos blocos
+identificados pelo nome (follow-ups, webhooks, conversões e outros), mudar o nome
+cria um item novo.
+
+Quando um item sem slug casa pelo nome, a escrita grava um slug nele na hora. Na
+próxima leitura ele já vem com slug.
+
+### Ambíguos
+
+Se o projeto tem dois itens com o mesmo nome e o bloco não diz qual é qual
+(sem `slug`), **nenhum dos dois é tocado**. Eles voltam em `ambiguous`, com a
+contagem.
+
+Não tente resolver sozinho. Com o slug de cada um (veio no `get_template`), a
+escrita consegue mexer em um deles. Sem slug, peça à pessoa para renomear um
+deles no painel.
+
+## Campo omitido não mexe; endereço vazio não grava (com uma exceção)
+
+- **Campo omitido** (a chave não veio): o valor atual fica como está.
+- **Endereço vazio** não grava por cima. Vale para `url` de webhook, webhook de
+  integração e MCP; `webhook_url`, `headers`, `query_params` e `body_params` de
+  ação personalizada; `headers` de MCP; e os headers das tools no
+  `langchain.config`. Vazio quer dizer "não trouxe", nunca "apague".
+- **Exceção: as chaves de IA.** A chave do modelo e a do LangSmith dentro de
+  `langchain.config` (`model.api_key`, `settings.tracing.api_key`) e as chaves
+  `api_key` e `eleven_labs_api_key` do bloco `llm_attendant` só são mantidas
+  quando o campo **não vem** (no `llm_attendant`, `null` também mantém). `""`
+  (string vazia) grava vazio por cima, e o agente para de responder. Omita o
+  campo ou devolva o valor que veio no `get_template`; nunca mande `""` nem um
+  texto de exemplo no lugar da chave.
+- **Endereço preenchido manda**, inclusive por cima do que o cliente configurou no
+  painel, sem pedir confirmação.
+
+Por isso: só preencha um endereço se a pessoa pediu para trocar **aquele**
+endereço, e diga a ela que vai trocar. Um webhook aponta para o sistema do
+cliente; trocá-lo por engano desvia os avisos dele, e nada na tela denuncia.
+
+No bloco `llm_attendant`, `null` também não grava: não dá para limpar um campo
+do agente pelo template.
+
+## Ligada ou desligada
+
+Toda automação tem um estado. No JSON é `status` (`ACTIVE` ou `INACTIVE`); na
+ação personalizada e na mensagem rápida é `is_active` (`true` ou `false`).
+
+| No bloco | Num item que já existe | Num item novo |
+|---|---|---|
+| Ausente | Não mexe: ligado continua ligado | Nasce **desligado** |
+| `ACTIVE` / `true` | Liga | Nasce ligado |
+| `INACTIVE` / `false` | Desliga | Nasce desligado |
+
+- **Pergunte antes de ligar.** Ligar faz a automação agir sobre conversa real.
+  Nunca ligue algo "para já ficar pronto".
+- **Ligar exige endereço.** Webhook, webhook de integração, MCP e ação
+  personalizada só ligam se houver endereço (no bloco ou já gravado). Sem ele, o
+  item fica desligado e uma nota explica.
+
+## Referências por nome
+
+Vários blocos apontam para colunas, tags e departamentos **pelo nome**, nunca pelo
+id. A escrita traduz o nome para o item deste projeto.
+
+Se o nome não existir no projeto (nem no estado final desta escrita):
+
+| Bloco | O que acontece |
+|---|---|
+| `follow_ups`, `integration_webhooks`, `inactivity_handovers` (colunas e tags de origem) | A referência é retirada da lista, com nota ("perdeu a coluna …") |
+| `conversions` (`column_name`) | A conversão não é criada nem alterada, com nota |
+| `inactivity_handovers` (`target_column_name`) | O transbordo não é criado nem alterado, com nota |
+| `flows` (dentro do grafo) | O fluxo não é criado, com nota |
+| `follow_ups` (`template_name`) | O follow-up entra sem template e guarda o nome; ele é vinculado quando um template com esse nome for sincronizado com a Meta |
+
+Uma coluna criada no mesmo envio já vale como referência: mande `columns` e
+`conversions` juntos.
+
+## O agente
+
+- **Bloco `langchain`**: cria uma **versão nova, não publicada**. Os leads
+  continuam com a versão no ar até alguém publicar no painel. Diga isso a quem
+  pediu.
+- Se o config enviado é igual ao atual, nenhuma versão é criada.
+- A chave do modelo e a do LangSmith que já estão no agente são mantidas só
+  quando o campo não vem. `""` apaga a chave (veja a exceção acima). Como o
+  `get_template` já devolve as chaves preenchidas, devolver o bloco como veio é
+  seguro.
+- A aprovação humana fica sempre desligada, com nota se o bloco tentar ligar.
+- Se havia uma versão por publicar e o bloco foi gravado por cima dela, uma nota
+  avisa. Confira antes de publicar.
+- Tools cujo alvo não existe no projeto (uma coluna que sumiu, por exemplo) não
+  entram, com nota.
+- Projeto no motor antigo: o bloco `langchain` é ignorado, com nota. A escrita
+  nunca migra de motor.
+
+Detalhes em [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao).
+
+## Templates da Meta
+
+Pelo MCP, o bloco `meta_templates` não cria nem altera nada:
+
+- template que já existe nunca é atualizado (o estado dele é da Meta);
+- template que falta não é enviado. A nota lista quais faltam e sugere
+  `submit_meta_templates: true`, opção que o MCP **não tem**. O envio à Meta é
+  feito por uma pessoa, no painel.
+
+## Repetir é seguro
+
+Aplicar o mesmo template duas vezes não produz escrita na segunda: os campos são
+comparados e só o que mudou é gravado. Uma escrita interrompida no meio deixa o
+projeto incompleto, não quebrado; reenviar conserta.
+
+## Como ler a resposta
+
+<Visibility for="agents">
+```json
+{
+  "ok": true,
+  "applied": { "created": 2, "updated": 1 },
+  "changes": [
+    { "op": "create", "entity": "column", "key": "pos_consulta" },
+    { "op": "create", "entity": "conversion", "key": "Agendou" },
+    { "op": "update", "entity": "tag", "key": "vip", "fields": ["color"] }
+  ],
+  "orphans": [{ "entity": "tag", "key": "teste" }],
+  "ambiguous": [],
+  "agent": { "version": 14, "published": false },
+  "notes": [
+    "O follow-up \"Lembrete D+1\" ainda não tem o template \"lembrete_consulta\": ele será amarrado sozinho quando o template for sincronizado com a Meta.",
+    "Versão v14 do agente criada. Publique pelo painel para ativá-la."
+  ]
+}
+```
+</Visibility>
+
+| Campo | Significa | Vira, no relatório |
+|---|---|---|
+| `changes` | O que foi criado ou atualizado (e quais campos) | **Feito** |
+| `notes` | O que não foi feito e por quê, e avisos | **Não feito** e **Para você fazer no painel** |
+| `orphans` | Existe no projeto, não veio no bloco. Intocado | **Ficou de fora sem ser apagado** |
+| `ambiguous` | Nome repetido sem slug. Nenhum tocado | **Não feito** (peça para renomear um) |
+| `agent` | Versão criada e se está publicada | **Para você fazer no painel**: publicar |
+
+Depois de ler, chame `get_template` de novo: a resposta não traz a revision nova,
+e é a releitura que vira o snapshot.
+
+## Armadilhas
+
+- **Mandar um bloco com um item só** transforma o resto em órfãos. Sempre devolva
+  a lista inteira.
+- **Renomear sem `slug`** cria um item novo em vez de renomear.
+- **Renomear sem o bloco `langchain`** deixa as tools do agente com o nome
+  antigo.
+- **Preencher `url` "para completar"** troca o endereço do cliente.
+- **Mandar `"api_key": ""` no `langchain.config`** apaga a chave do modelo ou do
+  LangSmith e derruba o agente. Omita o campo ou devolva o valor lido.
+- **Ligar junto com a criação, sem perguntar.** Omita o estado e a automação nasce
+  desligada.
+- **Propriedade:** `values` só valem com `is_enum: true`. Propriedade de texto
+  livre já preenchida em algum contato não vira lista (nota com a contagem). Valor
+  retirado da lista continua existindo. Veja [Propriedades](/produto/propriedades).
+- **Skill num projeto no LangChain Agent:** o bloco `skills` acrescenta ao agente
+  só as skills que ele ainda não tem. Para mudar o texto de uma skill que o agente
+  já tem, altere a tool dela no bloco `langchain`.
+- **Departamento novo nasce sem membros.** Membros são adicionados no painel.
+- **Fluxo existente:** só o estado muda pelo MCP. O desenho é do editor.
+
+## Para saber mais
+
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- [Sobrescrever x atualizar um projeto por template](/produto/sobrescrever-x-atualizar)
+- [O que só se faz pelo painel](/trabalhar-com-ia/so-pelo-painel)

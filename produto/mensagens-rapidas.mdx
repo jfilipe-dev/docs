@@ -1,0 +1,113 @@
+---
+title: "Mensagens rápidas"
+description: "Leia para criar mensagens prontas (texto e mídia em sequência) que a equipe envia no chat com um clique ou com /comando, e para limitar cada uma a departamentos."
+---
+
+Uma **mensagem rápida** é um conjunto de blocos prontos (textos, imagens, vídeos, áudios, documentos) que um humano envia no chat de uma vez, em sequência. Dispara pelo ícone de raio no chat ou digitando `/comando` e Enter. Serve para respostas que a equipe repete: boas-vindas, catálogo, endereço, tabela de preços, instruções de pagamento.
+
+Mensagem rápida é para humanos no chat. O agente de IA não usa.
+
+## Onde fica no painel
+
+- **Criar e editar:** menu **Automações**, aba **Mensagens rápidas** (admin, editor e gestor; para o gestor, é a única aba de Automações).
+- **Usar:** em **Conversas**, no campo de mensagem do chat.
+
+## Como configurar
+
+**Nova mensagem** abre o formulário:
+
+| Campo | O que faz | Regras |
+|---|---|---|
+| **Nome** | Identifica a mensagem na lista e no seletor do chat. | Obrigatório |
+| **Descrição** | Texto de apoio para a equipe. | Opcional |
+| **Comando** | O atalho. Com `catalogo`, digitar `/catalogo` e Enter no chat envia a mensagem. | Opcional. Gravado sem barra, em minúsculas, com hífen no lugar de espaço: "Tabela Preços" vira `tabela-preços` |
+| **Departamentos com acesso** | Quais departamentos veem a mensagem no chat. | Nenhum marcado = todos |
+| **Blocos** | O conteúdo, enviado na ordem da lista. Cada bloco é um texto ou uma mídia (imagem, vídeo, áudio, documento) com legenda opcional. | Pelo menos 1 bloco |
+
+Na lista, as setas mudam a ordem das mensagens (é a ordem do seletor no chat), e a chave **Ativo / Inativo** liga e desliga cada uma. Mensagem inativa não aparece no chat.
+
+## Como funciona por trás
+
+**No chat.** O raio mostra as mensagens rápidas ativas que o lead pode receber. Ao digitar `/`, aparecem sugestões com os comandos que começam com o que foi digitado. O comando precisa ser a mensagem inteira: `/catalogo` dispara; `oi /catalogo` vai como texto.
+
+**Filtro por departamento.** O chat mostra a mensagem quando ela vale para todos os departamentos, quando o lead está num dos departamentos marcados, ou quando o lead ainda não tem departamento.
+
+**O envio.** Cada bloco sai como uma mensagem separada, na ordem, pelo mesmo caminho de uma mensagem digitada. Por isso, valem as mesmas regras do chat: quem envia **assume o lead** (se puder), a **IA pausa** pelo tempo da [pausa humana](/engenharia-de-ia/pausa-humana) e, se o departamento tiver **Enviar nome do atendente**, os blocos de texto saem com o nome. Veja [Conversas e chat ao vivo](/produto/conversas-e-chat).
+
+**Janela de 24h.** Na conexão oficial, com a [janela](/comecar/janela-de-24h) fechada, o campo de mensagem some e a mensagem rápida não pode ser usada. Fora da janela, só template.
+
+## Pelo MCP
+
+O bloco `quick_messages` do template do projeto traz as mensagens rápidas. A chave é o **nome**: mudar o nome cria outra mensagem e deixa a antiga como órfã.
+
+- Mensagem nova nasce **desligada** se `is_active` não vier.
+- O comando é gravado sem barra, em minúsculas e com hífens. Mande `chegada`, não `/chegada`.
+- **O filtro por departamento não viaja.** A mensagem criada pelo MCP vale para todos os departamentos. Numa mensagem que já existe, o filtro atual é mantido.
+- Mídia vai como endereço (`media_url`) de um arquivo acessível pela internet.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `description` | string ou null | |
+| `command` | string ou null | Sem barra: `catalogo` |
+| `blocks` | lista, mínimo 1 | Ver abaixo |
+| `is_active` | boolean | Ausente na criação = `false` |
+| `order` | número | Posição na lista e no seletor |
+
+```json
+{
+  "quick_messages": [
+    {
+      "name": "Catálogo",
+      "command": "catalogo",
+      "is_active": true,
+      "order": 0,
+      "blocks": [
+        { "type": "TEXT", "text": "Segue nosso catálogo atualizado:" },
+        {
+          "type": "DOCUMENT",
+          "media_url": "https://exemplo.com/catalogo.pdf",
+          "mime_type": "application/pdf",
+          "filename": "catalogo.pdf",
+          "caption": "Catálogo 2026"
+        }
+      ]
+    }
+  ]
+}
+```
+
+`type` de mídia: `IMAGE`, `VIDEO`, `AUDIO`, `DOCUMENT`. O campo `department_ids` não faz parte do template.
+</Visibility>
+
+## Armadilhas
+
+- **Sem variáveis.** O texto sai exatamente como foi escrito: `{{nome}}` vai literal para o lead. Para personalizar, use template da Meta ou escreva no chat.
+- **Dois comandos iguais:** o chat dispara a primeira na ordem da lista. Mantenha cada comando único.
+- **Arquivo enviado na mensagem rápida fica num endereço público.** Qualquer pessoa com o link abre o arquivo. Não use para documentos sensíveis.
+- **Mensagem criada pelo MCP nasce desligada e sem filtro.** Ligue e, se for o caso, escolha os departamentos no painel.
+- **Mídia acima dos limites do WhatsApp falha no envio** (imagem até 5 MB, áudio e vídeo até 16 MB).
+- **Pausa a IA.** Mandar uma mensagem rápida de boas-vindas num lead que o agente estava atendendo pausa o agente. Se a ideia é o agente continuar, religue a IA depois.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Por que a mensagem rápida não aparece no chat?">
+Ela está **Inativa**, ou o lead está num departamento que não foi marcado em **Departamentos com acesso**, ou a janela de 24h do lead fechou.
+</Accordion>
+<Accordion title="O agente de IA pode mandar uma mensagem rápida?">
+Não. Para o agente mandar um arquivo, use uma [skill do agente](/engenharia-de-ia/skills) com o link ou uma tool. Veja [Mídia no agente](/engenharia-de-ia/midia).
+</Accordion>
+<Accordion title="Dá para usar mensagem rápida numa automação?">
+Não. Automações e fluxos enviam texto livre ou template. Veja [Trigger Flow: blocos](/produto/trigger-flow/blocos).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Conversas e chat ao vivo](/produto/conversas-e-chat)
+- [Departamentos e distribuição](/produto/departamentos)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- Meta: [tipos de mídia e limites](https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/media#supported-media-types).
+- Termos para buscar: "respostas rápidas", "quick replies", "atalho de mensagem".

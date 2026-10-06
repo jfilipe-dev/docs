@@ -1,0 +1,129 @@
+---
+title: "Anúncios Click-to-WhatsApp com conversões"
+description: "Leia para montar a operação de anúncios que levam ao WhatsApp: a conexão certa, o agente que responde rápido e qualifica, o mapeamento de colunas para eventos de conversão do Meta Ads, as mensagens não visíveis da coexistência e como medir o retorno."
+---
+
+Num anúncio **Click-to-WhatsApp** (CTWA), o clique abre uma conversa com o número do cliente final. A Zatten reconhece que o lead veio do anúncio, o agente atende na hora, e cada avanço no funil pode virar um **evento de conversão** enviado ao Meta Ads. Com isso, a Meta otimiza a campanha para quem qualifica e compra, não só para quem manda "oi".
+
+O ciclo completo:
+
+1. O lead clica no anúncio e manda a primeira mensagem.
+2. A Zatten guarda o id do clique (`ctwa_clid`) e marca o lead como **Meta** nas métricas.
+3. O agente responde, qualifica e move o lead no funil.
+4. Cada coluna ligada a um evento envia a conversão para a Meta.
+5. O gerenciador de anúncios mostra quais anúncios geram vendas.
+
+## Pré-requisitos
+
+| Item | Por quê |
+|---|---|
+| **Conexão oficial** (ou coexistência) | Na conexão não oficial não há dados do anúncio nem conversões. Veja [Qual conexão escolher](/comecar/conexoes-whatsapp). |
+| Integração **WhatsApp Business + Anúncios** (BETA) | É o tipo de integração, escolhido ao conectar, que rastreia leads de anúncio e envia conversões. Veja [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia). |
+| **Conta de anúncios vinculada** no Meta Business Suite | A integração com anúncios exige o vínculo. |
+| Anúncio com destino **WhatsApp**, apontando para o número do projeto | Um anúncio que leva a um link `wa.me` comum chega como **orgânico**: sem id do clique, sem conversão. |
+
+## As peças do projeto
+
+| Peça | O que criar | Por quê |
+|---|---|---|
+| **Colunas** | Novo contato → Qualificado → Proposta enviada → Venda fechada → Perdido | Cada etapa de valor vira um evento. |
+| **Conversões** | Qualificado → `LeadSubmitted`; Proposta enviada → `InitiateCheckout`; Venda fechada → `Purchase` com o ticket médio | Veja [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta). |
+| **Agente** | Qualifica e move para Qualificado; transfere quando for para um vendedor | Veja o [playbook de qualificação](/playbooks/qualificacao). |
+| **Resposta para mensagens não visíveis** | Só na **coexistência** | Algumas mensagens de anúncio chegam sem conteúdo. Veja abaixo. |
+| **Follow-up** | Para quem clicou e parou | Lead de anúncio esfria rápido. Veja o [playbook de follow-up](/playbooks/follow-up-e-reengajamento). |
+
+## Passo a passo
+
+<Steps>
+<Step title="Conecte com anúncios">
+Em **WhatsApp → Conectar via Meta**, escolha **WhatsApp Business + Anúncios** já na conexão. O tipo só se escolhe nesse momento: o painel não tem opção para trocar depois. Um projeto conectado só com **WhatsApp Business** precisa [remover a conexão](/comecar/whatsapp-oficial-e-coexistencia) e conectar de novo com **+ Anúncios**. Se o cliente final pode anunciar no futuro, escolha esse tipo desde o início.
+</Step>
+<Step title="Monte o funil e o agente">
+O agente precisa saber o que o anúncio oferece. Ponha a oferta no prompt ou numa [skill](/engenharia-de-ia/skills): "Quem chega pelo anúncio de clareamento quer saber preço e prazo. Responda isso primeiro e então pergunte o nome e a melhor data."
+</Step>
+<Step title="Crie as conversões">
+Em **Automações → Automações nativas → Meta ADS - API de Conversão**, uma por coluna de valor. `Purchase` pede um valor em reais: use o ticket médio.
+</Step>
+<Step title="Na coexistência, ligue a resposta para mensagens não visíveis">
+Texto curto que funcione repetido: "Oi! Sua mensagem não chegou completa por aqui. Pode escrever de novo, por favor?"
+</Step>
+<Step title="Teste com um clique de verdade">
+Mover um lead orgânico para a coluna não envia nada. Rode o anúncio com orçamento baixo, clique de um número de teste e mova esse lead pelas colunas. Confira o evento no Gerenciador de Eventos da Meta e no painel do lead, seção **Conversões**.
+</Step>
+</Steps>
+
+## Decisões e o porquê
+
+**Quais eventos usar?** Poucos e com significado de negócio. Um evento por etapa que um gestor de tráfego usaria para otimizar: lead qualificado, proposta, venda. Eventos demais, em etapas sem valor, confundem a otimização.
+
+**Quem move o lead para cada coluna?** O agente move para **Qualificado** (regra no prompt). A equipe move para **Proposta enviada** e **Venda fechada**, um lead por vez, pelo Kanban ou pelo painel do lead. **Mover em massa, em Contatos, não envia conversão.**
+
+**Por que ticket médio no `Purchase`?** O valor é fixo na automação, não o da venda real. Se o cliente final tem produtos com tickets muito diferentes, crie colunas de venda por faixa ("Venda até R$ 1 mil", "Venda acima de R$ 1 mil"), cada uma com seu valor.
+
+**Eventos fora da lista do painel?** Não use. O template aceita outros nomes (como `Schedule` ou um evento personalizado), mas hoje só os seis do painel aparecem enviados: `LeadSubmitted`, `AddToCart`, `InitiateCheckout`, `Purchase`, `ViewContent` e `CartAbandoned`.
+
+**Por que resposta rápida importa mais aqui?** O lead de anúncio clicou por impulso e ainda está com o celular na mão. Deixe o agente ligado 24 horas, ou com um **Horário de funcionamento** ([como o agente funciona](/engenharia-de-ia/como-o-agente-funciona)) que cubra o horário em que o anúncio roda.
+
+## Mensagens não visíveis (coexistência)
+
+Na coexistência, a Meta às vezes avisa que o lead escreveu, mas não entrega o conteúdo, principalmente em conversas que começam pelo anúncio. O agente não tem o que responder. A automação [Resposta para mensagens não visíveis](/produto/automacoes/mensagens-nao-visiveis) manda um texto fixo pedindo que o lead repita. O conteúdo pode ser visto no app WhatsApp Business do celular, como orienta a Meta.
+
+Ela **não responde** com a IA pausada ou desligada para o lead, nem com o agente desligado ou fora do horário. Nesses casos, alguém precisa olhar o app do celular.
+
+## Custo
+
+Mensagens dentro da janela grátis de quem chega por anúncio Click-to-WhatsApp não têm cobrança de entrega pela Meta. As condições estão na [página de preços da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing). A IA é cobrada normalmente. Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+## Como medir
+
+| O que | Onde |
+|---|---|
+| Leads de anúncio x orgânicos | [Métricas](/produto/metricas), card **Contatos** (Meta x Orgânico) e gráfico por dia. |
+| Leads por anúncio | Métricas, **Leads por campanha** e a aba **Campanhas** de Dados Detalhados (agrupa pela URL de origem do anúncio). |
+| Conversões enviadas | Métricas, **Conversões por dia** e a aba **Conversões** (total por evento e valor das compras). |
+| Custo por venda | No Gerenciador de Anúncios, com as colunas de resultado dos eventos. |
+| Origem de um lead | Painel do lead, seção **Origem**. |
+
+Para levar a origem do anúncio a outro sistema (planilha, CRM do cliente), use o [webhook de eventos](/produto/automacoes/webhooks): o `LEAD_CREATED` de um lead de anúncio traz `adsData`, com o id do anúncio e o `ctwa_clid`.
+
+## Pelo MCP
+
+O bloco `conversions` cria as conversões (nascem desligadas) e o bloco `unseen_message` cria a resposta para mensagens não visíveis. O tipo de integração da conexão e a conta de anúncios ficam no painel e na Meta.
+
+<Visibility for="agents">
+```json
+{
+  "conversions": [
+    { "name": "Lead qualificado", "event": "LeadSubmitted", "column_name": "Qualificado", "value": null, "status": "INACTIVE" },
+    { "name": "Proposta", "event": "InitiateCheckout", "column_name": "Proposta enviada", "value": null, "status": "INACTIVE" },
+    { "name": "Venda", "event": "Purchase", "column_name": "Venda fechada", "value": 450, "status": "INACTIVE" }
+  ],
+  "unseen_message": { "name": "Mensagem de anúncio não visível", "message": "Oi! Sua mensagem não chegou completa por aqui. Pode escrever de novo, por favor?", "status": "INACTIVE" }
+}
+```
+
+- `column_name` precisa existir (ou ser criada na mesma escrita). Coluna inexistente faz a conversão ser ignorada, com nota.
+- `value` só em `Purchase`, em BRL.
+- Pergunte no diagnóstico se o projeto usa anúncios e qual conexão tem. Na conexão não oficial, não proponha conversões.
+</Visibility>
+
+## Armadilhas
+
+- **Lead orgânico não gera conversão**, e nada avisa. Teste com um clique real.
+- **Link `wa.me` no anúncio** chega como orgânico.
+- **Primeiro clique fica com o crédito.** O lead que volta por outro anúncio continua atribuído ao primeiro.
+- **Um evento por lead e por clique.** Sair e voltar para a coluna não reenvia; recompra pelo mesmo anúncio não é informada de novo.
+- **Mover em massa não envia.** Mova um por vez.
+- **Moeda sempre BRL.** Conta de anúncios em outra moeda recebe o valor como reais.
+- **Falha no envio da conversão não aparece no painel** e não tem nova tentativa. Confira no Gerenciador de Eventos de tempos em tempos.
+- **Agente fora do horário** perde o lead mais quente do dia.
+
+## Para saber mais
+
+- [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta)
+- [Resposta para mensagens não visíveis](/produto/automacoes/mensagens-nao-visiveis)
+- [WhatsApp oficial e coexistência](/comecar/whatsapp-oficial-e-coexistencia)
+- [Métricas](/produto/metricas) e [Webhooks de eventos](/produto/automacoes/webhooks)
+- [Qualificação de leads](/playbooks/qualificacao)
+- Meta: [anúncios Click-to-WhatsApp](https://developers.facebook.com/documentation/ads-commerce/marketing-api/ad-creative/messaging-ads/click-to-whatsapp), [Conversions API para mensagens](https://developers.facebook.com/documentation/ads-commerce/conversions-api/business-messaging), [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing).
+- Termos para buscar: "Click-to-WhatsApp ads", "ctwa_clid", "Conversions API business messaging", "free entry point", "optimization event".

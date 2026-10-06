@@ -1,0 +1,186 @@
+---
+title: "LangChain Agent x motor antigo"
+description: "Leia para saber em qual motor um projeto está, o que o LangChain Agent traz que o motor antigo não tem, e como substituir busca na web, code interpreter e base de arquivos depois de migrar. A recomendação é sempre migrar."
+---
+
+O **LangChain Agent** é o motor da Zatten. Todo projeto novo nasce nele. O
+**motor antigo** (OpenAI e OpenRouter chamados direto) é legado: continua
+funcionando para quem ainda está nele, mas não recebe recursos novos.
+
+**Recomendação única: migre.** Não existe caso em que ficar no motor antigo seja a
+melhor escolha. O que só existia lá (busca na web, code interpreter, base de
+arquivos) tem substituto no LangChain Agent, descrito abaixo. Como migrar está em
+[Migrar para o LangChain Agent](/engenharia-de-ia/migrar).
+
+## Em qual motor o projeto está?
+
+- **No painel**, em **Agente**: o LangChain Agent abre o builder, com os botões
+  **Salvar** e **Publicar** e o histórico de versões. O motor antigo abre a tela
+  antiga; se a conta pode migrar, ali aparece o botão **Migrar**.
+- **No template** (`get_template`): `llm_attendant.llm` vale `LANGCHAIN_AGENT` no
+  motor atual. `OPENAI_RESPONSES` ou `OPEN_ROUTER` é o motor antigo.
+
+## O que o LangChain Agent traz
+
+| Recurso | O que resolve | Página |
+|---|---|---|
+| **Retry de modelo** | Tenta de novo quando o provider falha por instabilidade | [Resiliência](/engenharia-de-ia/resiliencia) |
+| **Fallback de modelo** | Troca para um modelo de reserva, até de outro provider | [Resiliência](/engenharia-de-ia/resiliencia) |
+| **Falha do agente** | Mensagem segura ao lead e transferência para humano quando todos os modelos falham | [Resiliência](/engenharia-de-ia/resiliencia) |
+| **Versões com rascunho e publicação** | Mudar sem afetar o que está no ar; restaurar uma versão anterior | [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao) |
+| **LangSmith** | Ver cada conversa passo a passo: o que o modelo recebeu, que tools chamou, quanto custou | [Observabilidade com LangSmith](/engenharia-de-ia/langsmith) |
+| **Editor de tools HTTP** | Variáveis do lead, valor fixo, variável ou preenchido pela IA, importar cURL, botão Testar | [Tool HTTP](/engenharia-de-ia/tools/http) |
+| **Servidores MCP e Composio** | Ligar o agente a serviços externos sem programar | [MCP](/engenharia-de-ia/tools/mcp), [Composio](/engenharia-de-ia/tools/composio) |
+| **Skills na config** | Conhecimento longo carregado só quando o agente precisa | [Skills do agente](/engenharia-de-ia/skills) |
+| **Lista de tarefas** | O agente planeja tarefas de vários passos | [Lista de tarefas](/engenharia-de-ia/lista-de-tarefas) |
+| **Resumo e limpeza de contexto** | Conversas longas sem estourar o limite do modelo | [Conversas longas](/engenharia-de-ia/conversas-longas) |
+| **Limite de chamadas, proteção de dados pessoais, seletor de tools** | Controle de custo, de dados e de agentes com muitas tools | [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) |
+| **Cache de prompt otimizado** | O prompt fica fixo e o que muda (contexto do lead, hora) vai no fim; o provider cobra menos pela parte repetida | [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado) |
+
+## O que vale igual nos dois motores
+
+Buffer, pausa humana, segmentação, voz (ElevenLabs), Ativo/Inativo e Horário de
+funcionamento são aplicados pelo **servidor** da Zatten, antes e depois do agente.
+Funcionam igual nos dois motores e não mudam na migração. A voz não tem tela no
+builder do LangChain Agent: muda só pelo template
+([Segmentação e voz](/engenharia-de-ia/segmentacao-e-voz)). Ver
+[Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona).
+
+## O que só existia no motor antigo e como substituir
+
+A migração avisa, no resultado, quais destes o projeto usava ("Sem equivalente no
+novo motor: …"). Monte o substituto antes de publicar.
+
+| Motor antigo | Substituto no LangChain Agent |
+|---|---|
+| Busca na web | Servidor MCP Firecrawl, tool HTTP para uma API de busca, ou toolkit de busca da Composio |
+| Code interpreter | Tool HTTP para um endpoint seu que calcula; tabelas em skill; modelo com raciocínio para contas simples |
+| Base de arquivos (file search) | Skill, para conteúdo curto e estável; tool HTTP ou MCP para uma busca, para bases grandes |
+| Verbosidade | Instrução de tamanho no prompt; `max_tokens` como teto |
+| Contexto v2 | Não tem equivalente nem precisa: o histórico da conversa é guardado inteiro no LangChain Agent |
+
+### Busca na web → MCP Firecrawl
+
+O catálogo de servidores MCP do builder já traz o **Firecrawl**. Ele dá ao agente
+tools para buscar na web e ler páginas.
+
+<Steps>
+<Step title="Crie a chave">
+Crie uma conta e uma chave em https://www.firecrawl.dev. O custo das buscas é
+cobrado pelo Firecrawl, à parte.
+</Step>
+<Step title="Adicione o servidor">
+No builder, em **Tools**, adicione um servidor MCP e escolha **Firecrawl** no
+catálogo. Preencha o header `Authorization` com `Bearer` seguido da chave.
+</Step>
+<Step title="Diga no prompt quando buscar">
+Exemplo: "Use a busca na web só para conferir horários e endereços de terceiros.
+Nunca busque preços nossos: eles estão na skill tabela-de-precos."
+</Step>
+<Step title="Teste e publique">
+Teste no chat do builder com uma pergunta que exige busca. Depois publique.
+</Step>
+</Steps>
+
+Alternativas: uma [tool HTTP](/engenharia-de-ia/tools/http) que chama uma API de
+busca da sua escolha (você controla o formato da resposta), ou um toolkit de busca
+da [Composio](/engenharia-de-ia/tools/composio), se o catálogo tiver um que sirva.
+
+### Code interpreter → tool HTTP ou skill
+
+O agente não executa código. Para cada tipo de conta, escolha:
+
+- **Cálculo que precisa ser exato** (orçamento, frete, parcelas, juros): uma
+  [tool HTTP](/engenharia-de-ia/tools/http) para um endpoint seu que recebe os
+  números e devolve o resultado. A conta fica certa sempre, e a regra muda num
+  lugar só. Ver [Como montar a sua API](/engenharia-de-ia/tools/montar-sua-api).
+- **Tabelas de consulta** (preços por faixa, prazos por região): uma
+  [skill](/engenharia-de-ia/skills) com a tabela.
+- **Contas simples** (somar dois itens, aplicar 10%): um modelo com
+  [raciocínio](/engenharia-de-ia/escolher-o-modelo) costuma resolver. Para valor
+  que vai para o cliente, prefira a tool.
+
+### Base de arquivos → skill, tool HTTP ou MCP
+
+- **Conteúdo curto e estável** (FAQ, políticas, cardápio, regras de atendimento):
+  copie o texto para uma ou mais [skills](/engenharia-de-ia/skills). O agente
+  carrega cada skill só quando precisa. O builder avisa quando a soma das skills
+  passa de cerca de 100 KB.
+- **Base grande ou que muda sempre** (catálogo de produtos, documentos jurídicos):
+  uma [tool HTTP](/engenharia-de-ia/tools/http) para uma busca que devolve só os
+  trechos relevantes. Pode ser uma API sua ou, se os arquivos já estão num vector
+  store da OpenAI, a busca de vector store da própria API da OpenAI (ver o guia de
+  Retrieval em "Para saber mais").
+- **Base que já existe num serviço com servidor MCP**: ligue o
+  [servidor MCP](/engenharia-de-ia/tools/mcp) dele.
+
+## Pelo MCP
+
+- `llm_attendant.llm` diz o motor. O assistente **não muda o motor** pelo
+  template: migrar é pelo painel.
+- Num projeto no motor antigo, o bloco `langchain` é ignorado na escrita, com
+  nota.
+- Skills do projeto (bloco `skills`) são convertidas em tools `skill` quando o
+  projeto está no LangChain Agent.
+
+<Visibility for="agents">
+- Diagnóstico: `llm_attendant.llm != "LANGCHAIN_AGENT"` → recomendar migração
+  (prioridade alta). Ver `/trabalhar-com-ia/diagnostico`, item A1.
+- Campos do `llm_attendant` que só o motor antigo lê: `prompt`, `model`,
+  `temperature`, `top_p`, `max_tokens`, `reasoning`, `verbosity`, `api_key`,
+  `web_search`, `code_interpreter`, `use_v2_response_schema`, `functions`,
+  `video_interpretation`. Exceção: `audio_interpretation`,
+  `image_interpretation` e `pdf_interpretation` ainda filtram mídia na entrada da
+  conexão oficial, nos dois motores.
+- MCP Firecrawl no catálogo: `transport: "http"`,
+  `url: "https://mcp.firecrawl.dev/mcp"`, header `Authorization: Bearer <chave>`.
+  Nunca escreva a chave no chat nem em arquivo versionado.
+</Visibility>
+
+## Armadilhas
+
+- **Migrar sem montar o substituto**: o agente que usava busca na web ou base de
+  arquivos passa a responder sem essa informação, e pode inventar. Monte a tool ou
+  a skill e teste antes de publicar.
+- **Um servidor MCP expõe todas as tools dele.** Os filtros de tools do MCP
+  (`allowed_tools`, `blocked_tools`) são aceitos, mas não filtram nada hoje.
+  Explique no prompt quais usar.
+- **Skill grande + limpeza de contexto**: a limpeza pode apagar uma skill já
+  carregada. Ver [Skills do agente](/engenharia-de-ia/skills).
+- **"Contexto v2" aparece em Configurações avançadas, mas não faz nada no
+  LangChain Agent.** Só o motor antigo lê essa chave. Ligada ou desligada, o
+  resultado é o mesmo.
+- **Busca na web custa duas vezes**: o serviço de busca cobra pela busca, e o texto
+  das páginas entra como tokens de entrada no modelo.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Posso continuar no motor antigo?">
+Funciona, mas é legado: não ganha recursos novos e não tem retry, fallback,
+versões nem LangSmith. A recomendação é migrar.
+</Accordion>
+<Accordion title="Projeto novo pode nascer no motor antigo?">
+Não. Todo projeto novo nasce no LangChain Agent.
+</Accordion>
+<Accordion title="O motor antigo era mais barato?">
+O custo é o do modelo, por token, nos dois. O LangChain Agent aproveita melhor o
+cache de prompt, o que tende a baixar o custo da entrada. Ver
+[Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Migrar para o LangChain Agent (e reverter)](/engenharia-de-ia/migrar)
+- [Como o agente da Zatten funciona](/engenharia-de-ia/como-o-agente-funciona)
+- [Servidores MCP no agente](/engenharia-de-ia/tools/mcp)
+- LangChain, agentes: https://docs.langchain.com/oss/python/langchain/agents
+- LangChain, middlewares prontos: https://docs.langchain.com/oss/python/langchain/middleware/built-in
+- LangChain, MCP: https://docs.langchain.com/oss/python/langchain/mcp
+- OpenAI, file search: https://developers.openai.com/api/docs/guides/tools-file-search
+- OpenAI, Retrieval (busca em vector store): https://developers.openai.com/api/docs/guides/retrieval
+- MCP, introdução: https://modelcontextprotocol.io/docs/getting-started/intro
+
+**Termos para buscar:** "LangChain middleware", "Firecrawl MCP server", "vector
+store search API", "RAG tool calling", "agent skills progressive disclosure".

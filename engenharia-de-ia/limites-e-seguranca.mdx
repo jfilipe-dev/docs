@@ -1,0 +1,247 @@
+---
+title: "Limites e segurança"
+description: "Leia para pôr um teto nas chamadas do agente (por mensagem e por conversa), proteger dados pessoais (PII, só pelo template), filtrar tools quando há muitas, e entender por que a aprovação humana fica sempre desligada."
+---
+
+Quatro ajustes do LangChain Agent protegem o atendimento e o custo:
+
+| Ajuste | Para que serve | Onde muda |
+|---|---|---|
+| **Limite de chamadas** | Impede o agente de entrar em ciclo chamando tools sem parar. | Painel |
+| **Proteção de dados pessoais (PII)** | Esconde ou bloqueia e-mail, cartão e outros dados antes de chegarem ao modelo ou ao lead. | Só pelo template (MCP ou API) |
+| **Filtrar tools** | Com muitas tools, mostra ao modelo só as que têm a ver com a mensagem. | Painel (parte só pelo template) |
+| **Aprovação humana** | Pausaria a conversa até alguém aprovar uma tool. | Fica sempre desligada |
+
+Todos ficam no config do agente: mudar cria um rascunho, e vale depois de
+**Publicar** ([Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)).
+
+## Limite de chamadas
+
+Cada vez que o agente consulta o modelo conta uma chamada. Uma resposta simples usa
+uma; cada rodada de tools acrescenta outra (o modelo pede a tool, a tool roda, o
+modelo é chamado de novo com o resultado). Um agente que não gosta do resultado de
+uma tool tende a chamá-la de novo, e de novo. O limite corta isso: passando do teto,
+o agente para e envia ao lead uma mensagem fixa.
+
+**Onde fica:** menu **Agente** (`/project`) → ícone de ajustes ao lado de **Tools**
+(**Comportamento das Tools**) → **Limite de chamadas**.
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Por mensagem do lead** | Teto de chamadas ao modelo para responder a uma mensagem (ou ao lote juntado pelo [buffer](/engenharia-de-ia/buffer)). | 10 ao ligar pelo painel. De 1 a 50 |
+| **Na conversa inteira** | Teto somado de toda a conversa, até ela ser encerrada. | Vazio. De 1 a 500 |
+| **Mensagem ao lead quando o limite é atingido** | O texto que o lead recebe. | "Desculpe, tive um problema para concluir agora. Pode tentar de novo?" |
+| **Depois de enviar a mensagem** | **Encerrar a resposta normalmente** ou **Tratar como falha do agente**. | Encerrar normalmente |
+
+Ligado, exige pelo menos um dos dois tetos.
+
+**Recomendação:** ligue com **Por mensagem do lead** entre 8 e 15, conforme o número
+de tools que uma resposta costuma usar, e **Encerrar a resposta normalmente**. Deixe
+**Na conversa inteira** vazio, a não ser que você queira um teto de custo por
+conversa e aceite as consequências abaixo.
+
+<Warning>
+**O teto da conversa inteira não volta a zero a cada mensagem.** Atingido, **toda**
+mensagem seguinte do lead naquela conversa recebe só a mensagem de limite, até alguém
+[encerrar o atendimento](/produto/encerrar-atendimento). Se usar, ponha um número alto
+e uma mensagem que faça sentido repetida (por exemplo, avisando que um humano vai
+assumir).
+</Warning>
+
+Com **Tratar como falha do agente**, a resposta termina em erro antes da chamada ao
+modelo: o lead não recebe nem a mensagem de limite nem a mensagem da
+[Falha do agente](/engenharia-de-ia/resiliencia). O servidor tenta o lote de novo
+até 3 vezes e, como o limite continua atingido, grava o erro no chat e em
+[Logs](/produto/logs).
+Prefira **Encerrar a resposta normalmente**.
+
+## Proteção de dados pessoais (PII)
+
+A proteção de dados procura dados pessoais nas mensagens e age antes que eles
+cheguem ao modelo (na entrada), ao lead (na saída) ou ao modelo vindos de uma tool.
+
+<Note>
+**Não há tela para isso.** A proteção só se liga pelo template do projeto (MCP ou
+API), no bloco `langchain`. Salvar o agente pelo painel depois mantém as regras.
+</Note>
+
+Cada regra tem um tipo de dado, uma ação e onde agir.
+
+**Tipos prontos:** `email`, `credit_card`, `ip`, `mac_address`, `url`. Para dados
+brasileiros (CPF, telefone, CNPJ), use um tipo com nome livre e um `detector` (uma
+expressão regular).
+
+| Ação | O que faz | Exemplo com e-mail |
+|---|---|---|
+| `redact` (padrão) | Troca o dado por um marcador. | `[REDACTED_EMAIL]` |
+| `mask` | Mostra só uma parte. | `joao@****.com` |
+| `hash` | Troca por um código fixo do dado (o mesmo dado gera o mesmo código). | código no lugar do e-mail |
+| `block` | Interrompe a resposta com erro. | O lead não recebe resposta |
+
+| Onde (`where`) | Age em |
+|---|---|
+| `input` (padrão) | A mensagem do lead, antes de ir ao modelo |
+| `output` | A resposta do agente, antes de ir ao lead |
+| `both` | Entrada e saída |
+| `tool_results` | O que as tools devolvem, antes de ir ao modelo |
+
+**Cuidados antes de ligar:**
+
+- **O agente deixa de ver o dado.** Com `redact` na entrada, o agente não consegue
+  salvar o e-mail do lead numa propriedade, porque nunca o recebe. Proteja só o que o
+  agente não precisa usar.
+- **Não tira o dado da Zatten.** A mensagem original continua no chat e no histórico
+  do painel, e na entrada registrada no [LangSmith](/engenharia-de-ia/langsmith). A
+  proteção limita o que o **modelo** vê, não substitui a política de dados do cliente
+  final (LGPD).
+- **`block` deixa o lead sem resposta.** Use só se for isso mesmo que você quer.
+
+## Filtrar tools
+
+Com muitas tools, o modelo se perde entre elas e cada chamada fica mais cara (a
+descrição de todas as tools vai em toda chamada). O filtro faz uma chamada a um modelo
+antes de responder: ele lê a mensagem do lead e deixa visíveis só as tools que têm a
+ver com o pedido.
+
+**Onde fica:** menu **Agente** → **Comportamento das Tools** → **Filtrar tools**.
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Deixar visíveis no máximo** | Quantas tools o filtro pode deixar visíveis. | Vazio (sem teto) |
+
+Só pelo template:
+
+- `always_include`: tools que ficam sempre visíveis, sem passar pelo filtro.
+- `model`: o nome de outro modelo (mais barato) para o filtro. Usa o mesmo provider e
+  a mesma chave do agente. Vazio = o modelo do agente.
+- `system_prompt`: instrução própria para o filtro.
+
+**Quando ligar:** a partir de umas **dez tools**. Abaixo disso, o custo da chamada
+extra não compensa.
+
+**O risco:** se o filtro esconder a tool certa, o agente responde sem ela, sem erro.
+Ponha em `always_include` as tools que não podem faltar: a de transferir para humano,
+`load_skill` (o painel já faz isso sozinho quando há skill) e `write_todos` se usar a
+[lista de tarefas](/engenharia-de-ia/lista-de-tarefas). O nome de uma tool da
+Composio é `TOOLKIT_ACTION` em maiúsculas (ex.: `GMAIL_SEND_EMAIL`).
+
+## Por que a aprovação humana fica desligada
+
+O agente sabe pausar antes de uma tool e esperar alguém aprovar (`human_approval` e
+`require_approval` em cada tool). No WhatsApp, isso **trava a conversa**: a resposta
+fica parada esperando uma aprovação, e o painel não tem tela para aprovar. O lead fica
+sem resposta indefinidamente.
+
+Por isso:
+
+- Pelo MCP e pela API de template, a aprovação é **sempre gravada desligada**, com uma
+  nota quando o bloco tentava ligar (no config inteiro ou em qualquer tool).
+- No [chat de teste](/engenharia-de-ia/testar) aparece um cartão de aprovação quando
+  uma tool pede; isso **não** existe no atendimento real.
+
+Para ações sensíveis, use outro caminho: a tool só **registra o pedido** (numa
+propriedade, tag ou coluna "Aguardando aprovação") e um humano conclui pelo painel; ou
+mova o lead para uma coluna com [transbordo](/engenharia-de-ia/tools/acoes-da-zatten).
+
+## Pelo MCP
+
+Os três ajustes ficam em `langchain.config.settings`. A escrita cria uma versão não
+publicada. O `config` enviado substitui o config inteiro: mande o config completo do
+`get_template` com a alteração. Os trechos abaixo mostram só a parte que muda.
+
+<Visibility for="agents">
+**`call_limit`** (os nomes no JSON são estes; não use `thread_limit`/`run_limit`):
+
+```json
+"call_limit": {
+  "enabled": true,
+  "per_message": 12,
+  "per_conversation": null,
+  "when_reached": "end",
+  "reached_message": "Desculpe, tive um problema para concluir agora. Já chamei alguém da equipe."
+}
+```
+
+| Campo | Tipo | Padrão | Notas |
+|---|---|---|---|
+| `enabled` | boolean | `false` | Ligado exige `per_message` ou `per_conversation` |
+| `per_message` | inteiro ou null | `null` | Chamadas ao modelo por resposta |
+| `per_conversation` | inteiro ou null | `null` | Acumula na conversa até encerrar |
+| `when_reached` | `end` ou `error` | `end` | |
+| `reached_message` | string | "Desculpe, tive um problema para concluir agora. Pode tentar de novo?" | |
+
+**`pii_protection`:**
+
+```json
+"pii_protection": {
+  "enabled": true,
+  "rules": [
+    { "data_type": "credit_card", "action": "mask", "where": "both" },
+    { "data_type": "cpf", "action": "redact", "where": "input",
+      "detector": "\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}" }
+  ]
+}
+```
+
+| Campo | Tipo | Padrão | Notas |
+|---|---|---|---|
+| `enabled` | boolean | `false` | Ligado exige ao menos uma regra |
+| `rules[].data_type` | string | obrigatório | `email`, `credit_card`, `ip`, `mac_address`, `url` ou nome livre **com** `detector` |
+| `rules[].action` | `block`, `redact`, `mask`, `hash` | `redact` | |
+| `rules[].detector` | string (regex) ou null | `null` | Obrigatório na prática para tipo de nome livre. No JSON, `\` vira `\\` |
+| `rules[].where` | `input`, `output`, `both`, `tool_results` | — | Atalho para os três campos abaixo |
+| `rules[].apply_to_input` | boolean | `true` | |
+| `rules[].apply_to_output` | boolean | `false` | |
+| `rules[].apply_to_tool_results` | boolean | `false` | |
+
+Com `where`, os três `apply_to_*` são preenchidos a partir dele; `apply_to_input`
+continua `true` por padrão mesmo com `where: "output"`. Para agir só na saída, mande
+`"apply_to_input": false` junto.
+
+**`tool_selector`:**
+
+```json
+"tool_selector": {
+  "enabled": true,
+  "max_tools": 6,
+  "model": null,
+  "system_prompt": null,
+  "always_include": ["transbordo_notify", "load_skill"]
+}
+```
+
+| Campo | Tipo | Padrão | Notas |
+|---|---|---|---|
+| `enabled` | boolean | `false` | |
+| `max_tools` | inteiro ou null | `null` | |
+| `model` | string ou null | `null` | Só o nome; mesmo provider e chave do agente |
+| `system_prompt` | string ou null | `null` | |
+| `always_include` | lista de nomes | `[]` | Nome exato da tool como o modelo vê |
+
+**`human_approval`** e `tools[].require_approval`: sempre `false`. A escrita força
+`false` e devolve nota.
+</Visibility>
+
+## Armadilhas
+
+- **Teto por conversa atingido = conversa travada** até encerrar o atendimento.
+- **Limite por mensagem baixo demais.** Um agente que consulta agenda, reserva e
+  confirma precisa de 4 ou 5 chamadas numa resposta. Com teto 3, ele para no meio.
+  Teste o fluxo mais longo no [chat de teste](/engenharia-de-ia/testar) antes.
+- **PII com tipo de nome livre sem `detector`** quebra o agente inteiro: nenhuma
+  mensagem é respondida. Sempre mande o `detector` junto. O config passa na validação; o erro só
+  aparece ao montar o agente, a cada mensagem.
+- **PII na entrada tira o dado do agente.** Ele não consegue registrar o que não vê.
+- **Filtro de tools esconde a tool certa.** Use `always_include` para as essenciais.
+- **MCP migrado do motor antigo com aprovação.** Se um servidor MCP tinha "solicitar
+  aprovação" ligado no motor antigo, confira depois da [migração](/engenharia-de-ia/migrar)
+  que `require_approval` ficou `false` na tool `mcp`. Ligado, ele trava a conversa.
+
+## Para saber mais
+
+- [Resiliência: retry, fallback e erro](/engenharia-de-ia/resiliencia)
+- [Tools: visão geral](/engenharia-de-ia/tools/visao-geral)
+- [Servidores MCP no agente](/engenharia-de-ia/tools/mcp)
+- [Referência do config do agente](/engenharia-de-ia/referencia-do-config)
+- LangChain: [middlewares prontos](https://docs.langchain.com/oss/python/langchain/middleware/built-in) (Model call limit, PII detection, LLM tool selector, Human-in-the-loop), [guardrails](https://docs.langchain.com/oss/python/langchain/guardrails)
+- Termos para buscar: "ModelCallLimitMiddleware", "PIIMiddleware", "LLMToolSelectorMiddleware", "human in the loop", "LGPD dados pessoais chatbot".

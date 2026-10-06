@@ -1,0 +1,186 @@
+---
+title: "A API do dia a dia"
+description: "Leia quando o assistente precisar ler ou agir sobre leads e conversas (relatório, análise de conversa, ligar ou desligar a IA de um lead, disparar automação): quando usar a API e não o MCP, onde fica a chave e as regras de leitura e escrita."
+---
+
+A API pública da Zatten serve para o **dia a dia** de um projeto: ler leads e
+conversas, fazer análises e relatórios, ligar ou desligar a IA de um lead, mover um
+lead no funil e disparar automações. O MCP serve para a **configuração** (o
+template). Ler pela API é livre. Escrever exige um "sim" com o lead e o conteúdo
+exatos. Mandar mensagem para vários leads **nunca** se faz pela API: isso é campanha.
+
+A referência completa dos endpoints está na seção [API e webhooks](/api/visao-geral).
+
+## API ou MCP?
+
+| Quero… | Use | Por quê |
+|---|---|---|
+| Criar ou mudar colunas, tags, propriedades, automações, o agente | MCP (`update_template`) | É configuração do projeto. |
+| Ler a configuração inteira | MCP (`get_template`) | Vem com a `revision`. |
+| Ler um lead, suas conversas e o histórico | API | É dado do dia a dia, não viaja no template. |
+| Relatório ou análise de conversas | API (leitura) | Histórico por lead e por conversa. |
+| Ligar, pausar ou desligar a IA de um lead | API | Ação num lead. |
+| Mover um lead, pôr tag, preencher propriedade | API | Ação num lead. |
+| Disparar automações ou um fluxo para um lead | API | Ação num lead. |
+| Mensagem para muitos leads | **Tela de campanhas** | Template aprovado, contagem prévia e relatório. Ver [Campanhas](/produto/campanhas). |
+
+## Onde fica a chave?
+
+Cada projeto tem as próprias chaves de API, criadas no painel em **API Keys**
+(`/api-keys`; só admin e editor). A chave **identifica o projeto**: quem chama com a
+chave da Clínica A só enxerga a Clínica A. Ver [Chaves de API do projeto](/produto/chaves-de-api).
+
+O assistente guarda a chave no `.env` da pasta do cliente:
+
+```bash clientes/clinica-sorriso/.env
+ZATTEN_API_KEY=cole-a-chave-aqui
+```
+
+Regras da chave:
+
+- **Um `.env` por cliente**, dentro de `clientes/<cliente>/`. Nunca uma chave na
+  raiz, nunca a chave de um cliente na pasta de outro.
+- **Nunca versionado.** O `.gitignore` da raiz do diretório da agência precisa ter
+  `.env` **antes** da primeira chave. O assistente confere isso antes de gravar. Ver
+  [Organizar sua agência no computador](/trabalhar-com-ia/organizar-a-agencia).
+- **Nunca no chat.** O assistente lê a chave do arquivo na hora da chamada e não a
+  repete na conversa, em relatório nem na `MEMORIA.md`.
+- **Conferir o cliente da chave.** A API não tem um "quem sou eu". Na primeira
+  chamada com uma chave nova, o assistente chama `GET /kanban` e compara as colunas com
+  as do template do cliente ativo. Se não baterem, a chave é de outro projeto: pare
+  e avise.
+
+## Como chamar
+
+- **Endereço:** `https://api.zatten.com/api/v1`
+- **Autenticação:** header `x-api-key` com a chave do projeto. Um header de
+  autenticação por requisição; mandar mais de um dá erro 400. A exceção é a
+  [API de template](/api/template) (`app.zatten.com/api/v1/projects/{id}/template`),
+  que usa a mesma chave em `Authorization: Bearer`.
+- **Formato:** JSON. Erros vêm como `{ "error": "<texto>" }`.
+- **Lead na URL:** o número do WhatsApp, com DDI, com ou sem o 9º dígito
+  (ex.: `5511999998888`). Lead inexistente dá 404.
+- **Limite:** não há limite fixo de requisições publicado. Espace chamadas em lote
+  (2 a 5 por segundo) e, se vier 429, espere o header `Retry-After`. Ver [Limites de requisição](/api/limites).
+
+```bash
+set -a; . clientes/clinica-sorriso/.env; set +a
+
+curl -s "https://api.zatten.com/api/v1/leads/5511999998888" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+## Leitura: livre
+
+O assistente lê sem pedir "sim".
+
+| Para | Endpoint |
+|---|---|
+| Dados de um lead (coluna, tags, propriedades, anotação, responsável, status da IA, `id`) | `GET /leads/{numero}` |
+| Conversas (threads) de um lead, com abertura e encerramento | `GET /leads/{numero}/threads` |
+| Histórico de mensagens de uma conversa | `GET /messages/history?leadNumber={numero}` (opcional `thread_id`; `llm_format=false` devolve JSON em vez de texto corrido) |
+| Colunas do funil | `GET /kanban` |
+| Tags | `GET /tags` |
+| Propriedades e valores de uma propriedade em lista | `GET /properties`, `GET /properties/{slug}/values` |
+
+<Note>
+A API não lista leads por filtro. Para "todos os leads da coluna X", a lista vem da
+pessoa (por exemplo, a exportação em **Contatos**) ou de um número que ela informa.
+</Note>
+
+O histórico traz só as mensagens **mais recentes** da conversa, as mais novas
+primeiro, até o limite de histórico do projeto (`message_quantity`). Sem
+`thread_id`, vale a conversa aberta; se o atendimento do lead foi encerrado, a
+chamada dá 404, e o id da conversa vem de `GET /leads/{numero}/threads`. Para
+análises, use `llm_format=false`: cada mensagem vem com `from` (`LEAD`,
+`ATTENDANT` para a IA, `USER` para um humano da equipe), `type`, `message`,
+`status`, `source`, `created_at`, `input_tokens` e `output_tokens`. Ver
+[Histórico](/api/historico).
+
+## Escrita num lead: "sim" com o lead e o conteúdo exatos
+
+Antes de toda escrita, o assistente mostra o plano e espera um "sim". O plano diz o
+**cliente**, o **lead** (nome e número) e o **conteúdo exato** que vai ser gravado
+ou enviado.
+
+> No projeto **Clínica Sorriso**, vou desligar a IA do lead **Maria Souza
+> (5511999998888)** por 60 minutos. Posso?
+
+| Ação | Endpoint e corpo |
+|---|---|
+| Desligar a IA do lead (até alguém religar) | `POST /leads/{numero}/toggle-attendant-response` com `{"enabled": false}` |
+| Pausar a IA por um tempo (1 a 10080 minutos, ou seja, até 7 dias) | o mesmo, com `{"enabled": false, "pause_minutes": 60}` |
+| Religar a IA | o mesmo, com `{"enabled": true}`. Quando o estado muda, a resposta traz `status` (`on`, `paused` ou `off`); sem mudança, vem 204 |
+| Encerrar a conversa (encerrar atendimento) | `PATCH /leads/{numero}/thread`. Ver [Encerrar atendimento](/produto/encerrar-atendimento) |
+| Mover no funil | `PATCH /leads/{numero}/kanban` com `{"column_id": "…"}` |
+| Pôr ou tirar tag | `POST` ou `DELETE /leads/{numero}/tag` com `{"tag_id": "…"}` |
+| Preencher propriedade (pelo **slug**) | `PATCH /leads/{numero}/properties` com `{"property": "convenio", "value": "Unimed"}` |
+| Anotação | `PATCH /leads/{numero}/notes` com `{"note": "…"}` |
+| Trocar o responsável | `PATCH /leads/{numero}/assignee` com `{"department_id": "…", "user_email": "…"}` (sem e-mail, aplica o rodízio) |
+| Notificar o responsável | `POST /leads/{numero}/notification` com `{"title": "…", "body": "…"}` |
+| Disparar as automações do lead | `POST /automations/trigger` com `{"lead_id": "…"}` (o `id` vem de `GET /leads/{numero}`). Só com conexão oficial |
+| Disparar um fluxo | `POST /flows/trigger`. Ver [Disparar fluxos](/api/fluxos-e-webhook-de-entrada). |
+| Uma mensagem para **um** lead | `POST /messages/text` ou `/messages/template`, mostrando o texto ou o template exato |
+
+<Warning>
+Mover um lead pela API para uma coluna com **Desativar IA** desliga a IA dele.
+`PATCH /leads/{numero}/thread` **encerra** o atendimento: o lead volta para a
+primeira coluna, sem responsável, com a IA religada, e a próxima mensagem dele
+abre uma conversa nova. Diga o efeito no plano.
+</Warning>
+
+## Ação em vários leads: "sim" com a lista e a contagem
+
+Para a mesma ação em vários leads (desligar a IA, pôr uma tag, mover de coluna), o
+plano mostra **a lista** (nome e número de cada lead) e **a contagem**:
+
+> No projeto **Clínica Sorriso**, vou pôr a tag **Retorno** em **14 leads**: Maria
+> Souza (5511999998888), João Lima (5511988887777), … Posso?
+
+O "sim" vale para aquela lista. Se a lista mudar, o assistente pede de novo. Para
+grupos grandes, as ações em massa da tela **Contatos** costumam ser mais simples
+(ver [Contatos](/produto/contatos)).
+
+## Mensagem para vários leads: nunca pela API
+
+Mandar mensagem em loop pela API, para vários leads, é **proibido**, mesmo com "sim".
+Isso é campanha, e campanha tem tela própria: template aprovado, filtros, contagem
+prévia, fila e relatório. Disparo em massa sem controle pode derrubar a nota de
+qualidade do número e travar o WhatsApp do cliente final. O assistente oferece montar a
+campanha no painel ([Campanhas](/produto/campanhas)).
+
+## Armadilhas
+
+- **Chave de outro cliente.** A chave escolhe o projeto. Um `.env` copiado da pasta
+  errada faz o assistente agir no cliente errado sem erro nenhum. Confira com
+  `GET /kanban` (ver acima).
+- **Texto fora da janela de 24h.** Na conexão oficial, `POST /messages/text` falha
+  com a janela fechada. Use um template aprovado. Ver [Janela de 24h](/comecar/janela-de-24h).
+- **Propriedade pelo nome.** O campo `property` espera o **slug**. Propriedade em
+  lista só aceita um dos valores cadastrados.
+- **`/automations/trigger` usa o `id` do lead**, não o número. Só funciona com
+  conexão oficial (sem credencial da Meta, responde 400) e não agenda o
+  transbordo por inatividade.
+- **Não dá para limpar pela API.** Não há como apagar a anotação nem esvaziar
+  uma propriedade de um lead: isso é no painel.
+- **Mover pela API não aciona "Disparar automações" da coluna.** Essa chave só vale
+  para movimentação feita no CRM. Se precisar, chame `POST /automations/trigger`
+  depois (com "sim"). Ver [Quando as automações disparam](/produto/automacoes/quando-disparam).
+- **Desligar sem `pause_minutes`** desliga a IA do lead até alguém religar.
+- **Histórico não é a conversa inteira.** Vem só as mais recentes, até o limite de
+  histórico do projeto, das mais novas para as mais antigas. Conversas encerradas
+  ficam em outras threads (`GET /leads/{numero}/threads`); sem `thread_id`, lead com
+  atendimento encerrado dá 404.
+
+## Para saber mais
+
+- [Visão geral da API](/api/visao-geral), [Autenticação](/api/autenticacao),
+  [Erros](/api/erros), [Identificar o lead](/api/identificar-o-lead)
+- [Histórico](/api/historico), [Leads](/api/leads), [Controle da IA](/api/controle-da-ia),
+  [Automações](/api/automacoes)
+- [As regras que o assistente segue](/trabalhar-com-ia/regras)
+- [Estimar o custo de IA de um cliente](/trabalhar-com-ia/estimar-custo-de-ia), que usa
+  o histórico pela API
+- Limites de mensagens da Meta: https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits
+- Termos para buscar: "Zatten API x-api-key", "histórico de mensagens lead",
+  "toggle-attendant-response", "WhatsApp quality rating".

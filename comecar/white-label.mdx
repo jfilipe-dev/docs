@@ -1,0 +1,92 @@
+---
+title: "Sua marca: white-label"
+description: "Leia para configurar o nome, o logo, as cores, o favicon, o subdomínio e o domínio próprio da agência, e entender que o white-label vale para a conta inteira."
+---
+
+O painel da Zatten sai com a marca da agência: nome, logo, cores, favicon e endereço. O cliente final entra pelo endereço da agência e não vê a Zatten. **O white-label é da agência (a conta inteira), não de cada projeto:** todos os clientes finais veem a mesma marca.
+
+## Onde fica no painel
+
+Só o **admin** vê estas abas, em **Configurações**:
+
+- **Minha Empresa**: nome, subdomínio, contato, cores, logo e favicon.
+- **Domínios Customizados**: o domínio próprio.
+
+O nome, o logo e a cor também são pedidos no primeiro passo do `/setup`.
+
+## Minha Empresa: campo a campo
+
+| Campo | O que faz | Regras |
+|---|---|---|
+| **Nome da empresa** | Aparece no painel no lugar de "Zatten". | Mínimo de 2 caracteres. |
+| **Subdomínio** | O endereço da agência: `<subdominio>.botcontrole.com`. | Mínimo de 3 caracteres; só letras minúsculas, números e hífen. Nasce aleatório no cadastro: troque por um nome seu. |
+| **E-mail de contato** | Contato da agência. | E-mail válido. |
+| **Telefone de contato** | Contato da agência. | Telefone válido, com DDI. |
+| **Cor primária** e **Cor secundária** | Cores do painel. | Formato hexadecimal, como `#6366F1`. |
+| **Logo da empresa** | Logo do painel e da tela de login. | Imagem. |
+| **Favicon da empresa** | Ícone da aba do navegador. | Imagem. |
+
+## Domínio próprio
+
+Para usar um endereço como `painel.suaagencia.com.br`:
+
+<Steps>
+<Step title="Adicione o domínio">
+Em **Configurações → Domínios Customizados**, digite o domínio e clique em **Adicionar domínio**.
+</Step>
+<Step title="Crie os registros de DNS">
+A tela mostra os registros que você precisa criar no provedor de DNS do domínio (registro A ou CNAME, conforme o caso, e às vezes um TXT para provar que o domínio é seu). Copie exatamente os valores mostrados.
+</Step>
+<Step title="Espere a verificação">
+A tela acompanha o status até ficar **Configuração Válida**.
+</Step>
+</Steps>
+
+| Status | O que significa |
+|---|---|
+| **Configuração Válida** | O domínio está apontado e funcionando. |
+| **Verificação Pendente** | Falta o registro TXT de verificação, ou ele ainda não propagou. |
+| **Configuração Inválida** | Os registros A/CNAME não apontam para o lugar certo. Confira os valores. |
+| **Erro Desconhecido** | A verificação falhou. A tela mostra a mensagem do erro. |
+
+A propagação de DNS pode levar de minutos a algumas horas. Um domínio só pode estar em uma conta da Zatten. Para trocar, use **Remover domínio** e adicione o novo.
+
+## Acessar o painel com a sua marca
+
+No endereço principal (app.zatten.com), o admin vê o botão **Acessar Whitelabel** na barra lateral. Ele gera um link de acesso único e abre o painel no endereço da agência (o domínio próprio, se houver, ou o subdomínio), já logado. Serve para conferir o que o cliente final vê.
+
+O cliente final entra direto pelo endereço da agência, com o acesso criado para ele. Veja [Montar a equipe](/comecar/equipe-e-permissoes).
+
+## O que muda no endereço white-label
+
+- A marca é a da agência em todas as telas, inclusive no login.
+- O item **Assinatura** não aparece no menu: a cobrança fica só no endereço principal, com o admin.
+- O botão **Acessar Whitelabel** não aparece (você já está nele).
+
+## Armadilhas
+
+- **Não existe marca por projeto.** Dois clientes finais na mesma conta veem a mesma marca. Logo e favicon são da conta.
+- **Trocar o subdomínio muda o endereço** que a equipe e os clientes usam. Avise todos e atualize favoritos.
+- **Registro TXT de verificação** pode tirar o domínio de outro site que já o use. Use um subdomínio exclusivo para o painel (por exemplo, `painel.`), nunca o domínio do site da agência.
+- **No domínio white-label, a conexão oficial do WhatsApp abre em outra aba.** Libere pop-ups para o painel.
+
+## Vídeo
+
+<Note>
+O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, vale o texto desta página.
+</Note>
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://youtube.com/embed/vQ7cV1haMSM"
+  title="Vídeo: white label"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
+
+## Para saber mais
+
+- [Agência, cliente final e projeto](/comecar/agencia-cliente-e-projeto).
+- [Montar a equipe: usuários e permissões](/comecar/equipe-e-permissoes).
+- [Entregar e operar para o cliente final](/playbooks/entregar-ao-cliente).
+- Termos para buscar: "registro CNAME", "registro A", "registro TXT de verificação", "propagação de DNS".

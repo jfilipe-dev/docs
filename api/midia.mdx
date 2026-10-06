@@ -1,0 +1,147 @@
+---
+title: "Mídia: imagem, áudio, vídeo e arquivo"
+description: "Leia para enviar mídia a um lead pela API: POST /messages/image (5 MB), /audio (16 MB), /video (16 MB, MP4, 3GPP ou MOV) e /file (50 MB) em multipart/form-data, com campos, conversões automáticas, resposta 201 em segundo plano, erros e exemplos."
+---
+
+Quatro rotas enviam mídia para **um** lead. Todas recebem o arquivo em
+`multipart/form-data`, no campo `file`, e respondem **201** assim que aceitam o
+pedido. O envio ao WhatsApp acontece logo depois, em segundo plano.
+
+| Rota | Tipo | Tamanho máximo | Campos extras |
+|---|---|---|---|
+| `POST /messages/image` | Qualquer imagem (`image/*`). Convertida para JPEG. | 5 MB | `caption`, `reply_id` |
+| `POST /messages/audio` | Qualquer áudio. Convertido para OGG/Opus. | 16 MB | `filename`, `reply_id` |
+| `POST /messages/video` | Só `video/mp4`, `video/3gpp` ou `video/quicktime` (MOV). Convertido para MP4. | 16 MB | `caption`, `reply_id` |
+| `POST /messages/file` | Qualquer arquivo (PDF, planilha, documento). Vai como documento. | 50 MB | `filename`, `reply_id` |
+
+As mesmas regras de [Mensagens](/api/mensagens) valem aqui: o lead precisa existir e, na
+conexão oficial, a [janela de 24h](/comecar/janela-de-24h) precisa estar aberta. Fora da
+janela, use um template com cabeçalho de mídia.
+
+## Campos do formulário
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `file` | arquivo | Sim | O arquivo, com o tipo (`Content-Type`) correto na parte do formulário. |
+| `lead_number` | texto | Sim | Número do lead, só dígitos, com DDI. Ver [Identificar o lead](/api/identificar-o-lead). |
+| `caption` | texto | Não | Legenda. Só imagem e vídeo. |
+| `filename` | texto | Não | Nome do arquivo que o lead vê. Só áudio e arquivo. Sem ele, vale o nome do arquivo enviado. |
+| `reply_id` | texto | Não | Id da mensagem do WhatsApp a citar (o `messageId` do webhook `LEAD_INTERACTION`). |
+
+## Resposta: 201
+
+```json
+{
+  "wa_id": "5511999998888",
+  "thread_id": "zt-thread-3kQ9xV2mB7pL1sR8tY4wZa"
+}
+```
+
+O 201 quer dizer: o arquivo chegou, o lead existe, a janela está aberta e a mensagem
+entrou na fila de envio. A conversão, o upload e o envio ao WhatsApp acontecem em
+seguida. Se algo falhar nessa etapa, a mensagem fica marcada como **falha** no chat do
+lead, e a resposta HTTP já foi dada.
+
+Para saber se saiu de fato, use os [webhooks](/api/webhooks-de-saida):
+`API_KEY_INTERACTION` quando a mensagem sai, `ERROR` quando o WhatsApp recusa.
+
+## Erros
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Content-Type must be multipart/form-data` | A requisição foi em JSON. |
+| 400 | `Missing multipart boundary` | Cabeçalho `Content-Type` montado à mão, sem o `boundary`. Deixe a biblioteca HTTP montar. |
+| 400 | `File is required` | Faltou o campo `file` (ou ele foi com outro nome). |
+| 413 | `File too large. Max size is 50MB` | A requisição inteira passou de 50 MB. |
+| 400 | `Arquivo de imagem muito grande (…). Tamanho máximo permitido: 5MB` | Acima do limite do tipo (a mensagem muda para áudio, vídeo e arquivo). |
+| 400 | `Unsupported video type "…". Allowed: video/mp4, video/3gpp, video/quicktime` | Vídeo em outro formato (WEBM, AVI, MKV). |
+| 400 | `Lead number is required` | Faltou `lead_number`. |
+| 400 | `Lead with number … not found` | O número não é um lead do projeto. |
+| 400 | `Cannot send message — 24 hour conversation window expired` | Conexão oficial, janela fechada. |
+| 404 | `Could not find access token or phone number ID` | Projeto sem WhatsApp conectado. |
+
+## Exemplos
+
+<Tabs>
+<Tab title="Imagem">
+```bash
+curl -X POST "https://api.zatten.com/api/v1/messages/image" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -F "lead_number=5511999998888" \
+  -F "caption=Seu orçamento" \
+  -F "file=@orcamento.png;type=image/png"
+```
+</Tab>
+<Tab title="Áudio">
+```bash
+curl -X POST "https://api.zatten.com/api/v1/messages/audio" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -F "lead_number=5511999998888" \
+  -F "file=@recado.mp3;type=audio/mpeg"
+```
+</Tab>
+<Tab title="Vídeo">
+```bash
+curl -X POST "https://api.zatten.com/api/v1/messages/video" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -F "lead_number=5511999998888" \
+  -F "caption=Como chegar à clínica" \
+  -F "file=@como-chegar.mp4;type=video/mp4"
+```
+</Tab>
+<Tab title="Arquivo">
+```bash
+curl -X POST "https://api.zatten.com/api/v1/messages/file" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -F "lead_number=5511999998888" \
+  -F "filename=Contrato - Maria Souza.pdf" \
+  -F "file=@contrato.pdf;type=application/pdf"
+```
+</Tab>
+</Tabs>
+
+Com `curl -F`, não escreva o header `Content-Type`: o `curl` monta o `boundary` sozinho.
+
+<Visibility for="agents">
+- Corpo: `multipart/form-data`, um arquivo no campo `file`; campos de texto no mesmo formulário.
+- Limite da requisição inteira: 50 MB (413). Depois, limite por rota: image 5 MB, audio 16 MB, video 16 MB, file 50 MB (400).
+- Validação síncrona (antes do 201): tamanho, tipo de vídeo, `lead_number`, lead existe, janela de 24h (só conexão oficial).
+- Assíncrono (depois do 201): image → JPEG (tipo que não começa com `image/` falha aqui), audio → OGG/Opus, video → MP4, upload e envio. O arquivo fica guardado por até 10 minutos esperando o processamento; falha marca a mensagem como `FAILED` com o motivo.
+- Resposta: 201 `{wa_id, thread_id}`. A mensagem é gravada com `from: ATTENDANT`. Não pausa a IA.
+</Visibility>
+
+## Armadilhas
+
+- **201 não é entrega.** Uma imagem que não é imagem (um PDF mandado em `/image`)
+  passa no 201 e falha depois. Mande cada tipo na rota certa e confira pelo webhook.
+- **Tipo errado na parte do arquivo.** O tipo vem do `Content-Type` da parte `file`. Sem
+  ele, o arquivo chega como `application/octet-stream` e um vídeo é recusado. No
+  `curl`, use `;type=video/mp4`.
+- **WEBP vira JPEG.** A imagem é sempre convertida, para não aparecer como figurinha.
+- **Vídeo em WEBM, AVI ou MKV é recusado.** Converta para MP4 antes.
+- **Fora da janela, mídia não sai** na conexão oficial. Use um template com cabeçalho de
+  imagem, vídeo ou documento.
+- **Mídia pela API não pausa a IA** nem agenda automações, igual ao texto.
+- **Arquivo grande demora.** O envio é em segundo plano; não reenvie só porque a
+  mensagem ainda não apareceu como entregue.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Posso mandar a mídia por URL em vez de arquivo?">
+Não. As rotas só aceitam o arquivo no corpo (`multipart/form-data`). Baixe o arquivo no
+seu servidor e envie.
+</Accordion>
+<Accordion title="O áudio chega como mensagem de voz?">
+Sim. O áudio é convertido para OGG/Opus e enviado como mensagem de voz (como se tivesse
+sido gravado no app), nas duas conexões. Não dá para mandar áudio como arquivo anexado por
+esta rota; para isso, use `/messages/file`.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Mensagens](/api/mensagens), [Erros](/api/erros), [Webhooks de saída](/api/webhooks-de-saida)
+- [Janela de 24h](/comecar/janela-de-24h), [Templates da Meta](/produto/templates-whatsapp)
+- Termos para buscar: "multipart/form-data upload", "curl -F file upload",
+  "WhatsApp supported media types", "OGG Opus".

@@ -1,0 +1,228 @@
+---
+title: "O que a Zatten injeta no contexto"
+description: "Leia para saber quais dados do lead e do relógio o agente recebe a cada mensagem (os blocos \"Contexto do lead atual\" e \"Agora\"), como ligar o envio, como marcar propriedades para ir à IA e como citar esses blocos no prompt."
+---
+
+A cada mensagem, a Zatten acrescenta ao pedido do agente dois blocos de texto
+que o prompt não precisa conter:
+
+- **"Contexto do lead atual"**: nome, WhatsApp, notas, tags, coluna do funil e
+  as propriedades marcadas para ir à IA. Só vai com **Enviar dados** ligado.
+- **"Agora"**: dia da semana, data e hora cheia de Brasília. Vai **sempre**.
+
+Com isso o agente sabe com quem fala e que horas são, sem que o prompt mude de
+conversa para conversa. Vale para o **LangChain Agent**.
+
+## Onde fica no painel
+
+Em **Agente**, seção **Modelo**, clique no ícone de configurações ao lado do
+modelo. Em **Configurações do modelo**, a chave **Enviar dados** liga o bloco
+"Contexto do lead atual". Como todo o config do agente, a mudança vale depois de
+**Publicar**.
+
+O bloco "Agora" não tem chave: vai em toda mensagem.
+
+## Como os blocos chegam ao modelo
+
+Os dois blocos vão juntos, numa mensagem de sistema colocada **no fim** do pedido,
+depois do histórico da conversa:
+
+```text
+## Contexto do lead atual
+- Nome: Mariana Souza
+- ID: 3f2b9c1e-...
+- WhatsApp: 5511987654321
+- Notas: Prefere atendimento à tarde.
+- Tags: Novo paciente, Convênio
+- Propriedades: convenio: Bradesco, especialidade: Ortodontia
+- Etapa do Kanban: Em atendimento
+- lead_created_at: 2026-09-12T14:03:22+00:00
+
+## Agora
+segunda-feira, 06/10/2026, 14h (horario de Brasilia)
+```
+
+Os títulos são exatamente **`## Contexto do lead atual`** e **`## Agora`**. Eles não
+mudam, e o prompt pode citá-los pelo nome.
+
+### O que entra no "Contexto do lead atual"
+
+| Linha | De onde vem |
+|---|---|
+| **Nome** | O nome do lead em **Contatos**. |
+| **ID** | O identificador interno do lead na Zatten. |
+| **WhatsApp** | O número do lead, só dígitos, com DDI. |
+| **Notas** | As anotações do lead (painel do lead, em **Conversas**). |
+| **Tags** | Os **nomes** das tags aplicadas ao lead. |
+| **Propriedades** | As propriedades **marcadas para ir à IA** que têm valor, no formato `slug: valor`. |
+| **Etapa do Kanban** | O nome da coluna em que o lead está. |
+| **lead_created_at** | A data de criação do lead, em UTC. Aparece com esse rótulo técnico. |
+
+Linha sem valor não aparece. Um lead novo, sem tags nem notas, recebe só as linhas
+preenchidas.
+
+### O "Agora"
+
+Dia da semana, data e **hora cheia** no horário de Brasília, sem minutos e sem
+acentos (por exemplo, `terca-feira, 07/10/2026, 9h (horario de Brasilia)`). A hora
+é cheia de propósito: o bloco muda só uma vez por hora, o que preserva o cache do
+provider. Para horário comercial ("8h às 18h"), a precisão de hora basta.
+
+O fuso é sempre o de Brasília. Se o cliente final atende em outro fuso, diga no
+prompt como converter.
+
+## Por que no fim, e não no prompt
+
+O prompt fica igual em todas as conversas e o histórico só cresce, então o
+começo do pedido se repete e o provider o reaproveita do cache (mais barato e mais
+rápido). Os dados do lead e a hora mudam no meio da conversa: se estivessem no
+prompt, quebrariam o cache inteiro a cada mudança. No fim, só o último trecho é
+novo. Veja [Escrever um bom prompt](/engenharia-de-ia/prompt).
+
+Os blocos são lidos **na hora de cada chamada ao modelo**. Se o agente move o lead
+de coluna ou um humano acrescenta uma tag no meio da conversa, a chamada seguinte
+já vê o valor novo.
+
+Os blocos **não são gravados no histórico**. Não aparecem em **Conversas** e não se
+acumulam na conversa. Aparecem no [LangSmith](/engenharia-de-ia/langsmith), se
+estiver ligado.
+
+## Marcar propriedades para ir à IA
+
+Só vão ao agente as propriedades marcadas com **enviar para a IA**
+(`send_to_ai`). A marcação **vem ligada por padrão**: propriedade criada pelo painel
+já vai para a IA. A tela de propriedades não mostra a opção; para mudá-la, use o
+**template do projeto**, no bloco `properties`. Veja
+[Propriedades personalizadas](/produto/propriedades).
+
+A propriedade vai identificada pelo **slug** (`convenio`), não pelo nome
+("Convênio"). Escreva o prompt com o slug.
+
+Marque só o que ajuda o agente a decidir: convênio, interesse, faixa de preço,
+etapa da negociação. Dados que o agente não usa só aumentam o pedido.
+
+## Como citar os blocos no prompt
+
+```markdown
+# Dados do lead
+Use o bloco "Contexto do lead atual" antes de perguntar algo:
+- Se o Nome estiver lá, cumprimente pelo nome e não pergunte de novo.
+- Se a propriedade convenio estiver preenchida, não pergunte o convênio.
+- Se a Etapa do Kanban for "Agendado", não ofereça novo horário: pergunte se
+  quer remarcar.
+- Se tiver a tag "VIP", ofereça o horário preferencial.
+
+# Horário
+Atendimento humano: segunda a sexta, 8h às 18h. Compare com o bloco "Agora".
+Fora desse horário, avise que a equipe responde no próximo dia útil.
+```
+
+## Ligar "Enviar dados"
+
+Recomendação: **ligado**, em todo projeto. Sem ele, o agente não sabe o nome, as
+tags, a coluna nem as propriedades do lead; só vê o prompt e a conversa.
+
+Quando o campo não existe no config, o padrão do agente é **desligado**. Projetos
+migrados do motor antigo nascem com ele **ligado**. Confira em cada projeto.
+
+<Note>
+Não confunda com o **Enviar dados da conversa** das [tools HTTP](/engenharia-de-ia/tools/http).
+Lá, a opção acrescenta a identidade do lead (ID, número, conversa) ao **corpo da
+chamada** para a sua API. Aqui, os dados vão para o **modelo**.
+</Note>
+
+## Como funciona por trás
+
+O servidor da Zatten lê, a cada mensagem, o lead, a coluna, os nomes das tags e as
+propriedades com `send_to_ai` ligado, e envia esses dados junto do lote para o
+agente. O agente monta os dois blocos e os põe no fim do pedido. No chat de teste
+do painel, os dados vêm do lead de teste do projeto.
+
+## Pelo MCP
+
+- **Enviar dados**: `langchain.config.instructions.inject_context` (`true` ou
+  `false`). Escrever cria uma versão não publicada.
+- **Propriedade para a IA**: `properties[].send_to_ai` no template do projeto.
+
+<Visibility for="agents">
+```json
+{
+  "properties": [
+    { "slug": "convenio", "name": "Convênio", "send_to_ai": true }
+  ],
+  "langchain": {
+    "config": {
+      "instructions": { "system_prompt": "…", "inject_context": true }
+    }
+  }
+}
+```
+
+- Campos do contexto enviados ao agente: `lead_name`, `lead_id`, `wa_id`,
+  `lead_notes`, `lead_tags` (nomes), `lead_properties` (`{slug: valor}`, só
+  `send_to_ai = true`), `lead_kanban_stage` (nome da coluna), `lead_created_at`
+  (ISO, UTC).
+- Rótulos no bloco: Nome, ID, WhatsApp, Notas, Tags, Propriedades, Etapa do
+  Kanban; `lead_created_at` sai com o próprio nome. `attendant_id` e `thread_id`
+  nunca vão ao modelo.
+- Ordem das linhas: Nome, ID, WhatsApp, Notas, Tags, Propriedades, Etapa do
+  Kanban, lead_created_at. Campos vazios são omitidos.
+- O bloco é uma `SystemMessage` no fim de `messages`, montada a cada chamada ao
+  modelo e nunca persistida no checkpoint.
+- `inject_context` ausente = `false` no agente. A migração grava `true`.
+- `send_to_ai` é `true` por padrão. Ao recomendar mudar, liste as propriedades com
+  o slug e diga ao usuário que a opção não aparece na tela de propriedades.
+</Visibility>
+
+## Armadilhas
+
+- **"Enviar dados" desligado sem ninguém perceber.** O agente pergunta o nome a
+  quem já se apresentou e ignora tags e etapa. Confira a chave em todo projeto.
+- **Propriedade com `send_to_ai` desligado.** O valor existe no lead, mas o agente
+  não vê. Não há aviso. (O padrão é ligado; isso acontece quando alguém desligou pelo
+  template.)
+- **Prompt usando o nome da propriedade.** O bloco usa o **slug**. "Se o Convênio
+  for…" funciona pior que "Se a propriedade convenio for…".
+- **Anotações internas vão para o modelo.** Tudo o que a equipe escreve em Notas
+  é enviado ao provider de IA (e ao LangSmith, se ligado). Não escreva ali o que
+  não deve sair da Zatten.
+- **Fuso fixo.** O "Agora" é sempre Brasília. Cliente final em outro fuso precisa
+  de instrução no prompt.
+- **Hora sem minutos.** Não peça ao agente cálculos que dependam de minutos
+  ("faltam 15 minutos para fechar").
+- **Renomear coluna ou tag muda o que o agente lê.** O prompt que compara a coluna
+  com "Agendado" deixa de funcionar se a coluna virar "Consulta marcada".
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="O agente vê as propriedades que ele mesmo preencheu?">
+Sim, se a propriedade estiver marcada para ir à IA. Na chamada seguinte ao
+modelo, o valor novo já está no bloco.
+</Accordion>
+<Accordion title="O cliente final vê esses blocos na conversa?">
+Não. Eles não são gravados no histórico e não aparecem em Conversas.
+</Accordion>
+<Accordion title="Posso mandar outros dados do lead, de um sistema externo?">
+Não pelo contexto. Grave o dado numa propriedade marcada para ir à IA (pela API
+ou por um fluxo), ou crie uma [tool HTTP](/engenharia-de-ia/tools/http) que o
+agente chama para buscar.
+</Accordion>
+<Accordion title="E no motor antigo?">
+O motor antigo não tem esses blocos. Ele é legado: [migre para o LangChain
+Agent](/engenharia-de-ia/migrar).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Escrever um bom prompt](/engenharia-de-ia/prompt)
+- [Propriedades personalizadas](/produto/propriedades)
+- [Tool HTTP: referência](/engenharia-de-ia/tools/http) (o outro "Enviar dados", da conversa)
+- [Referência do config do agente](/engenharia-de-ia/referencia-do-config)
+- Anthropic, "Effective context engineering for AI agents": https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+- LangChain, engenharia de contexto: https://docs.langchain.com/oss/python/langchain/context-engineering
+- OpenAI, cache de prompt: https://developers.openai.com/api/docs/guides/prompt-caching
+
+**Termos para buscar:** "context engineering", "runtime context LangChain",
+"prompt caching dynamic content at the end", "inject_context".

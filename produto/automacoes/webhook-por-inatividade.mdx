@@ -1,0 +1,133 @@
+---
+title: "Webhook por inatividade"
+description: "Leia para avisar um sistema externo quando um lead fica um tempo sem interação: atraso, filtros de tag e coluna e o payload, que é uma foto do lead no momento do agendamento."
+---
+
+O webhook por inatividade manda um `POST` com os dados do lead para um endereço seu **depois de um tempo sem interação**. Serve para avisar um vendedor, criar uma tarefa no CRM externo ou disparar uma cadência em outra ferramenta quando o lead esfria.
+
+## Onde fica no painel
+
+**Automações → Automações nativas → criar → Webhook por Inatividade.** Funciona em todas as conexões.
+
+## Como configurar
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Nome do Webhook** | Nome na lista. Também vai no payload, no campo `name`. Obrigatório. | — |
+| **URL de destino** | O endereço que recebe o `POST`. URL válida, obrigatória. | — |
+| **Tempo de inatividade** | Número inteiro, mínimo 1, em **Minutos**, **Horas** ou **Dias**. | — |
+| **Tags (opcional)** | Só leads com pelo menos uma das tags. Vazio vale para todos. | Todos |
+| **Colunas (opcional)** | Só leads em uma das colunas. Vazio vale para todos. | Todos |
+
+Salvar com o webhook ligado também zera a contagem de falhas do desligamento automático (veja [Webhooks de eventos](/produto/automacoes/webhooks)).
+
+## Como funciona por trás
+
+### Quando é agendado e cancelado
+
+Segue o mesmo ciclo do follow-up ([Quando as automações disparam](/produto/automacoes/quando-disparam)):
+
+- **Agenda** a cada interação concluída: o agente respondeu, um humano respondeu pelo CRM, o lead foi movido pelo CRM para uma coluna com "Disparar automações", ou `POST /automations/trigger`.
+- **Refaz do zero** a cada nova interação concluída. "Inatividade" é o tempo desde a última interação.
+- **Cancela** quando o lead escreve com a IA pausada ou desligada, ou com o agente fora do horário.
+
+### O payload é uma foto do agendamento
+
+O JSON é **montado quando a interação termina**, não quando é enviado. Se o webhook é de 2 dias, ele leva a coluna, as tags e as propriedades que o lead tinha 2 dias antes.
+
+Na hora do envio, a Zatten só confere se o webhook continua ligado, se o lead ainda bate nas tags e colunas do filtro e se a conversa não foi encerrada. Se o lead mudou de coluna e saiu do filtro, nada é enviado.
+
+### O envio
+
+`POST` com `Content-Type: application/json`, tempo limite de 20 segundos, sem assinatura e sem nova tentativa. Dez falhas seguidas desligam o webhook, igual ao [webhook de eventos](/produto/automacoes/webhooks).
+
+### Payload
+
+O mesmo formato dos eventos de lead e conversas do webhook de eventos, com **`name` no lugar de `type`**:
+
+```json
+{
+  "name": "Lead esfriou 2h",
+  "lead": {
+    "id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d",
+    "name": "Maria Souza",
+    "wa_id": "5511999998888",
+    "thread_id": "zt_8d7c6b5a",
+    "last_interaction": "2026-10-06T14:03:21.000+00:00",
+    "conversation_expires_in": "2026-10-07T14:03:21+00:00",
+    "created_at": "2026-10-01T09:12:44.512+00:00",
+    "ai_response_block": false,
+    "tags": ["b2c1d0e9-0000-4000-8000-000000000001"],
+    "tenant_id": "a1b2c3d4-0000-4000-8000-000000000002",
+    "unread_messages": 0,
+    "column_id": "c0l00000-0000-4000-8000-000000000003",
+    "metadata": [
+      { "prop_name": "cidade", "prop_value": "Campinas" }
+    ],
+    "assigned_to_user": "u5e7r000-0000-4000-8000-000000000004",
+    "zatten_thread_id": "zt_8d7c6b5a"
+  },
+  "attendant": {
+    "id": "p40j3t00-0000-4000-8000-000000000006",
+    "meta_number_id": "102030405060708"
+  },
+  "timestamp": "2026-10-06T14:03:22.000Z"
+}
+```
+
+- `timestamp` é o momento do **agendamento**, não do envio. A hora do envio é aproximadamente `timestamp` + o tempo de inatividade.
+- Não há `message`.
+- Campos sem valor não vêm. `tags` são ids; `metadata` usa o slug da propriedade em `prop_name`. Significado de cada campo em [Webhooks de eventos](/produto/automacoes/webhooks#campos).
+
+## Webhook por inatividade x webhook de eventos
+
+| | Por inatividade | De eventos |
+|---|---|---|
+| Quando | Depois de X tempo sem interação | Na hora do evento |
+| Identifica o envio | `name` | `type` (ou `event`) |
+| Dados do lead | Foto do agendamento | Do momento do evento |
+| Filtros | Tags e colunas | Só a escolha dos eventos |
+
+## Pelo MCP
+
+Bloco `integration_webhooks`.
+
+- Identificado por `name`. Mudar o nome cria outro.
+- Sem `url`, nasce desligado e sem endereço; só liga com endereço. `url` vazia não grava por cima.
+- `delay` + `delay_unit` (`MINUTES`, `HOURS`, `DAYS`).
+- `columns` e `tags` vão por nome; os que não existem são retirados, com nota.
+- Como no webhook de eventos, o motivo de um desligamento automático não aparece: só `status: "INACTIVE"`.
+
+<Visibility for="agents">
+```json
+{
+  "integration_webhooks": [
+    {
+      "name": "Lead esfriou 2h",
+      "url": "https://crm.exemplo.com/zatten/inativo/7f3a9c...",
+      "delay": 2,
+      "delay_unit": "HOURS",
+      "columns": ["Em negociação"],
+      "tags": null,
+      "status": "ACTIVE"
+    }
+  ]
+}
+```
+</Visibility>
+
+## Armadilhas
+
+- **Dados velhos no payload.** Se o seu sistema precisa do estado atual (coluna, responsável), consulte `GET /leads/{numero}` ao receber, usando `lead.wa_id`.
+- **Humano atendendo também conta como interação.** A resposta pelo CRM reagenda o webhook. Filtre por coluna se não quiser avisos durante o atendimento humano.
+- **Tempo de inatividade não é "sem resposta do lead".** Ele conta a partir da última resposta do agente ou do humano. Se o lead manda mensagem e o agente responde, o relógio volta a zero.
+- **Encerrar o atendimento descarta o envio pendente.**
+- **Endpoint lento desliga o webhook.** Responda 2xx rápido e processe depois. Veja [Como montar o endpoint que recebe](/produto/automacoes/webhooks#como-montar-o-endpoint-que-recebe).
+
+## Para saber mais
+
+- [Webhooks de eventos](/produto/automacoes/webhooks)
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- [Transbordo por inatividade](/produto/automacoes/transbordo-por-inatividade): para mover o lead para um humano em vez de avisar um sistema.
+- [API: leads](/api/leads)
+- Termos para buscar: "webhook de inatividade", "lead parado", "scheduled webhook".

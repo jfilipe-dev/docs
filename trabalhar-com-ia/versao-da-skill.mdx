@@ -1,0 +1,42 @@
+---
+title: "Versão da skill"
+description: "Leia para saber qual é a versão atual da skill zatten e como atualizar. O assistente consulta esta página no começo de cada sessão e avisa se a skill instalada estiver velha."
+---
+
+**Versão atual da skill `zatten`: 2.0.0**
+
+O assistente compara este número com a versão da skill instalada (campo
+`metadata.version` do `SKILL.md`). Se a instalada for menor, ele avisa a pessoa e
+mostra o comando de atualização.
+
+## Como atualizar
+
+| Onde a skill foi instalada | Comando |
+|---|---|
+| Plugin do Claude Code | `claude plugin update zatten@zatten` e depois `/reload-plugins` (ou abra uma sessão nova) |
+| `npx skills` (Codex, Cursor e outros) | `npx skills update zatten` |
+
+<Tip>
+No Claude Code, ligue a atualização automática do marketplace `zatten` em
+`/plugin` → Marketplaces. Ela vem desligada para marketplaces de terceiros.
+</Tip>
+
+## O que mudou
+
+### 2.0.0
+
+- A skill passa a ser curta e estável: regras, fluxo de trabalho e o mapa desta
+  documentação. O conhecimento de produto mora aqui na doc.
+- Diretório da agência (`AGENTS.md`, `AGENCIA.md`, `clientes/`), memória por
+  cliente e snapshots sem credenciais.
+- Plano e "sim" antes de toda escrita, diagnóstico na primeira vez com um cliente
+  e relatório em formato fixo.
+
+### 1.x
+
+- Manual técnico do MCP de template. Substituída pela 2.0.0.
+
+## Para saber mais
+
+- [Instalar a skill e o MCP](/trabalhar-com-ia/instalar)
+- [As regras que o assistente segue](/trabalhar-com-ia/regras)

@@ -1,0 +1,147 @@
+---
+title: "Catálogos: colunas, tags e propriedades"
+description: "Leia para descobrir os ids e slugs que as outras rotas pedem: GET /kanban (colunas do funil), GET /tags, GET /properties e GET /properties/{slug}/values (valores aceitos de uma propriedade em lista), com respostas, erros e exemplos."
+---
+
+As rotas de lead pedem **ids** (de coluna e de tag) e **slugs** (de propriedade), nunca
+nomes. Os catálogos devolvem esses identificadores para o projeto da chave.
+
+| Rota | Devolve | Usado em |
+|---|---|---|
+| `GET /kanban` | Colunas do funil, com id | `PATCH /leads/{numero}/kanban` (`column_id`) |
+| `GET /tags` | Tags, com id | `POST`/`DELETE /leads/{numero}/tag` (`tag_id`) |
+| `GET /properties` | Propriedades, com slug | `PATCH /leads/{numero}/properties` (`property`) |
+| `GET /properties/{slug}/values` | Valores aceitos de uma propriedade em lista | `value` da mesma rota |
+
+Os catálogos são só leitura. Criar ou mudar colunas, tags e propriedades é configuração:
+pelo painel, pelo MCP ou pela [API de template](/api/template).
+
+<Tip>
+Os ids não mudam quando alguém renomeia uma coluna ou tag. Guarde os ids no seu sistema e
+consulte o catálogo de vez em quando para pegar itens novos.
+</Tip>
+
+## `GET /kanban`
+
+```bash
+curl "https://api.zatten.com/api/v1/kanban" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+**200**: uma lista, na ordem do funil (a primeira é a coluna de entrada).
+
+```json
+[
+  { "id": "c0l00000-0000-4000-8000-000000000003", "name": "Novo lead", "color": "#3B82F6" },
+  { "id": "c0l00000-0000-4000-8000-000000000009", "name": "Orçamento enviado", "description": "Lead recebeu o valor", "color": "#F59E0B" }
+]
+```
+
+| Campo | O que é |
+|---|---|
+| `id` | Id da coluna. |
+| `name` | Nome. |
+| `description` | Descrição. Some quando vazia. |
+| `color` | Cor. Some quando vazia. |
+
+Também serve para conferir de qual projeto é uma chave: compare as colunas com as do
+projeto que você espera.
+
+## `GET /tags`
+
+```bash
+curl "https://api.zatten.com/api/v1/tags" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+**200**: uma lista com os mesmos campos das colunas.
+
+```json
+[
+  { "id": "b2c1d0e9-0000-4000-8000-000000000001", "name": "Clareamento", "color": "#10B981" },
+  { "id": "b2c1d0e9-0000-4000-8000-000000000002", "name": "VIP", "description": "Paciente recorrente", "color": "#8B5CF6" }
+]
+```
+
+## `GET /properties`
+
+```bash
+curl "https://api.zatten.com/api/v1/properties" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+**200**
+
+```json
+[
+  { "id": "a7b8c9d0-0000-4000-8000-000000000010", "name": "Cidade", "slug": "cidade", "is_enum": false },
+  { "id": "a7b8c9d0-0000-4000-8000-000000000011", "name": "Convênio", "slug": "convenio", "description": "Plano de saúde do paciente", "is_enum": true }
+]
+```
+
+| Campo | O que é |
+|---|---|
+| `slug` | O identificador usado na API, nos templates (`{{slug}}`) e nas tools do agente. |
+| `name` | Nome no painel. |
+| `is_enum` | `true`: propriedade com **valores pré-definidos** (só aceita um da lista). `false`: texto livre. |
+| `description` | Descrição. Some quando vazia. |
+
+## `GET /properties/{slug}/values`
+
+Lista os valores aceitos de uma propriedade com valores pré-definidos.
+
+```bash
+curl "https://api.zatten.com/api/v1/properties/convenio/values" \
+  -H "x-api-key: $ZATTEN_API_KEY"
+```
+
+**200**
+
+```json
+{
+  "slug": "convenio",
+  "name": "Convênio",
+  "is_enum": true,
+  "values": [
+    { "id": "f1e2d3c4-0000-4000-8000-000000000020", "value": "Unimed" },
+    { "id": "f1e2d3c4-0000-4000-8000-000000000021", "value": "Particular", "description": "Sem convênio" }
+  ]
+}
+```
+
+Mande o `value` exatamente como vem aqui (maiúsculas e acentos contam).
+
+| Código | `error` | Causa |
+|---|---|---|
+| 404 | `Property not found` | Slug inexistente no projeto. |
+| 400 | `Property "…" is a text property and accepts any value` | A propriedade é de texto livre: não tem lista. |
+
+## Erros comuns aos catálogos
+
+| Código | `error` | Causa |
+|---|---|---|
+| 401 | `Invalid API key` | Chave errada. |
+| 404 | `No kanban columns found` / `No tags found` | Falha momentânea ao ler o catálogo. Tente de novo. |
+
+Projeto sem tags (ou sem propriedades) devolve lista vazia (`[]`), não 404.
+
+## Pelo MCP
+
+O MCP (`get_template`) traz colunas, tags e propriedades com **nome e slug**, para
+configurar. A API traz os **ids** que as rotas de lead pedem. Para operar leads pela API,
+use os catálogos daqui. Ver [Referência do template](/trabalhar-com-ia/referencia-do-template).
+
+## Armadilhas
+
+- **Nome não serve como identificador.** Coluna e tag vão pelo id; propriedade, pelo
+  slug.
+- **Slug não é o nome.** "Convênio" tem slug `convenio`. Confira em `GET /properties`.
+- **Valor de lista é exato.** `unimed` não é `Unimed`.
+- **Ids são por projeto.** A tag "VIP" de um cliente tem outro id no outro cliente. Não
+  reaproveite ids entre projetos.
+
+## Para saber mais
+
+- [Leads](/api/leads)
+- [Funil (Kanban)](/produto/funil-kanban), [Tags](/produto/tags), [Propriedades](/produto/propriedades)
+- Termos para buscar: "slug identificador", "enum values API".

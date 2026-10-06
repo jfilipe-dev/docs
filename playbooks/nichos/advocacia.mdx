@@ -1,0 +1,227 @@
+---
+title: "Advocacia"
+description: "Leia para montar ou revisar o projeto de um escritório de advocacia: triagem do caso sem parecer jurídico, área do direito, prazo correndo, agendamento da consulta, sigilo, funil, propriedades, automações, configurações recomendadas, métricas e erros comuns."
+---
+
+O agente de um escritório **tria o caso** (área, resumo, urgência), separa o que
+o escritório atende do que não atende e **agenda a consulta** com o advogado
+certo. Ele nunca dá parecer. Uma conversa termina bem quando o caso está resumido
+para o advogado e a consulta está marcada, ou quando um prazo correndo chegou a
+uma pessoa na hora.
+
+## O objetivo do atendimento
+
+| | |
+|---|---|
+| **Conversão** | Consulta agendada. Depois, contrato de honorários. |
+| **A IA faz** | Recebe, identifica a área, resume o caso, recebe documentos, agenda, lembra da consulta. |
+| **O escritório faz** | Análise do caso, orientação jurídica, proposta de honorários, clientes com processo em andamento. |
+| **Nunca** | Dizer se a pessoa "tem direito", estimar valor de causa ou indenização, prometer resultado. |
+
+## Funil recomendado
+
+| Coluna | O que significa | Quem move | Desativar IA | Transbordo | Disparar automações |
+|---|---|---|---|---|---|
+| **Novo Contato** (entrada) | Chegou; a IA está na triagem | Automático | Não | Não | Não |
+| **Consulta agendada** | Data, hora e formato confirmados | Agente ou secretaria | Não | Não | Não |
+| **Atendimento Humano** | A equipe assumiu (prazo correndo, pedido de pessoa, caso sensível) | Agente, falha do modelo | Sim (junto) | **Sim** | Não |
+| **Contratou** | Assinou o contrato | Advogado | Sim | Não | Não |
+| **Fora do escopo** | Área que o escritório não atende | Agente | Não | Não | Não |
+| **Perdido** | Não quis agendar | Agente ou secretaria | Não | Não | Não |
+
+- **"Contratou" desliga a IA.** Cliente com processo fala com a equipe, por
+  sigilo e porque cada pergunta exige análise.
+- **"Fora do escopo" separado de "Perdido"** mostra quanto do tráfego não serve
+  ao escritório. É o primeiro número a olhar quando há anúncio.
+
+O modelo de nicho "Escritórios de Advocacia" cria Novo Contato, Triagem,
+Agendamento, Atendimento Humano, Ganho e Perdido. Renomeie pelo `slug`, crie
+"Fora do escopo" e desligue **Desativar IA** em Perdido.
+
+## Departamentos
+
+Se cada área tem seus advogados, um departamento por área (Trabalhista, Família,
+Previdenciário…), com rodízio. O agente direciona assim que identifica a área, e
+o advogado escolhido recebe o aviso do transbordo. Com uma equipe só, o
+departamento padrão basta.
+
+## Tags
+
+| Tag | Vínculo | Quem põe | Para quê |
+|---|---|---|---|
+| **Prazo correndo** | Conversa | Agente | Audiência marcada, intimação, prazo de recurso. Vai junto com o transbordo, na hora. |
+| **Cliente** | Contato | Equipe, ao mover para Contratou | Marco. Quando um cliente volta numa conversa nova, o agente o reconhece e passa para a equipe. |
+
+Área do direito é **propriedade**, não tag: o modelo de nicho cria uma tag por
+área (Trabalhista, Civil, Criminal, Família), o que soma tools e não guarda o
+valor.
+
+## Propriedades
+
+| Propriedade (slug) | Tipo | Valores | Vínculo | Enviar para a IA |
+|---|---|---|---|---|
+| Área do direito (`area_direito`) | Lista | As áreas atendidas, mais Outra | Conversa | Sim |
+| Resumo do caso (`resumo_do_caso`) | Texto | 2 a 4 frases escritas pelo agente | Conversa | Sim |
+| Formato da consulta (`formato_da_consulta`) | Lista | Presencial, Online | Conversa | Sim |
+| Data da consulta (`data_da_consulta`) | Texto | `AAAA-MM-DD HH:MM` | Conversa | Sim |
+
+O resumo do caso poupa o advogado de ler a conversa inteira antes da consulta.
+
+## Tools
+
+**Ações da Zatten:**
+
+| Tool | Quando usar |
+|---|---|
+| `@properties_update_area_direito` | Quando a área ficar clara. Valores aceitos no "Quando usar". |
+| `@department_select_<area>` | Logo depois de gravar a área, uma ação por departamento. |
+| `@properties_update_resumo_do_caso` | Ao fim da triagem, com fatos, datas e o que a pessoa quer. Sem opinião jurídica. |
+| `@properties_update_formato_da_consulta`, `@properties_update_data_da_consulta` | Ao confirmar a consulta. |
+| `@tag_add_prazo_correndo` | Menção a audiência, intimação, citação ou prazo. Sempre seguida de transferir. |
+| `@kanban_move_consulta_agendada` | Com data, hora e formato confirmados. |
+| `@kanban_move_fora_do_escopo` | Área que o escritório não atende (lista na skill). |
+| `@kanban_move_perdido` | Não quis agendar. |
+| `@schedule_add_lembrete_consulta` | Modo **A IA decide**: 24 horas antes. |
+| `@transbordo_notify` | Prazo correndo, cliente que volta (tag Cliente), pedido de pessoa, caso criminal em flagrante ou violência. |
+
+**Agenda:** a do escritório pela [Composio](/engenharia-de-ia/tools/composio) ou
+pelo sistema jurídico, se tiver API. Sem agenda, o agente coleta dias e períodos
+e a secretaria marca. Veja [Agendamento](/playbooks/agendamento).
+
+**Skill:** `areas_atendidas`: o que o escritório faz e não faz em cada área, os
+documentos que a pessoa deve trazer e se a consulta é cobrada.
+
+São de 11 a 15 tools. Ligue **Filtrar tools**.
+
+## Esqueleto do prompt
+
+```markdown
+# Identidade
+Você é o assistente do escritório Almeida Advogados, no WhatsApp.
+
+# Objetivo
+Entender o caso, confirmar se o escritório atende e agendar a consulta com o
+advogado da área.
+
+# Tom
+Formal, acolhedor e discreto. Frases curtas, uma pergunta por vez.
+
+# Fluxo de atendimento
+1. Cumprimente. Se a tag Cliente estiver no contexto, pergunte do que precisa e
+   transfira (@transbordo_notify).
+2. Peça para a pessoa contar o que aconteceu. Identifique a área
+   (@properties_update_area_direito) e direcione ao departamento.
+3. Se a área não está na skill areas_atendidas, explique com cuidado e
+   @kanban_move_fora_do_escopo.
+4. Pergunte datas importantes e se há prazo ou audiência.
+5. Resuma o caso (@properties_update_resumo_do_caso) e ofereça a consulta.
+6. Confirme data, hora e formato, salve e @kanban_move_consulta_agendada.
+   Agende o lembrete e diga quais documentos levar.
+
+# Quando transferir
+Audiência marcada, intimação ou prazo: @tag_add_prazo_correndo e
+@transbordo_notify na hora. Também quando pedir para falar com um advogado.
+
+# O que nunca fazer
+- Dizer se a pessoa tem direito, se vai ganhar ou quanto vai receber.
+- Orientar o que fazer no processo.
+- Pedir senha, documento completo de terceiros ou dados que a consulta não exige.
+```
+
+## Automações
+
+| Automação | Configuração | Por quê |
+|---|---|---|
+| **Lembrete de consulta** | Ação **Agendar mensagem**, template utilitário `lembrete_consulta` com os documentos a levar, 24 horas antes | Consulta perdida é horário de advogado perdido. |
+| **Retomada** (follow-up) | Coluna Novo Contato; 24 horas; um só | Insistência pesa mais na advocacia. Um toque sóbrio. |
+| **Reengajamento** | Coluna Novo Contato; 60 minutos antes de a janela fechar | Quem parou no meio do relato. Só na conexão oficial. |
+| **Transbordo por inatividade** | Em geral, não use | O prazo correndo já vai para humano pelo agente. |
+| **Conversões** (só com anúncios) | `LeadSubmitted` em Consulta agendada; `Purchase` em Contratou, com o honorário médio | O Meta Ads aprende a trazer casos da área certa. |
+
+A publicidade da advocacia tem regras próprias da OAB. Valide com o escritório
+o texto dos templates, campanhas e anúncios antes de ligar.
+
+O modelo de nicho traz a conversão "Consulta agendada" com o evento `Schedule`
+na coluna Ganho. `Schedule` não aparece enviado: troque por um dos seis eventos
+do painel (por exemplo, `LeadSubmitted`) e pela coluna certa. Veja
+[Conversões para o Meta Ads](/produto/automacoes/conversoes-meta).
+
+## Configurações recomendadas
+
+| Configuração | Valor | Por quê |
+|---|---|---|
+| [Buffer](/engenharia-de-ia/buffer) | 10 a 15 segundos | Relatos longos, em várias mensagens e áudios. |
+| [Pausa humana](/engenharia-de-ia/pausa-humana) | 120 a 240 minutos | A equipe conversa por mais tempo antes de devolver. |
+| [Modelo](/engenharia-de-ia/escolher-o-modelo) | Intermediário, com **Imagem** e **Arquivo** | Lê foto de documento e PDF; resume relatos confusos. |
+| Temperatura | 0 a 0,2 | O modelo de nicho vem com 0,6. Aqui, previsível é melhor. |
+| Raciocínio | Baixo | Ajuda a separar área e urgência em relatos longos. |
+| [Segmentação](/engenharia-de-ia/segmentacao-e-voz) | Ligada, respostas curtas | O agente mais pergunta do que explica. |
+| [Mídia](/engenharia-de-ia/midia) | Áudio, imagem e PDF liberados | O modelo de nicho vem com imagem desligada. |
+| [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) | Avalie a proteção de dados pessoais | Relatos trazem dados sensíveis de terceiros. |
+| [Resiliência](/engenharia-de-ia/resiliencia) | Tentativas 2, fallback de outro fabricante, falha do agente movendo para Atendimento Humano | Um prazo não pode esperar o modelo voltar. |
+
+## Métricas
+
+| Métrica | Como medir |
+|---|---|
+| Fora do escopo | Fora do escopo ÷ leads novos. Alto com anúncio = segmentação errada. |
+| Taxa de agendamento | Consulta agendada ÷ leads dentro do escopo |
+| Contratação | Contratou ÷ consultas agendadas |
+| Prazos escalados | Leads com a tag Prazo correndo; em amostras de conversas, quanto tempo a equipe levou para responder |
+| Leads por área | Filtro por propriedade em [Contatos](/produto/contatos) |
+| Custo de IA por consulta agendada | Custo real ([LangSmith](/engenharia-de-ia/langsmith) ou provider) ÷ consultas |
+
+## Pelo MCP
+
+<Visibility for="agents">
+```json
+{
+  "tags": [
+    { "name": "Prazo correndo", "color": "#EF4444", "scope": "conversation",
+      "description": "Audiência, intimação ou prazo processual mencionado" },
+    { "name": "Cliente", "color": "#22C55E", "scope": "lead" }
+  ],
+  "properties": [
+    { "slug": "area_direito", "name": "Área do Direito", "description": "Área jurídica do caso",
+      "scope": "conversation", "is_enum": true, "send_to_ai": true,
+      "values": [{ "value": "Trabalhista" }, { "value": "Família" }, { "value": "Previdenciário" }, { "value": "Outra" }] },
+    { "slug": "resumo_do_caso", "name": "Resumo do caso", "description": "Fatos, datas e pedido, em 2 a 4 frases",
+      "scope": "conversation", "is_enum": false, "send_to_ai": true }
+  ],
+  "llm_attendant": { "message_buffer": 12, "pause_in_human_interaction": 180,
+    "image_interpretation": true, "pdf_interpretation": true }
+}
+```
+
+- O modelo de nicho cria `area_direito` em texto livre. Se já houver leads com
+  valor preenchido, a conversão para lista é recusada: proponha uma propriedade
+  nova.
+- As tags de área do modelo (Trabalhista, Civil, Criminal, Família) não são
+  apagadas pela escrita. Proponha tirá-las dos leads e excluí-las pelo painel.
+</Visibility>
+
+## Erros comuns
+
+- **Parecer pelo WhatsApp.** "Pelo que você contou, você tem direito" é o erro mais
+  grave do nicho. Teste tentando arrancar uma opinião.
+- **Prazo que não escala.** "Tenho audiência quinta" precisa chegar a uma pessoa
+  na hora, com a tag e o transbordo.
+- **Área em texto livre ou uma tag por área.** Sem lista, não há filtro nem
+  relatório por área; com tags, sobram tools.
+- **Cliente com processo atendido pela IA.** Quem já é cliente volta numa conversa
+  nova e pergunta do processo. A tag Cliente (contato) faz o agente reconhecer e
+  transferir.
+- **Follow-up insistente ou promocional.** Pesa na imagem do escritório e nas
+  regras da OAB.
+- **Coletar mais dados do que a consulta exige.** Relatos trazem dados de
+  terceiros. Peça o necessário para a triagem.
+
+## Para saber mais
+
+- [Qualificação de leads](/playbooks/qualificacao), [Agendamento](/playbooks/agendamento), [Transbordo para humano bem feito](/playbooks/transbordo)
+- [Skills do agente](/engenharia-de-ia/skills)
+- [Mídia: áudio, imagem e PDF](/engenharia-de-ia/midia)
+- [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- Termos para buscar: "triagem jurídica WhatsApp", "Provimento 205/2021 OAB
+  publicidade", "Código de Ética OAB captação de clientela", "LGPD escritório de
+  advocacia".

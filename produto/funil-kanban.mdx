@@ -1,0 +1,167 @@
+---
+title: "Funil (Kanban)"
+description: "Leia para montar as colunas do funil e entender as três chaves de cada coluna (Desativar IA, Transbordo e Disparar automações), a coluna de entrada e o que acontece quando um lead muda de coluna por cada caminho."
+---
+
+O **funil** é o Kanban do projeto: uma sequência de **colunas** por onde o lead passa.
+Além de organizar, cada coluna pode **desligar a IA**, fazer **transbordo** para um
+humano e **disparar automações** quando o lead entra nela. A primeira coluna é a
+**coluna de entrada**: recebe todo lead novo e é para onde o lead volta ao encerrar o
+atendimento.
+
+## Onde fica no painel
+
+- **Contatos → aba Kanban**: o quadro, com um card por lead. Arraste o card para mudar
+  de coluna.
+- **Gerenciar Colunas** (no topo do Kanban, só no computador): abre **Configurar funil de
+  vendas**, com a **Coluna de entrada** fixa no topo e as **Etapas ativas** abaixo, que se
+  reordenam arrastando. **Adicionar etapa** cria uma coluna.
+- A coluna de um lead também muda na lista de **Contatos** (célula **Kanban**) e no
+  painel do lead, em **Conversas**.
+
+## Como configurar
+
+| Campo | O que faz | Padrão |
+|---|---|---|
+| **Nome** | Nome da coluna. O agente, as automações e o template se referem a ela por este nome | Obrigatório |
+| **Descrição** | Texto livre, para a equipe | Vazio |
+| **Cor** | Cor da coluna, em hexadecimal (`#RRGGBB`) | — |
+| **Desativar IA** | Ao entrar na coluna, a IA fica **desligada** para o lead | Desligado |
+| **Transbordo** | Ao entrar na coluna, desliga a IA e avisa o responsável pelo lead | Desligado |
+| **Disparar automações** | Ao mover o lead **pelo CRM** para esta coluna, reagenda as automações do lead pela coluna nova | Desligado |
+
+Ligar **Transbordo** liga **Desativar IA** junto, e trava essa chave enquanto o
+transbordo estiver ligado.
+
+### A coluna de entrada
+
+- É sempre a primeira. Não sai do lugar nem pode ser excluída pela tela.
+- Recebe os leads novos que chegam pelo WhatsApp e os contatos importados por CSV.
+- É o destino do lead quando alguém **encerra o atendimento**. Veja
+  [Encerrar atendimento](/produto/encerrar-atendimento).
+- Pode ter as chaves como qualquer coluna. Uma coluna de entrada com **Desativar IA**
+  faz o agente não responder a ninguém.
+
+## Como funciona por trás
+
+### O que cada chave faz de verdade
+
+- **Desativar IA:** grava no lead a IA **desligada** (não pausada). Ela só volta quando
+  alguém religa o agente naquele lead (no painel do lead, em massa em Contatos, pela API
+  ou por um fluxo) ou quando o atendimento é encerrado. **Sair da coluna não religa a
+  IA.**
+- **Transbordo:** faz o mesmo e, além disso, manda uma notificação "Transbordo: *nome do
+  lead*" para o **responsável** do lead, com o link da conversa. Sem responsável,
+  ninguém é avisado. A tela fala em "pausa", mas o efeito é a IA desligada até alguém
+  religar.
+- **Disparar automações:** quando o lead entra na coluna por uma mudança **feita no CRM**,
+  a Zatten reagenda as automações do lead olhando a coluna nova: follow-ups,
+  reengajamento (se a janela de 24h estiver aberta) e webhooks por inatividade cujos
+  filtros casam com ela. Só funciona com a conexão oficial. O transbordo por
+  inatividade não é reagendado por aqui. Detalhes em
+  [Quando as automações disparam](/produto/automacoes/quando-disparam).
+
+### Quem move o lead e o que acontece
+
+| Como o lead mudou de coluna | Desativar IA e Transbordo | Disparar automações | Conversões e webhooks de kanban |
+|---|---|---|---|
+| Arrastar no Kanban, célula **Kanban** na lista, painel do lead | Sim | Sim | Sim |
+| Agente (ação "mover no funil") | Sim | Não | Sim |
+| API (mover lead de coluna) e fluxos | Sim | Não | Sim |
+| **Mover** em massa, em **Contatos** | **Não** | **Não** | **Não** |
+
+O mover em massa só troca a coluna dos leads selecionados: não desliga a IA, não faz
+transbordo, não reagenda automações e não envia conversões.
+
+### Excluir uma coluna
+
+- **Coluna com leads não pode ser excluída** ("A coluna não pode ser excluída porque
+  possui leads associados."). Mova os leads antes.
+- Se o agente usa a coluna numa tool (por exemplo, "mover para Agendado"), a tela pede
+  confirmação e **a tool sai do agente junto** com a coluna.
+
+### Ordem
+
+Ao reordenar, a primeira coluna vira a de ordem 0 (entrada) e as outras são numeradas
+em sequência.
+
+## Pelo MCP
+
+As colunas viajam no bloco `columns` do template, na ordem, com as três chaves.
+
+- **Renomeie pelo `slug`.** Mandando o `slug` que veio na leitura e o nome novo, a
+  coluna continua a mesma, com os mesmos leads. Se o agente usa a coluna, mande também
+  o bloco `langchain` na mesma escrita.
+- **`order` é obrigatório.** A coluna com `order` 0 é a de entrada.
+- **A escrita nunca apaga coluna.** Coluna que não veio fica como órfã, intacta.
+- Automações, conversões e fluxos apontam para colunas **pelo nome**. Uma coluna
+  criada na mesma escrita já vale como referência.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | |
+| `order` | número | Obrigatório. 0 = coluna de entrada |
+| `color` | `#RRGGBB` ou null | |
+| `description` | string ou null | |
+| `slug` | string ou null | Chave de identidade; renomeia |
+| `shutdown_ai` | boolean | Desativar IA |
+| `transhipment` | boolean | Transbordo. Ligue `shutdown_ai` junto, como a tela faz |
+| `should_trigger_automations` | boolean | Disparar automações, só em mudança feita pelo CRM |
+
+```json
+{
+  "columns": [
+    { "slug": "novo_contato", "name": "Novo Contato", "order": 0, "color": "#3B82F6" },
+    { "slug": "qualificado", "name": "Qualificado", "order": 1, "color": "#10B981",
+      "should_trigger_automations": true },
+    { "slug": "atendimento_humano", "name": "Atendimento Humano", "order": 2,
+      "color": "#F59E0B", "transhipment": true, "shutdown_ai": true }
+  ]
+}
+```
+
+Regras gerais da escrita em [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona).
+</Visibility>
+
+## Armadilhas
+
+- **Transbordo sem responsável não avisa ninguém.** Garanta que o lead tenha
+  responsável (rodízio do departamento) antes de chegar na coluna. Veja
+  [Departamentos](/produto/departamentos).
+- **A IA não volta ao sair da coluna.** Quem tirou o lead do transbordo precisa religar
+  o agente no lead, ou encerrar o atendimento.
+- **"Disparar automações" não vale para o agente nem para a API.** Se o agente move o
+  lead, as automações não são reagendadas por essa chave.
+- **Mover em massa não aplica nenhuma chave.** Para transbordo ou automações, mova um
+  a um ou use a API.
+- **Nomes repetidos confundem tudo.** O painel aceita duas colunas com o mesmo nome,
+  mas o template, as automações e as tools do agente se referem às colunas pelo nome.
+  Use nomes únicos.
+- **Desativar IA na coluna de entrada** deixa o agente mudo para todo lead novo.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Quantas colunas posso ter?">
+Não há limite na tela. Na prática, de 4 a 8 colunas cobrem a maioria dos funis. Veja
+[Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto).
+</Accordion>
+<Accordion title="Qual a diferença entre Desativar IA e Transbordo?">
+Os dois desligam a IA para o lead. O Transbordo também avisa o responsável.
+</Accordion>
+<Accordion title="Como o agente move o lead?">
+Pela ação da Zatten "mover no funil", configurada no agente para uma coluna
+específica. Veja [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten).
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Tags](/produto/tags) e [Propriedades](/produto/propriedades)
+- [Encerrar atendimento](/produto/encerrar-atendimento)
+- [Quando as automações disparam](/produto/automacoes/quando-disparam)
+- [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta)
+- [Transbordo para humano bem feito](/playbooks/transbordo)
+- [Referência do template](/trabalhar-com-ia/referencia-do-template)
+- Termos para buscar: "funil de vendas", "pipeline Kanban", "handoff para humano".

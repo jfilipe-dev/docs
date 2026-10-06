@@ -1,0 +1,150 @@
+---
+title: "Campanhas"
+description: "Leia antes de planejar uma campanha (envio de template para muitos leads) para um cliente final: quando usar campanha (e quando não), como segmentar com tags, colunas e propriedades, o template certo, o tamanho do lote frente ao limite da Meta, a frequência, preparar o agente para as respostas e medir."
+---
+
+Uma [campanha](/produto/campanhas) manda um template aprovado da Meta para todos os leads de um filtro. É a ferramenta certa para avisos, reativação de base, lançamentos e lembretes em massa. Também é a forma mais rápida de queimar um número: mandar para quem não espera derruba a qualidade e trava os envios do cliente final.
+
+Este playbook é o roteiro de decisão antes de clicar em **Iniciar Campanha**.
+
+<Note>
+Campanhas só existem na **conexão oficial** (e na coexistência), **rodam no navegador** (fechar a aba interrompe o envio) e **não têm agendamento**: saem quando alguém clica. Os detalhes de tela estão em [Campanhas](/produto/campanhas).
+</Note>
+
+## Campanha, follow-up ou fluxo?
+
+| Situação | Use |
+|---|---|
+| Uma mensagem para um grupo, uma vez (lançamento, aviso, reativação) | **Campanha** |
+| Retomar cada lead parado, no tempo dele | **[Follow-up](/playbooks/follow-up-e-reengajamento)** |
+| Uma mensagem quando algo acontece com o lead (entrou numa coluna, ganhou uma tag) | **[Trigger Flow](/produto/trigger-flow/conceitos)**, ação Enviar template |
+| Envio em massa agendado ("amanhã às 9h") | Um sistema da agência chamando a API, um lead por vez, respeitando os limites. Veja [Campanhas](/produto/campanhas#pelo-mcp-e-pela-api). |
+
+## Antes de disparar: o checklist
+
+<Steps>
+<Step title="Quem recebe pediu para falar com a empresa?">
+Mande só para quem já conversou com o cliente final ou deu o número para isso. Base comprada ou lista antiga sem contato recente é o caminho mais curto para bloqueios e denúncias.
+</Step>
+<Step title="O limite do número comporta o público?">
+A tela de execução mostra o **limite de mensagens** do número e o **Faltam enviar**. Acima do limite, só as primeiras mensagens saem. Se o limite aparecer como **Indisponível**, o painel não corta o envio: confira o limite no WhatsApp Manager (Ferramentas da conta → Limites de mensagens) antes de disparar. O limite é do **portfólio de negócios**, conta pessoas diferentes contatadas fora da janela em 24 horas móveis, e é dividido com follow-ups e envios pela API. Portfólio novo começa em 250.
+</Step>
+<Step title="O template está aprovado e com boa nota?">
+Só template **Aprovado** aparece. Confira a nota no WhatsApp Manager: com nota amarela ou vermelha, espere ou use outro template. Template com nota baixa é pausado pela Meta.
+</Step>
+<Step title="Todos os leads do filtro têm os valores das variáveis?">
+O painel já adiciona um filtro "tem a propriedade" para cada variável do template. Não tire esses filtros: lead sem o valor faz o envio daquela mensagem falhar.
+</Step>
+<Step title="O agente está pronto para as respostas?">
+Quem responde abre a janela de 24h e cai no agente, se a IA estiver ligada para ele. Ponha a oferta numa [skill](/engenharia-de-ia/skills) ou no prompt antes do disparo.
+</Step>
+<Step title="Alguém vai deixar a aba aberta até o fim?">
+O envio roda no navegador. Desligar o computador ou perder a internet interrompe. Se cair, **Retomar** continua só com quem ainda não recebeu.
+</Step>
+</Steps>
+
+## Segmentar
+
+A campanha tem um **filtro principal** (uma tag **ou** uma coluna) e **filtros secundários** (tags e propriedades, todos combinados com E).
+
+O que dá e o que não dá:
+
+| Quero mandar para | Como |
+|---|---|
+| Quem está numa etapa do funil | Filtro principal: a coluna |
+| Quem tem uma característica | Filtro principal ou secundário: a tag |
+| Quem tem uma tag **e** outra | Uma no principal, outra no secundário |
+| Quem tem um dado preenchido (ex.: tem e-mail) | Secundário: a propriedade |
+| Quem tem um **valor** de propriedade (ex.: cidade = Recife) | **Não dá direto.** Filtre em **Contatos** por propriedade e valor, selecione todos e aplique uma tag em massa. Use a tag na campanha. |
+| Quem **não** tem uma tag | **Não dá direto.** Aplique uma tag em quem deve receber. |
+
+<Tip>
+**Planeje as tags pensando em campanha.** Se o cliente final vai querer falar com "quem pediu orçamento de implante" daqui a três meses, o agente precisa pôr essa tag hoje. Veja o [playbook de qualificação](/playbooks/qualificacao).
+</Tip>
+
+**Leads importados.** A importação de [Contatos](/produto/contatos) aplica uma tag escolhida na tela a todos os contatos do arquivo. Ao subir uma base para uma campanha, escolha ali a tag do público. O primeiro contato com quem veio por CSV é sempre por template: esses leads não têm janela aberta.
+
+## Dividir em lotes
+
+Quando o público passa do limite do número, ou quando o número é novo, divida:
+
+1. Em **Contatos**, filtre o público e selecione os primeiros leads, até um pouco abaixo do limite.
+2. Aplique a tag "Campanha X - lote 1" em massa.
+3. Repita para os próximos lotes.
+4. Crie uma campanha por lote, com a tag do lote como filtro principal, e rode cada uma num dia.
+
+A tag do lote também resolve o "já enviados": esse controle é **por campanha**. Uma campanha nova manda de novo para quem recebeu a anterior. Com a tag, você sabe exatamente quem recebeu o quê.
+
+## O template certo
+
+| Objetivo | Categoria | Cuidados |
+|---|---|---|
+| Oferta, lançamento, reativação, convite | **Marketing** | Diga quem é na primeira linha. Um botão de resposta rápida ("Quero saber mais") mede interesse e abre a conversa. |
+| Aviso operacional (mudança de horário, endereço novo, instabilidade) | **Utilitário**, se não houver nada promocional | Um cupom no meio faz a Meta tratar como Marketing. |
+
+- **Mídia no cabeçalho:** suba o arquivo pelo painel. Template criado fora da Zatten tem mídia num endereço da Meta que expira, e a campanha não começa.
+- **Variáveis:** `{{nome}}` sempre funciona ("Cliente" quando não há nome). Outras variáveis restringem o público a quem tem a propriedade.
+- **Teste antes:** crie uma campanha com uma tag que só os números da equipe têm e mande o template para vocês mesmos.
+
+## Frequência
+
+A Meta não publica uma frequência máxima. O que ela mede é a reação: bloqueios, denúncias, silenciamentos e arquivamentos nos últimos 7 dias. E limita quantos templates de **marketing** cada pessoa recebe de todas as empresas: quem atinge esse limite deixa de receber por um tempo (erro 131049).
+
+Como regra da agência:
+
+- **No máximo uma campanha de marketing por semana para o mesmo público.** Para a base inteira, menos.
+- **Nunca duas campanhas seguidas** no mesmo dia. A própria tela recomenda evitar.
+- **Não reenvie para quem falhou** com o erro de limite por usuário no mesmo dia. A Meta recomenda esperar pelo menos 24 horas.
+- **Olhe o relatório antes da próxima.** Leitura baixa e falhas altas pedem pausa e revisão do público.
+
+## Quando não disparar
+
+- O número é novo e ainda está no limite de 250, e o público é maior que isso.
+- A nota do número ou do template caiu.
+- A conexão é não oficial (o menu Campanhas nem aparece).
+- O agente não sabe nada sobre a oferta.
+- A campanha pede atendimento humano (o público está numa coluna com **Desativar IA**) e a equipe não vai estar disponível para responder.
+- O público é de leads com atendimento humano em curso, desqualificados ou que pediram para parar.
+
+## Durante e depois
+
+- **Fila de envio:** acompanhe pendente, processando, enviado e erro. **Pausar** termina o lote atual e para; **Retomar** continua com quem falta.
+- **Relatório:** **Enviadas**, **Entregues**, **Lidas** e **Falhas**, com o erro de cada falha e o atalho para o chat do lead.
+- **Respostas:** chegam em **Conversas**. O agente responde; quem pede humano segue o [transbordo](/playbooks/transbordo).
+- **Resultado:** leads que avançaram no funil depois da campanha (filtre em **Contatos** pela tag do público e veja a coluna).
+- **Custo:** a estimativa da tela é uma referência fixa, em dólar. O valor real depende da categoria, do país e da tabela atual da Meta. Cada resposta do agente a quem respondeu também é cobrada como mensagem de serviço. Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao).
+
+## Pelo MCP e pelo assistente
+
+Campanhas não viajam no template do projeto: o MCP não lê nem cria campanhas. O assistente de IA da agência **não** dispara mensagem em lote pela API: isso é campanha, e campanha tem tela própria (regra 8 de [As regras](/trabalhar-com-ia/regras)). O que ele pode fazer:
+
+- redigir o texto do template, a categoria e as variáveis (quem cria e envia à Meta é uma pessoa, no painel);
+- montar o plano de público, tags e lotes;
+- pelo [navegador](/trabalhar-com-ia/navegador), preparar a campanha com "sim" a cada passo; o clique em **Iniciar Campanha** é de uma pessoa.
+
+<Visibility for="agents">
+- Para listar o público de uma campanha, a lista vem da exportação de **Contatos** ou de ids e números que a pessoa passa. Mostre a contagem antes de qualquer ação em lote.
+- Aplicar uma tag em vários leads pela API é ação em vários leads: mostre a lista e a contagem e peça "sim".
+- Nunca chame `POST /api/v1/messages/template` em loop para vários leads.
+</Visibility>
+
+## Armadilhas
+
+- **Fechar a aba interrompe o envio.** Deixe aberta até **Concluída**.
+- **Passou do limite, o resto não sai**, e a campanha termina como concluída.
+- **"Já enviados" é por campanha.** A campanha nova reenvia para quem recebeu a anterior.
+- **Concluída não roda de novo.** Para quem entrou no filtro depois, crie outra.
+- **Filtro de propriedade é só "preenchida".** Para valor, use tag.
+- **Lead sem o valor da variável falha.** Mantenha os filtros automáticos.
+- **Mídia de template criado fora da Zatten expira.** Suba de novo pelo painel.
+- **O limite é do portfólio.** Outros números do mesmo portfólio gastam o mesmo limite.
+
+## Para saber mais
+
+- [Campanhas](/produto/campanhas) (a tela, passo a passo)
+- [Templates do WhatsApp](/produto/templates-whatsapp)
+- [Tags](/produto/tags), [Contatos](/produto/contatos), [Propriedades](/produto/propriedades)
+- [Follow-up e reengajamento](/playbooks/follow-up-e-reengajamento): qualidade e limites da Meta
+- [Janela de 24h](/comecar/janela-de-24h) e [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- Meta: [limites de mensagens](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits), [qualidade das mensagens](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages#message-quality), [qualidade de template](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-quality), [limite de marketing por usuário](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/marketing-templates/per-user-limits), [categorias](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-categorization), [preços](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing).
+- Termos para buscar: "WhatsApp broadcast best practices", "messaging limits", "template quality", "opt-in WhatsApp", "error 131049".

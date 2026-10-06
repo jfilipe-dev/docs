@@ -1,0 +1,106 @@
+---
+title: "Conversões para o Meta Ads (CTWA)"
+description: "Leia para informar ao Meta Ads as conversões de leads que vieram de anúncios Click-to-WhatsApp: evento por coluna, só para lead de anúncio, valor em Purchase, moeda BRL e deduplicação."
+---
+
+Esta automação avisa o **Meta Ads** quando um lead que veio de um anúncio **Click-to-WhatsApp** avança no funil. Você liga um evento (Lead, Compra…) a uma coluna; quando o lead entra nela, a Zatten envia o evento pela **Conversions API** da Meta. Com isso, o gerenciador de anúncios vê quais campanhas geram vendas, não só conversas, e otimiza a entrega.
+
+## Onde fica no painel
+
+**Automações → Automações nativas → criar → Meta ADS - API de Conversão.** Só aparece na conexão oficial (e na coexistência). O projeto precisa ter pelo menos uma coluna.
+
+## Como configurar
+
+| Campo | O que faz |
+|---|---|
+| **Nome da Automação de Conversão** | Nome na lista. Obrigatório. |
+| **Coluna** | A coluna do Kanban que dispara o evento quando o lead entra nela. Obrigatória. |
+| **Evento** | O evento enviado à Meta: `LeadSubmitted`, `InitiateCheckout`, `Purchase`, `ViewContent`, `CartAbandoned` ou `AddToCart`. |
+| **Valor da Conversão (R$)** | Só em `Purchase`, e aí obrigatório (maior que zero). Moeda sempre **BRL**. |
+
+Um mapeamento comum:
+
+| Coluna | Evento |
+|---|---|
+| Qualificado | `LeadSubmitted` |
+| Orçamento enviado | `InitiateCheckout` |
+| Venda fechada | `Purchase`, com o valor médio do ticket |
+
+## Como funciona por trás
+
+### Quando dispara
+
+O evento sai quando um lead **que veio de anúncio** entra na coluna configurada:
+
+- **Movido para a coluna**, por qualquer caminho de um lead por vez: CRM, API, agente ou transbordo por inatividade.
+- **Chegou pelo anúncio**: quando a mensagem do anúncio chega, a Zatten guarda os dados do clique e já envia as conversões da coluna em que o lead está. Assim, uma conversão ligada à coluna de entrada sai logo na primeira mensagem.
+
+Ações em massa no CRM não enviam conversões.
+
+### Quem conta como "lead de anúncio"
+
+O lead cuja mensagem chegou por um anúncio Click-to-WhatsApp, com o id do clique (`ctwa_clid`). A Zatten guarda o **primeiro** clique do lead. Lead orgânico, importado ou que chegou por outro canal não gera evento nenhum, e nada avisa: a automação simplesmente não age.
+
+### O que é enviado
+
+Um evento por conversão, com o horário do momento, origem `business_messaging` no canal `whatsapp`, a conta do WhatsApp Business, o `ctwa_clid` e o telefone e o nome do lead em hash SHA-256. Em `Purchase`, vai também o valor em BRL.
+
+### Deduplicação
+
+Cada evento sai **uma vez por lead e por clique**. Se o lead sai e volta para a coluna, o evento não é reenviado. Um segundo `Purchase` do mesmo lead, vindo do mesmo anúncio, também não.
+
+Se o envio falha (credencial da Meta inválida, por exemplo), não há nova tentativa, e a falha não aparece no painel. As conversões enviadas aparecem em [Métricas](/produto/metricas).
+
+## Pelo MCP
+
+Bloco `conversions`.
+
+- Identificado por `name`. Nasce desligado.
+- A coluna vai por nome, em `column_name`. Coluna inexistente faz a conversão ser ignorada, com nota.
+- Use **só os seis eventos do painel**: `LeadSubmitted`, `AddToCart`, `InitiateCheckout`, `Purchase`, `ViewContent` e `CartAbandoned`. O campo `event` aceita outros nomes, mas hoje só esses seis aparecem como enviados no registro de conversões. Conversões com `Schedule` ou com nome personalizado (como `QualifiedLead`) não aparecem enviadas, nem com erro. Não use.
+- `value` só vale em `Purchase`.
+
+<Visibility for="agents">
+```json
+{
+  "conversions": [
+    { "name": "Lead qualificado", "event": "LeadSubmitted", "column_name": "Qualificado", "value": null, "status": "ACTIVE" },
+    { "name": "Venda", "event": "Purchase", "column_name": "Venda fechada", "value": 450, "status": "ACTIVE" }
+  ]
+}
+```
+Eventos que de fato saem hoje: `LeadSubmitted`, `AddToCart`, `InitiateCheckout`, `Purchase`, `ViewContent`, `CartAbandoned`. Não escreva `Schedule` nem nome personalizado em `event`: a conversão fica gravada, mas nada aparece enviado. Se um template trouxer uma conversão assim, troque o evento por um dos seis.
+</Visibility>
+
+## Armadilhas
+
+- **Só funciona com lead de anúncio Click-to-WhatsApp.** Testar movendo um lead orgânico não envia nada.
+- **Só os seis eventos do painel saem.** Conversão com `Schedule` ou com nome personalizado não aparece enviada (nem com erro). Modelos de nicho antigos trazem `Schedule` em "Consulta agendada": troque por um dos seis.
+- **Valor fixo em `Purchase`.** O valor é o da automação, não o da venda real. Para valores diferentes, crie colunas diferentes (ou use um ticket médio).
+- **Um evento por clique.** Recompra do mesmo lead, vinda do mesmo anúncio, não é informada de novo.
+- **O primeiro anúncio fica com o crédito.** Se o lead volta por outro anúncio, as conversões continuam atribuídas ao primeiro clique.
+- **Moeda sempre BRL.** Contas de anúncio em outra moeda recebem o valor como BRL.
+- **Trocar a conexão para não oficial** faz as conversões pararem, mesmo ligadas.
+- **Mover vários leads de uma vez** pelo CRM não envia conversões. Mova um por vez ou pela API.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Onde vejo as conversões no Meta Ads?">
+No Gerenciador de Eventos e nas colunas de resultados das campanhas de mensagem, conforme a configuração da sua conta de anúncios. Os nomes dos eventos são os da Meta (por exemplo, `Purchase` aparece como compra).
+</Accordion>
+<Accordion title="Preciso configurar pixel ou dataset?">
+Não. A Zatten cria o dataset da conta do WhatsApp Business ao enviar o primeiro evento.
+</Accordion>
+<Accordion title="Uma conversão por coluna ou várias?">
+Uma coluna pode ter várias conversões (eventos diferentes). Cada uma é enviada uma vez por lead e por clique.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Funil (Kanban)](/produto/funil-kanban)
+- [Webhooks de eventos](/produto/automacoes/webhooks): `adsData` no `LEAD_CREATED`.
+- [Playbook: anúncios Click-to-WhatsApp](/playbooks/anuncios-ctwa)
+- Meta: [Conversions API para mensagens](https://developers.facebook.com/documentation/ads-commerce/conversions-api/business-messaging), [anúncios Click-to-WhatsApp](https://developers.facebook.com/documentation/ads-commerce/marketing-api/ad-creative/messaging-ads/click-to-whatsapp).
+- Termos para buscar: "Conversions API business messaging", "ctwa_clid", "Click-to-WhatsApp ads", "action_source business_messaging".

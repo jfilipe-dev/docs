@@ -1,0 +1,145 @@
+---
+title: "Quando as automações disparam"
+description: "Leia para entender o que agenda e o que cancela follow-up, transbordo, webhook por inatividade e reengajamento, e para descobrir por que uma automação não disparou."
+---
+
+Follow-up, transbordo por inatividade e webhook por inatividade não olham o relógio sozinhos: eles são **agendados** quando uma interação com o lead termina e **cancelados** quando o lead escreve enquanto a IA está parada. O reengajamento segue outra regra: é agendado pela janela de 24h. Entender esse ciclo responde quase todo "por que não disparou?".
+
+## O ciclo em uma frase
+
+**Interação concluída** agenda. **Interação interrompida** cancela. Uma nova interação concluída **refaz** todos os agendamentos do zero. No horário marcado, a automação confere tudo de novo antes de agir.
+
+## O que conta como "interação concluída"
+
+| Acontecimento | Agenda follow-up | Agenda transbordo | Agenda webhook por inatividade | Agenda reengajamento |
+|---|---|---|---|---|
+| O agente respondeu ao lead | Sim | Sim | Sim | — |
+| Um humano mandou texto ou mídia **pelo CRM** e a mensagem saiu | Sim | Sim | Sim | — |
+| O lead foi movido **pelo CRM** para uma coluna com **Disparar automações** | Sim | **Não** | Sim | Sim |
+| Chamada a `POST /automations/trigger` (API) | Sim | **Não** | Sim | Sim |
+| O lead mandou mensagem (janela de 24h renovada) | — | — | — | Sim |
+
+Não contam:
+
+- **Templates** enviados (por campanha, follow-up, CRM ou API).
+- Mensagens enviadas **pela API** com a chave do projeto.
+- Mensagens das próprias automações (follow-up, reengajamento, transbordo).
+- Mover o lead **pela API, pelo agente ou pelo transbordo**: a chave "Disparar automações" da coluna só vale para movimentação feita no CRM.
+- Ações em massa no CRM.
+- Mensagem que um humano digita **direto no celular**, na conexão **não oficial**. Ela aparece no chat, mas não agenda nada.
+
+Na **coexistência**, a mensagem que um humano manda pelo app WhatsApp Business do celular só conta se a Meta mandar a confirmação de entrega dela para a API. A Meta não documenta se faz isso. Não conte com essa mensagem para agendar follow-up: quando um humano assumir pelo celular, use o CRM ou mova o lead de coluna pelo CRM.
+
+{/* A CONFIRMAR: na coexistência, se a Meta envia status "delivered" para mensagens enviadas pelo app WhatsApp Business (ecos). Se enviar, essa mensagem conta como interação concluída (o código trata o eco como mensagem de humano). Conferir num log real. */}
+
+<Note>
+"A mensagem saiu" depende da conexão. Na **oficial**, a Zatten espera a Meta confirmar a **entrega**. Na **não oficial**, basta o status **enviado**. Uma mensagem do humano que nunca é entregue (número inválido, por exemplo) não agenda nada na oficial.
+</Note>
+
+## O que conta como "interação interrompida"
+
+O lead manda mensagem e o agente **não** vai responder porque:
+
+- a IA está **pausada** ou **desligada** para aquele lead (um humano assumiu, a coluna desliga a IA, o agente transferiu para humano, alguém desligou no chat); ou
+- o agente está **desligado** ou fora do **Horário de funcionamento**.
+
+Isso cancela os follow-ups, transbordos e webhooks por inatividade daquele lead. **Não cancela o reengajamento.**
+
+## Por que "refazer do zero" importa
+
+Cada interação concluída apaga o agendamento anterior de cada automação e cria outro, contado a partir de agora. Na prática:
+
+- O lead que conversa sem parar nunca recebe follow-up: o relógio volta a zero a cada resposta do agente.
+- O follow-up de "24 horas" significa 24 horas depois da **última** resposta, não da primeira.
+- Se o agente decide não responder (ou dá erro), nada é refeito: os agendamentos anteriores continuam valendo.
+
+## O que é conferido no horário do disparo
+
+Na hora marcada, cada automação relê o lead e só age se tudo ainda vale:
+
+| Conferência | Follow-up | Reengajamento | Webhook por inatividade | Transbordo |
+|---|---|---|---|---|
+| A automação continua **ligada** | Sim | Sim | Sim | Sim |
+| O lead ainda tem uma das **tags** do filtro | Sim | Sim | Sim | **Não** (só no agendamento) |
+| O lead ainda está numa das **colunas** do filtro | Sim | Sim | Sim | Sim (colunas de origem) |
+| A conversa está aberta (não foi **encerrada**) | Sim | Sim | Sim | **Não** |
+| O lead não está já na coluna de destino | — | — | — | Sim |
+
+Filtro vazio vale para todos os leads.
+
+## A rota de disparo pela API
+
+`POST /api/v1/automations/trigger`, com a chave do projeto no header `x-api-key` e o corpo `{"lead_id": "<id do lead>"}`. O `id` vem de `GET /leads/{numero}`.
+
+- Agenda follow-ups, reengajamentos e webhooks por inatividade daquele lead, exatamente como uma interação concluída.
+- **Não agenda o transbordo por inatividade.**
+- Hoje **exige a conexão oficial**: em projeto só com conexão não oficial, responde 400.
+- Responde 200 com `{"message": "Automations triggered successfully"}`. Isso quer dizer que pediu o agendamento, não que alguma automação casou com o lead.
+
+É a mesma rota que o CRM chama quando você move o lead para uma coluna com "Disparar automações". Detalhes em [API: automações](/api/automacoes).
+
+## Por que meu follow-up não disparou?
+
+Siga na ordem:
+
+<Steps>
+<Step title="A automação está ligada?">
+Follow-up sem template é salvo desligado à força. Confira a chave na lista.
+</Step>
+<Step title="Houve uma interação concluída depois que você ligou?">
+Ligar não agenda nada para trás. Só leads com interação concluída **depois** de ligar entram. Para testar, converse com o agente pelo WhatsApp e espere a resposta dele.
+</Step>
+<Step title="O lead escreveu com a IA pausada?">
+Isso cancela. Um humano respondendo pelo CRM agenda de novo; o lead respondendo com a IA desligada cancela de novo.
+</Step>
+<Step title="O lead bate nos filtros na hora do disparo?">
+Se ele mudou de coluna ou perdeu a tag, o follow-up é descartado em silêncio.
+</Step>
+<Step title="A conversa foi encerrada?">
+Encerrar o atendimento faz follow-up, reengajamento e webhook por inatividade pendentes serem descartados.
+</Step>
+<Step title="O template pode ser montado?">
+Template não aprovado, ou com variável que a Zatten não preenche, impede o agendamento. Veja [Follow-up](/produto/automacoes/follow-up).
+</Step>
+<Step title="O envio falhou?">
+Abra a conversa do lead: um envio que falhou aparece como mensagem de erro. Veja também os [Logs](/produto/logs).
+</Step>
+</Steps>
+
+## Pelo MCP
+
+O ciclo não é configurável: ele vale para tudo o que o MCP cria. O que o assistente controla é a automação em si (blocos `follow_ups`, `integration_webhooks`, `inactivity_handovers`) e a chave da coluna (`should_trigger_automations` no bloco `columns`). Veja [Referência do template](/trabalhar-com-ia/referencia-do-template).
+
+Para disparar as automações de um lead específico, o assistente usa a API do dia a dia (`POST /automations/trigger`), não o MCP. É uma ação sobre um lead real: pede "sim" antes. Veja [API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia).
+
+## Armadilhas
+
+- **Humano respondendo pelo CRM agenda follow-up.** Se o follow-up não deve sair enquanto um humano atende, filtre por coluna (deixe a coluna de atendimento humano fora do filtro).
+- **Encerrar o atendimento não cancela o transbordo.** O transbordo não confere se a conversa foi encerrada. Se ele não tem coluna de origem, pode mandar a mensagem e mover o lead que acabou de voltar para a primeira coluna. Sempre configure as colunas de origem.
+- **Reengajamento ignora a IA pausada.** Ele sai mesmo com um humano atendendo. Use o filtro de coluna.
+- **Mover pela API não dispara "Disparar automações".** Chame `POST /automations/trigger` depois, se precisar.
+- **Na conexão não oficial, "Disparar automações" não agenda nada.** A coluna usa a mesma rota da API, que hoje exige a conexão oficial. O lead muda de coluna normalmente.
+- **Tags do transbordo só valem no agendamento.** Tirar a tag depois não impede o transbordo.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Mudei o atraso do follow-up. Os agendamentos antigos mudam?">
+Não. O atraso é lido no agendamento. Leads já agendados seguem com o tempo antigo até a próxima interação concluída.
+</Accordion>
+<Accordion title="Desliguei um follow-up. O que já estava agendado sai?">
+Não. No disparo, a automação confere se continua ligada e descarta o envio.
+</Accordion>
+<Accordion title="O lead respondeu antes do follow-up. Ele ainda recebe?">
+Com a IA ligada, o agente responde e o follow-up é reagendado para depois dessa resposta. Com a IA pausada ou desligada, a mensagem do lead cancela o follow-up.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Visão geral das automações](/produto/automacoes/visao-geral)
+- [Funil (Kanban)](/produto/funil-kanban): as chaves da coluna.
+- [Pausa humana](/engenharia-de-ia/pausa-humana)
+- [Encerrar atendimento](/produto/encerrar-atendimento)
+- [API: automações](/api/automacoes)
+- Termos para buscar: "follow-up não disparou", "interação concluída", "agendamento de automação".
