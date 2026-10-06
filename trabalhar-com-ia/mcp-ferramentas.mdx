@@ -86,7 +86,7 @@ Resposta:
       "name": "Clínica Sorriso",
       "status": "active",
       "type": "llm_attendant",
-      "agent": "langchain",
+      "agent": "langchain_agent",
       "created_at": "2026-09-01T12:00:00Z"
     }
   ]
@@ -97,9 +97,12 @@ Resposta:
   funcionamento, se houver); `inactive` = o agente está desligado para todos os
   leads.
 - `type`: o tipo do projeto (`llm_attendant` = atendimento com agente de IA).
-- **Motor do agente:** confie em `llm_attendant.llm` do `get_template`
-  (`LANGCHAIN_AGENT` = LangChain Agent; outro valor = motor antigo). Projeto no
-  motor antigo ignora o bloco `langchain` numa escrita.
+- `agent`: o motor de IA do projeto — `langchain_agent` (LangChain Agent),
+  `openai_responses` ou `open_router` (motor antigo), ou `null` se não houver um
+  configurado. É o mesmo valor de `llm_attendant.llm` no `get_template`. Importa
+  porque muda onde mora a configuração do agente: em `langchain_agent` vale o
+  bloco `langchain`; nos outros, o `llm_attendant`. Mexer no bloco errado não dá
+  erro: simplesmente não tem efeito.
 </Visibility>
 
 ## get_template
