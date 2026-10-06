@@ -106,7 +106,7 @@ partida, um follow-up, conversões para o Meta Ads (menos SAC) e o departamento
 |---|---|---|
 | **Funil** | 5 ou 6 colunas, com "Ganho" e "Perdido" com **Desativar IA** | Ajuste ao processo do cliente. Nem todo modelo tem coluna de transbordo: crie uma. |
 | **Tags** | 3 a 5 tags, sem vínculo definido no modelo | Revise o vínculo de cada uma (contato ou conversa). |
-| **Propriedades** | Em Clínicas, Imobiliárias e Advocacia, em texto livre | Troque por **lista** onde as respostas são conhecidas e ligue **enviar para a IA** (só pelo template). |
+| **Propriedades** | Em Clínicas, Imobiliárias e Advocacia, em texto livre | Troque por **lista** onde as respostas são conhecidas. **Enviar para a IA** vem ligado por padrão (só se muda pelo template). |
 | **Prompt** | Um fluxo de atendimento genérico, com o nome da empresa preenchido | Reescreva na [estrutura recomendada](/engenharia-de-ia/prompt), com as regras do cliente. |
 | **Tools** | Só o modelo de Clínicas cria ações da Zatten. Nos outros, o prompt cita ações pelo nome, mas elas não existem em **Tools** | Crie as ações em **Tools** e cite cada uma com `@` no prompt. |
 | **Follow-up** | Um, sem template, por isso **desligado** | Escolha um template aprovado antes de ligar. |
@@ -151,7 +151,7 @@ Mapa das seções de um playbook para os blocos do template do projeto:
 |---|---|---|
 | Funil | `columns` | `order` obrigatório; 0 = entrada. Renomear pelo `slug`. |
 | Tags | `tags` | `color` obrigatório (`#RRGGBB`); `scope` `lead` ou `conversation`. |
-| Propriedades | `properties` | `is_enum` + `values`; `send_to_ai` só se muda por aqui. Não converta texto livre já preenchido. |
+| Propriedades | `properties` | `is_enum` + `values`; `send_to_ai` (padrão `true`) só se muda por aqui. Não converta texto livre já preenchido. |
 | Departamentos | `attendant_teams` | Exatamente um `default: true`. Membros só pelo painel. |
 | Prompt, tools, skills, modelo | `langchain` | Mande o `config` inteiro. Cria versão **não publicada**. |
 | Buffer, pausa, filtro de mídia | `llm_attendant` | `message_buffer`, `pause_in_human_interaction`, `*_interpretation`. Vale na hora. |

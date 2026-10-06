@@ -79,8 +79,7 @@ Quando a fila acaba, a campanha vira **Concluída** e não pode ser executada de
 ## Como funciona por trás
 
 - **Cada mensagem é um envio de template pela API** do projeto, marcado com a campanha. Por isso, as regras do envio de template valem: variável sem valor no lead, template não aprovado ou mídia inacessível fazem aquela mensagem falhar. Veja [Templates do WhatsApp](/produto/templates-whatsapp).
-- **"Já enviado" é quem tem uma mensagem desta campanha registrada.** A mensagem só é registrada depois que a Meta aceita o envio. Lead cujo envio falhou na hora (por exemplo, variável sem valor) volta para a fila numa retomada.
-{/* A CONFIRMAR: se uma mensagem aceita pela Meta e depois marcada como falha na entrega continua contando como "já enviado" (a contagem é feita por uma função do banco que não está nos repositórios). */}
+- **"Já enviado" é quem tem uma mensagem desta campanha registrada, qualquer que seja o status.** A mensagem só é registrada depois que a Meta aceita o envio. Lead cujo envio falhou na hora (por exemplo, variável sem valor) volta para a fila numa retomada. Já uma mensagem aceita e depois marcada como **falha na entrega** conta como enviada: esse lead não recebe de novo nesta campanha.
 - **Durante o envio**, a campanha cria uma chave de API temporária ("Campaign … - Auto Generated"), que aparece em [Chaves de API](/produto/chaves-de-api) e é apagada ao pausar ou terminar.
 - **O lead que responde** cai na conversa normal: abre a janela de 24h e o agente responde, se a IA estiver ligada para ele.
 
@@ -112,6 +111,7 @@ Veja [Mensagens](/api/mensagens), [Limites](/api/limites) e o playbook [Campanha
 - **Passou do limite, o resto não sai.** Acima do limite do número, só as primeiras mensagens saem e a campanha termina como concluída. Divida o público em campanhas menores que o limite, em dias diferentes.
 - **O limite da Meta é por portfólio de negócios.** Ele é compartilhado por todos os números do mesmo portfólio e conta pessoas diferentes contatadas fora da janela em 24 horas móveis. Outras campanhas, follow-ups e envios pela API do mesmo portfólio gastam o mesmo limite.
 - **Lead sem o valor da variável falha.** Mantenha os filtros de propriedade que o painel adiciona.
+- **Falha na entrega não volta para a fila.** Lead com mensagem desta campanha marcada como falha (depois de aceita pela Meta) conta como "já enviado". Para tentar de novo, crie outra campanha só para esses leads (por exemplo, marcando-os com uma tag a partir do relatório).
 - **Qualidade e bloqueios.** Mandar para quem não pediu derruba a qualidade do template e do número, o que pode pausar o template e travar o aumento de limite. A própria tela recomenda evitar várias campanhas seguidas.
 - **Some na conexão não oficial.** Trocar a conexão do projeto para QR Code esconde o menu e bloqueia a página.
 - **Estimativa não é cobrança.** O valor da tela é uma referência fixa. O preço real depende da categoria, do país e das regras atuais da Meta.

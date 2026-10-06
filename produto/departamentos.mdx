@@ -36,9 +36,12 @@ O nome que vai na mensagem é o nome completo do perfil do usuário. Sem nome no
 
 Quando um lead manda a primeira mensagem, ele entra na primeira coluna do funil e no **departamento padrão**. O responsável sai do rodízio:
 
-1. Entram só os membros com **Receber Leads** ligado.
-2. Quem nunca recebeu lead fura a fila.
-3. Depois, recebe quem está há mais tempo sem receber.
+1. Entram só os membros do departamento padrão com **Receber Leads** ligado.
+2. Primeiro, quem ainda **não recebeu lead hoje**.
+3. Depois, quem está há mais tempo sem receber.
+
+O rodízio **não considera o horário de trabalho** de cada pessoa. Para tirar alguém
+da distribuição fora do expediente, desligue **Receber Leads**.
 
 Cada membro tem um "relógio" por departamento: receber um lead no Comercial não atrasa a mesma pessoa no Suporte.
 
@@ -98,9 +101,7 @@ Renomear um departamento usado por tools do agente: mande também o bloco `langc
 - **Atribuir não avisa.** O responsável só fica sabendo se houver um fluxo ou integração que avise, ou se a coluna tiver **Transbordo** (que notifica o responsável).
 - **Nome do atendente só no texto.** Mídia, áudio, template e mensagens enviadas pela API saem sem o nome.
 - **Excluir departamento usado pelo agente** quebra a tool **Direcionar para departamento**. Ajuste o agente antes.
-- **Para tirar alguém da distribuição fora do expediente**, desligue **Receber Leads** (ou libere o autoatendimento para cada um fazer isso).
-
-{/* A CONFIRMAR: a ordem do rodízio na criação do lead roda numa função do banco que não está nos repositórios; a doc interna diz "quem não recebeu hoje, depois quem está há mais tempo sem receber". A página descreve a regra do servidor (quem nunca recebeu primeiro, depois o mais antigo), que dá o mesmo resultado na prática. Também não confirmei se essa função considera o horário de trabalho do usuário (o servidor não considera). */}
+- **O rodízio ignora o horário de trabalho.** Quem está fora do expediente continua recebendo leads. Para tirar alguém da distribuição, desligue **Receber Leads** (ou libere o autoatendimento para cada um fazer isso).
 
 ## Perguntas frequentes
 

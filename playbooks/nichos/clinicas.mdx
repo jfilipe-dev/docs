@@ -66,8 +66,8 @@ Tipo de paciente, convênio e especialidade são **propriedades**, não tags.
 | Data da consulta (`data_da_consulta`) | Texto | `AAAA-MM-DD HH:MM` | Conversa | Sim |
 | Unidade (`unidade`) | Lista | As unidades (só se houver mais de uma) | Contato | Sim |
 
-"Enviar para a IA" só se liga pelo template. Sem ela, o agente pergunta de novo o
-convênio que o paciente já informou.
+"Enviar para a IA" vem ligado por padrão e só se muda pelo template. Desligado, o
+agente pergunta de novo o convênio que o paciente já informou.
 
 ## Tools
 
@@ -164,10 +164,10 @@ A Meta decide a categoria de cada template. Lembrete de consulta costuma ser
 Veja [Templates do WhatsApp](/produto/templates-whatsapp) e
 [Follow-up e reengajamento que não queimam o número](/playbooks/follow-up-e-reengajamento).
 
-O modelo de nicho traz a conversão "Consulta agendada" com o evento `Schedule`,
-que não está entre os eventos que a Meta lista para mensagens. Troque por um da
-lista. Veja [Conversões para o Meta Ads](/produto/automacoes/conversoes-meta).
-{/* A CONFIRMAR: se a Conversions API de mensagens aceita o evento Schedule enviado pela Zatten. Não está na lista da Meta usada na página de conversões. */}
+O modelo de nicho traz a conversão "Consulta agendada" com o evento `Schedule`.
+`Schedule` não aparece enviado no registro de conversões: troque por um dos seis
+eventos do painel (por exemplo, `LeadSubmitted`). Veja
+[Conversões para o Meta Ads](/produto/automacoes/conversoes-meta).
 
 ## Configurações recomendadas
 

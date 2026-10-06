@@ -1,6 +1,6 @@
 ---
 title: "Trigger Flow: disparar pela API e receber webhooks"
-description: "Leia quando um sistema externo precisa rodar fluxos do Trigger Flow: o disparo genérico (POST /flows/trigger) para os gatilhos que não disparam sozinhos, o webhook de entrada por caminho (POST /hooks/<path>), a idempotência de 24h e como o corpo vira {{trigger.body}}."
+description: "Leia quando um sistema externo precisa rodar fluxos do Trigger Flow: o disparo genérico (POST /flows/trigger) para avisar um evento de um gatilho disponível, o webhook de entrada por caminho (POST /hooks/<path>), a idempotência de 24h e como o corpo vira {{trigger.body}}."
 ---
 
 Há duas formas de rodar fluxos a partir de outro sistema. As duas usam a
@@ -9,7 +9,7 @@ os fluxos são enfileirados.
 
 | Rota | Para quê | Quem chama |
 |---|---|---|
-| `POST /api/v1/flows/trigger` | Avisar que um evento aconteceu com um lead ("a tag X foi adicionada", "o lead foi criado") | Um sistema que você controla: seu backend, n8n, Make |
+| `POST /api/v1/flows/trigger` | Avisar que um evento aconteceu com um lead ("a tag X foi adicionada", "o lead mudou de coluna") | Um sistema que você controla: seu backend, n8n, Make |
 | `POST /api/v1/hooks/<path>` | Receber o payload de um sistema que **não** se molda (ERP, formulário, gateway de pagamento) | Qualquer sistema que poste JSON numa URL |
 
 Base: `https://api.zatten.com`. A chave sai de **API Keys** no painel
@@ -32,19 +32,28 @@ genérico não tem tela: é só API.
 
 ### Disparo genérico: `POST /flows/trigger`
 
-Use para os gatilhos que **não disparam sozinhos** (Novo lead criado, Mensagem
-recebida, Propriedade alterada, Lead inativo). Mover o lead e pôr ou tirar tag pela
-API de leads **já disparam** os fluxos de Kanban e de tag: não chame
-`/flows/trigger` de novo para o mesmo evento, ou o fluxo roda duas vezes.
+Use para rodar os fluxos de um gatilho **disponível** para um lead, quando você
+quer avisar o evento por conta própria (por exemplo, para reprocessar). Mover o
+lead e pôr ou tirar tag pela API de leads **já disparam** os fluxos de Kanban e de
+tag: não chame `/flows/trigger` de novo para o mesmo evento, ou o fluxo roda duas
+vezes.
+
+<Warning>
+Os gatilhos **em breve** (Novo lead criado, Mensagem recebida, Propriedade
+alterada, Lead inativo) estão indisponíveis hoje, **também pela API**. A rota
+aceita esses tipos, mas não existe fluxo ligado com eles para rodar: a resposta
+vem com `matched: 0`. Para receber eventos de outro sistema, prefira o
+webhook de entrada (`/hooks/<path>`, abaixo).
+</Warning>
 
 ```bash
 curl -X POST https://api.zatten.com/api/v1/flows/trigger \
   -H "x-api-key: SUA_CHAVE_DE_API" \
   -H "Content-Type: application/json" \
   -d '{
-    "trigger_type": "lead.property_changed",
+    "trigger_type": "lead.tag_added",
     "lead_number": "5511999998888",
-    "trigger_event": { "property": "cidade", "value": "Recife" },
+    "trigger_event": { "tag_id": "8f2a…" },
     "idempotency_key": "crm-evt-01HXYZ"
   }'
 ```
@@ -61,15 +70,15 @@ O que mandar em `trigger_event`:
 
 | `trigger_type` | `trigger_event` |
 |---|---|
-| `lead.created` | — |
+| `lead.created` | — (em breve: nenhum fluxo roda) |
 | `lead.first_message` | — (já dispara sozinho; use só para reprocessar) |
-| `lead.message_received` | `message_text` |
+| `lead.message_received` | `message_text` (em breve: nenhum fluxo roda) |
 | `lead.column_changed` | `to_column_id`, e `from_column_id` se o fluxo filtra a origem |
 | `lead.tag_added`, `lead.tag_removed` | `tag_id` |
-| `lead.property_changed` | `property` (o **slug**), `value` |
+| `lead.property_changed` | `property` (o **slug**), `value` (em breve: nenhum fluxo roda) |
 | `lead.assignee_changed` | `department_id`, `user_email` ou `user_id` (os que se aplicam) |
 | `lead.conversation_closed` | — |
-| `lead.inactive` | — |
+| `lead.inactive` | — (em breve: nenhum fluxo roda) |
 | `webhook.inbound` | `path`, `body` (prefira a rota `/hooks`) |
 
 A resposta diz quantos fluxos casaram e o que aconteceu com cada um:
@@ -179,10 +188,9 @@ do projeto. Ver [A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia).
   nem foi importado em [Contatos](/produto/contatos) dá 404. Nada roda.
 - **Um fluxo antigo sem Path** responde a qualquer `/hooks/…` do projeto. Hoje o
   editor exige o Path; revise fluxos antigos.
-- **`lead.inactive` pela API roda na hora.** O tempo configurado no gatilho não é
-  conferido.
-- **`lead.property_changed` compara o slug e o valor exatos.** `Recife` e `recife`
-  são valores diferentes.
+- **Gatilho em breve não roda pela API.** `lead.created`, `lead.message_received`,
+  `lead.property_changed` e `lead.inactive` são aceitos, mas não há fluxo ligado
+  com eles: `matched` vem `0`.
 - **A API aceita `lead.ai_toggled`**, mas o editor não tem esse gatilho, então
   não há fluxo para rodar.
 - **Nunca ponha a chave de API num front-end público.** Quem tem a chave lê e
@@ -195,7 +203,8 @@ do projeto. Ver [A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia).
 Sim. `POST`/`DELETE /leads/{numero}/tag` e `PATCH /leads/{numero}/kanban` disparam
 os fluxos de tag e de Kanban sozinhos. Não chame `/flows/trigger` para o mesmo
 evento. Já mudar uma propriedade (`/properties`) ou ligar/desligar a IA não
-dispara fluxos: para esses, use `/flows/trigger`.
+dispara fluxos, e os gatilhos dessas mudanças ainda não estão disponíveis (em
+breve).
 </Accordion>
 <Accordion title="Qual usar: /flows/trigger ou /hooks?">
 `/hooks` quando você não controla o formato do corpo (o sistema de origem manda o

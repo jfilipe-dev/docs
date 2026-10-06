@@ -90,8 +90,9 @@ estiver ligado.
 ## Marcar propriedades para ir à IA
 
 Só vão ao agente as propriedades marcadas com **enviar para a IA**
-(`send_to_ai`). Hoje essa marcação é feita **pelo template do projeto**, no bloco
-`properties`; a tela de propriedades não mostra a opção. Veja
+(`send_to_ai`). A marcação **vem ligada por padrão**: propriedade criada pelo painel
+já vai para a IA. A tela de propriedades não mostra a opção; para mudá-la, use o
+**template do projeto**, no bloco `properties`. Veja
 [Propriedades personalizadas](/produto/propriedades).
 
 A propriedade vai identificada pelo **slug** (`convenio`), não pelo nome
@@ -169,16 +170,17 @@ do painel, os dados vêm do lead de teste do projeto.
 - O bloco é uma `SystemMessage` no fim de `messages`, montada a cada chamada ao
   modelo e nunca persistida no checkpoint.
 - `inject_context` ausente = `false` no agente. A migração grava `true`.
-- Ao recomendar `send_to_ai`, liste as propriedades com o slug e diga ao
-  usuário que a opção não aparece na tela de propriedades.
+- `send_to_ai` é `true` por padrão. Ao recomendar mudar, liste as propriedades com
+  o slug e diga ao usuário que a opção não aparece na tela de propriedades.
 </Visibility>
 
 ## Armadilhas
 
 - **"Enviar dados" desligado sem ninguém perceber.** O agente pergunta o nome a
   quem já se apresentou e ignora tags e etapa. Confira a chave em todo projeto.
-- **Propriedade sem `send_to_ai`.** O valor existe no lead, mas o agente não vê.
-  Não há aviso.
+- **Propriedade com `send_to_ai` desligado.** O valor existe no lead, mas o agente
+  não vê. Não há aviso. (O padrão é ligado; isso acontece quando alguém desligou pelo
+  template.)
 - **Prompt usando o nome da propriedade.** O bloco usa o **slug**. "Se o Convênio
   for…" funciona pior que "Se a propriedade convenio for…".
 - **Anotações internas vão para o modelo.** Tudo o que a equipe escreve em Notas

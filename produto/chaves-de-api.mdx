@@ -100,14 +100,18 @@ repositório, e nunca a mostra em texto. Ver
 - **Chave vazada:** exclua na hora e crie outra.
 - **Duplicar ou exportar o projeto não leva as chaves de API.** O projeto novo precisa de
   chave própria.
-
-{/* A CONFIRMAR: a plataforma gera chaves internas por projeto (renovadas a cada 2 horas) e a listagem de API Keys não as filtra. Conferir se aparecem na tela; se aparecerem, a doc deve dizer para não excluí-las e que não servem para integração. */}
+- **Chaves que você não criou podem aparecer na lista.** A plataforma cria chaves
+  internas para o próprio projeto, que expiram e são revogadas sozinhas, e a tela de
+  API Keys não as esconde. Não exclua essas chaves e não use para integração: crie
+  uma chave sua, com nome claro. A chave temporária de uma
+  [campanha](/produto/campanhas) em andamento também aparece aqui.
 
 ## Perguntas frequentes
 
 <AccordionGroup>
 <Accordion title="A chave expira?">
-A chave criada no painel não tem validade: vale até ser excluída.
+A chave criada no painel não tem validade: vale até ser excluída. As chaves internas
+que a plataforma cria (e que podem aparecer na lista) expiram sozinhas.
 </Accordion>
 <Accordion title="O white-label muda o endereço da API?">
 Não. A API é sempre `https://api.zatten.com/api/v1`, com qualquer domínio do painel.

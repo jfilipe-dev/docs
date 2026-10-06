@@ -142,8 +142,9 @@ As propriedades personalizadas: texto livre ou lista fechada de valores.
 - Propriedade de texto livre já preenchida em algum contato não vira lista. A nota
   traz a contagem de contatos.
 - Valor retirado de `values` continua existindo: pode haver lead preenchido com ele.
-- `send_to_ai` decide se o valor entra no contexto do agente. Não aparece no
-  formulário do painel; hoje só se altera pelo template.
+- `send_to_ai` decide se o valor entra no contexto do agente. Padrão: `true`
+  (propriedade criada pelo painel vai para a IA). Não aparece no formulário do
+  painel; só se altera pelo template.
 
 <Visibility for="agents">
 | Campo | Tipo | Notas |
@@ -273,7 +274,7 @@ existir, a conversão é ignorada, com nota.
 | Campo | Tipo | Notas |
 |---|---|---|
 | `name` | string | Chave de identidade |
-| `event` | string | `LeadSubmitted`, `InitiateCheckout`, `Purchase`, `ViewContent`, `CartAbandoned`, `AddToCart` ou personalizado |
+| `event` | string | `LeadSubmitted`, `InitiateCheckout`, `Purchase`, `ViewContent`, `CartAbandoned` ou `AddToCart`. Outros nomes (`Schedule`, personalizados) são gravados, mas não aparecem enviados: não use |
 | `column_name` | string | Coluna que dispara o evento |
 | `value` | número ou null | Exigido (> 0) em `Purchase`; moeda BRL |
 | `status` | `ACTIVE` ou `INACTIVE` | |
@@ -412,6 +413,9 @@ Os fluxos do Trigger Flow: gatilho, condições e ações, desenhados no editor.
 - Não mande `execution_plan`; ele é refeito a partir dos nós.
 - Fluxo sem nó de gatilho não é criado. Dois fluxos com o mesmo caminho de webhook
   de entrada também não.
+- Gatilhos **em breve** (`lead.created`, `lead.message_received`,
+  `lead.property_changed`, `lead.inactive`) não rodam hoje, nem pela API. Não monte
+  fluxos com eles.
 
 <Visibility for="agents">
 | Campo | Tipo | Notas |

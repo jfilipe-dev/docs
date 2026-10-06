@@ -30,7 +30,7 @@ Só **admin** e **editor** veem as execuções.
 | **Ignorado** | O fluxo foi disparado, mas os filtros do gatilho não bateram. Nenhum passo rodou. | Confira os filtros do gatilho (tag, coluna, path, valor). |
 
 Se o fluxo **não aparece com nenhuma execução**, ele não foi disparado: ou está
-desligado, ou o gatilho não dispara sozinho (ver
+desligado, ou o gatilho está em breve e não pode rodar (ver
 [de onde vem cada gatilho](/produto/trigger-flow/blocos#de-onde-vem-cada-gatilho)),
 ou o evento não aconteceu do jeito esperado (ex.: a mudança foi feita por uma ação
 em massa no CRM, ou numa propriedade pela API, que não disparam fluxos).
@@ -40,7 +40,7 @@ em massa no CRM, ou numa propriedade pela API, que não disparam fluxos).
 | Limite | Valor | O que acontece |
 |---|---|---|
 | Passos por execução | **100** | No 101º passo a execução falha ("teto de 100 passos"). |
-| Fluxos em cadeia | **2** para responsável alterado e conversa encerrada | "Definir responsável" e "Reiniciar conversa" disparam outro fluxo até o segundo nível. Mover no Kanban e pôr/tirar tag também disparam fluxos, e esses **não** contam para o limite: um vaivém entre fluxos de Kanban ou de tag não para sozinho. Monte sem laço. |
+| Fluxos em cadeia | **2** para responsável alterado e conversa encerrada | "Definir responsável" e "Encerrar atendimento" disparam outro fluxo até o segundo nível. Mover no Kanban e pôr/tirar tag também disparam fluxos, e esses **não** contam para o limite: um vaivém entre fluxos de Kanban ou de tag não para sozinho. Monte sem laço. |
 | Timeout de ação da Zatten (tag, coluna, mensagem…) | **10 segundos** | O passo falha. |
 | Timeout da Requisição HTTP | **30 segundos** (padrão), configurável de 1 a 120 | O passo falha. |
 | Resposta da Requisição HTTP | **10 MB** no máximo; guardada até **32 KB** | Acima de 10 MB falha; acima de 32 KB o corpo é cortado. |
@@ -72,9 +72,9 @@ mesma troca repetida dentro do mesmo minuto (duplo clique).
 Na lista de fluxos, a chave precisa estar ligada. Fluxo desligado não gera
 execução.
 </Step>
-<Step title="O gatilho dispara sozinho?">
-Novo lead criado, Mensagem recebida, Propriedade alterada e Lead inativo só
-rodam pela API. Ações em massa no CRM não disparam fluxos.
+<Step title="O gatilho está disponível?">
+Novo lead criado, Mensagem recebida, Propriedade alterada e Lead inativo estão
+indisponíveis hoje (em breve). Ações em massa no CRM não disparam fluxos.
 </Step>
 <Step title="Há execução? Qual o status?">
 Abra **Execuções**. Sem execução: o evento não chegou. **Ignorado**: o filtro do
@@ -131,8 +131,7 @@ Não há botão. Corrija o fluxo e dispare o evento de novo (ou chame
 `/flows/trigger` com uma `idempotency_key` nova).
 </Accordion>
 <Accordion title="Por quanto tempo as execuções ficam guardadas?">
-{/* A CONFIRMAR: não há limpeza de execuções antigas no código conferido; confirmar se existe retenção. */}
-Ficam no histórico do fluxo enquanto o fluxo existir.
+Não há limpeza automática: as execuções ficam guardadas no histórico do fluxo.
 </Accordion>
 </AccordionGroup>
 

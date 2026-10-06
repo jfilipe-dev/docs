@@ -110,8 +110,7 @@ Use o [transbordo por inatividade](/produto/automacoes/transbordo-por-inatividad
 ## Enquanto a pessoa atende
 
 - Responder pelo chat **assume o lead**, se a pessoa é do departamento dele, e pausa a IA (que já está desligada depois de um transbordo).
-- Com a IA pausada ou desligada, cada nova mensagem do lead gera um aviso para o responsável.
-  {/* A CONFIRMAR: no servidor, esse aviso (LeadInteractionEvent → push) só é disparado quando o campo legado `attendant.webhooks` do projeto está vazio. Confirmar o que é esse campo hoje e se algum projeto ativo o usa. */}
+- Com a IA pausada ou desligada, cada nova mensagem do lead gera um aviso para o responsável. Em alguns projetos antigos, uma configuração de integração do motor anterior desvia esse aviso. É raro; se o aviso de nova mensagem com a IA desligada não chegar, peça ao suporte para verificar o projeto.
 - **Mensagens rápidas** aceleram respostas repetidas. Veja [Mensagens rápidas](/produto/mensagens-rapidas).
 - **Enviar nome do atendente**, no departamento, mostra ao lead quem está falando.
 - Se a [janela de 24h](/comecar/janela-de-24h) fechar, o chat só manda template.

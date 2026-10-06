@@ -13,8 +13,8 @@ Vale para os dois motores e é aplicada pelo servidor da Zatten.
 ## Onde fica no painel
 
 Em **Agente**, abra **Configurações avançadas** e ajuste **Pausa humana**, em
-minutos. A tela aceita de **0 a 1440** (24 horas). Com o campo vazio, a tela mostra
-**60**.
+minutos. A tela aceita de **0 a 1440** (24 horas). O padrão é **5 minutos**: é o
+valor com que o projeto vem quando ninguém mudou o campo.
 
 O valor é gravado quando você sai do campo e vale na hora, sem publicar.
 
@@ -112,7 +112,8 @@ minutos. A escrita grava na hora (não cria versão do agente).
 ```
 
 - Tipo: inteiro, mínimo 0 no template. Unidade: minutos. A tela limita a 1440.
-- Valor nulo no banco: o servidor usa 0 (sem pausa) para respostas pelo celular;
+- Padrão: `5`. `should_update_on_user_echo` vem `true` por padrão.
+- Valor nulo no banco (raro): o servidor usa 0 (sem pausa) para respostas pelo celular;
   o chat da Zatten usa 5 minutos.
 - O estado vem de `lead.ai_response_block_until` (UTC): nulo ou passado = ligado;
   futuro a menos de 50 anos = pausado; 50 anos ou mais = desligado (desligar grava
@@ -135,9 +136,10 @@ minutos. A escrita grava na hora (não cria versão do agente).
   desligue a IA do lead ou use uma coluna de transbordo.
 - **Pausa 0 = sem pausa.** O agente responde logo depois do humano, por cima da
   conversa.
-- **Campo vazio se comporta diferente por canal.** Pelo chat da Zatten, 5 minutos;
-  pelo celular, sem pausa. A tela mostra 60, mas esse número só vale depois de
-  gravado. Grave um valor explícito.
+- **O padrão de 5 minutos é curto** para a maioria das equipes. Se o humano costuma
+  conversar por mais tempo, suba o valor (30 a 60 minutos é comum).
+- **Campo vazio (raro) se comporta diferente por canal.** Pelo chat da Zatten, 5
+  minutos; pelo celular, sem pausa. Grave um valor explícito.
 - **Mensagens da pausa não são respondidas depois.** Se o lead perguntou algo
   durante a pausa e o humano não respondeu, ninguém responde até o lead escrever
   de novo.

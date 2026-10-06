@@ -57,7 +57,7 @@ Bloco `conversions`.
 
 - Identificado por `name`. Nasce desligado.
 - A coluna vai por nome, em `column_name`. Coluna inexistente faz a conversão ser ignorada, com nota.
-- `event` aceita outros nomes além dos seis do painel. Use só eventos que a Meta aceita para mensagens, como `QualifiedLead`, `OrderCreated` ou `OrderShipped` (lista na página da Meta abaixo). O painel não oferece esses nomes.
+- Use **só os seis eventos do painel**: `LeadSubmitted`, `AddToCart`, `InitiateCheckout`, `Purchase`, `ViewContent` e `CartAbandoned`. O campo `event` aceita outros nomes, mas hoje só esses seis aparecem como enviados no registro de conversões. Conversões com `Schedule` ou com nome personalizado (como `QualifiedLead`) não aparecem enviadas, nem com erro. Não use.
 - `value` só vale em `Purchase`.
 
 <Visibility for="agents">
@@ -69,12 +69,13 @@ Bloco `conversions`.
   ]
 }
 ```
-Eventos que a Meta lista para Conversions API de mensagens (out/2026): `Purchase`, `LeadSubmitted`, `InitiateCheckout`, `AddToCart`, `ViewContent`, `OrderCreated`, `OrderShipped`, `OrderDelivered`, `OrderCanceled`, `OrderReturned`, `CartAbandoned`, `QualifiedLead`, `RatingProvided`, `ReviewProvided`. Confira na fonte antes de usar um evento fora dos seis do painel.
+Eventos que de fato saem hoje: `LeadSubmitted`, `AddToCart`, `InitiateCheckout`, `Purchase`, `ViewContent`, `CartAbandoned`. Não escreva `Schedule` nem nome personalizado em `event`: a conversão fica gravada, mas nada aparece enviado. Se um template trouxer uma conversão assim, troque o evento por um dos seis.
 </Visibility>
 
 ## Armadilhas
 
 - **Só funciona com lead de anúncio Click-to-WhatsApp.** Testar movendo um lead orgânico não envia nada.
+- **Só os seis eventos do painel saem.** Conversão com `Schedule` ou com nome personalizado não aparece enviada (nem com erro). Modelos de nicho antigos trazem `Schedule` em "Consulta agendada": troque por um dos seis.
 - **Valor fixo em `Purchase`.** O valor é o da automação, não o da venda real. Para valores diferentes, crie colunas diferentes (ou use um ticket médio).
 - **Um evento por clique.** Recompra do mesmo lead, vinda do mesmo anúncio, não é informada de novo.
 - **O primeiro anúncio fica com o crédito.** Se o lead volta por outro anúncio, as conversões continuam atribuídas ao primeiro clique.

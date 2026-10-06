@@ -11,8 +11,9 @@ não bastam: reagir a uma tag, avisar o responsável, integrar com o sistema do
 cliente final.
 
 <Note>
-Nem todo gatilho dispara sozinho. Alguns só rodam quando alguém chama a API
-avisando que o evento aconteceu. A lista de quem dispara cada gatilho está em
+Nem todo gatilho está disponível. Quatro aparecem como **em breve** (Novo lead
+criado, Mensagem recebida, Propriedade alterada e Lead inativo) e hoje não podem
+ser usados, nem pela API. A lista de quem dispara cada gatilho está em
 [Trigger Flow: catálogo de blocos](/produto/trigger-flow/blocos#de-onde-vem-cada-gatilho).
 </Note>
 
@@ -62,7 +63,8 @@ O que o editor recusa ao salvar:
   mais no projeto (o card mostra "(item removido)").
 
 Um gatilho marcado como **em breve** no editor ainda não pode ser usado num fluxo
-ligado.
+ligado. Hoje estão em breve: Novo lead criado, Mensagem recebida, Propriedade
+alterada e Lead inativo.
 
 ### Variáveis
 
@@ -100,14 +102,14 @@ Variáveis `trigger.*` por gatilho:
 
 | Gatilho | Variáveis |
 |---|---|
-| `lead.first_message`, `lead.message_received` | `trigger.message.text` |
+| `lead.first_message`, `lead.message_received` (em breve) | `trigger.message.text` |
 | `lead.column_changed` | `trigger.column.id`, `trigger.column.name` (coluna de destino) |
 | `lead.tag_added`, `lead.tag_removed` | `trigger.tag.id`, `trigger.tag.name` |
-| `lead.property_changed` | `trigger.property.slug`, `trigger.property.value` |
+| `lead.property_changed` (em breve) | `trigger.property.slug`, `trigger.property.value` |
 | `lead.assignee_changed` | `trigger.assignee.{user_id,user_email,user_name,department_id,department_name}`, `trigger.previous_assignee.{user_id,user_email,department_id,department_name}`, `trigger.actor.{user_id,origin}` |
 | `lead.conversation_closed` | `trigger.thread.id` |
 | `webhook.inbound` | `trigger.body`, `trigger.body.<campo>`, `trigger.path` |
-| `lead.created`, `lead.inactive` | nenhuma além de `lead.*` |
+| `lead.created`, `lead.inactive` (em breve) | nenhuma além de `lead.*` |
 
 Saídas de um bloco `http.request` com id `n4`: `node.n4.response.status`,
 `node.n4.response.body` e `node.n4.response.body.<caminho>` (qualquer
@@ -167,12 +169,12 @@ obrigatórios). Depois de criar um fluxo pelo MCP, abra-o no editor, clique em
 
 ## Armadilhas
 
-- **Gatilho que não dispara sozinho.** Lead criado, mensagem recebida, propriedade
-  alterada e lead inativo só rodam pela API. Um fluxo com esses gatilhos fica
-  ligado e nunca executa se ninguém chamar. Ver
+- **Gatilho em breve.** Novo lead criado, Mensagem recebida, Propriedade alterada
+  e Lead inativo estão indisponíveis hoje, nem pela API. Um fluxo com esses
+  gatilhos não pode ser ligado. Ver
   [o catálogo](/produto/trigger-flow/blocos#de-onde-vem-cada-gatilho).
 - **Ações do fluxo disparam outros fluxos.** Mover o lead, pôr ou tirar tag,
-  "Definir responsável" e "Reiniciar conversa" dentro de um fluxo disparam os fluxos
+  "Definir responsável" e "Encerrar atendimento" dentro de um fluxo disparam os fluxos
   de Kanban, tag, responsável alterado e conversa encerrada. Monte os fluxos sem
   laço: um fluxo nunca deve recriar o evento que o disparou.
 - **`{{lead.column}}` e `{{lead.tags}}` trazem ids**, não nomes. Para o nome da

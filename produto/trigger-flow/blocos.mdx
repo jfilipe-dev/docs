@@ -1,31 +1,32 @@
 ---
 title: "Trigger Flow: catálogo de blocos"
-description: "Consulte para saber o que cada bloco do Trigger Flow faz e quais campos tem: os 11 gatilhos (e quais só disparam pela API), a condição com todos os campos e operadores, e as 16 ações."
+description: "Consulte para saber o que cada bloco do Trigger Flow faz e quais campos tem: os 11 gatilhos (7 disponíveis e 4 em breve), a condição com todos os campos e operadores, e as 16 ações."
 ---
 
-O Trigger Flow tem **11 gatilhos**, **1 bloco de condição** e **16 ações**. Esta
+O Trigger Flow tem **11 gatilhos** (7 disponíveis hoje e 4 em breve), **1 bloco
+de condição** e **16 ações**. Esta
 página lista cada um, com os campos e o que faz de verdade. Os conceitos (editor,
 variáveis, ligar e desligar) estão em
 [Trigger Flow: conceitos](/produto/trigger-flow/conceitos).
 
 ## De onde vem cada gatilho?
 
-Comece por aqui. Um gatilho só roda se algo o disparar. **Quatro gatilhos não
-disparam sozinhos hoje:** só rodam quando um sistema chama a API dizendo que o
-evento aconteceu ([como chamar](/produto/trigger-flow/api)).
+Comece por aqui. Um gatilho só roda se algo o disparar. **Quatro gatilhos estão
+indisponíveis hoje (em breve):** aparecem no editor, mas não dá para usá-los num
+fluxo, nem pela API.
 
-| Gatilho | Dispara sozinho? | De onde vem |
+| Gatilho | Disponível? | De onde vem |
 |---|---|---|
 | Primeira mensagem do lead | **Sim** | Toda vez que uma mensagem do lead abre uma conversa nova (inclusive depois de um encerramento) |
 | Movido no Kanban | **Sim** | Mover o lead pelo CRM (arrastar ou trocar a coluna), pelas ações da Zatten do agente e pelo transbordo por inatividade |
 | Tag adicionada / Tag removida | **Sim** | Pôr ou tirar tag pelo CRM e pelas ações da Zatten do agente |
 | Responsável alterado | **Sim** | Rodízio, escolha manual no painel, API, agente e a ação "Definir responsável" de outro fluxo. **Não** dispara ao "assumir" o lead respondendo no chat |
-| Conversa encerrada | **Sim** | Encerrar atendimento pelo painel, pela API ou pela ação "Reiniciar conversa" de outro fluxo |
+| Conversa encerrada | **Sim** | Encerrar atendimento pelo painel, pela API ou pela ação "Encerrar atendimento" de outro fluxo |
 | Webhook recebido | **Sim** | Chamada externa na URL do fluxo (`/hooks/<caminho>`) |
-| **Novo lead criado** | **Não, só pela API** | — |
-| **Mensagem recebida** | **Não, só pela API** | — |
-| **Propriedade alterada** | **Não, só pela API** | — |
-| **Lead inativo por…** | **Não, só pela API** | — |
+| **Novo lead criado** | **Não, em breve** | — |
+| **Mensagem recebida** | **Não, em breve** | — |
+| **Propriedade alterada** | **Não, em breve** | — |
+| **Lead inativo por…** | **Não, em breve** | — |
 
 <Warning>
 Mover o lead ou pôr/tirar tag **pela API pública** (`/api/v1/leads/{numero}/kanban`
@@ -37,39 +38,38 @@ ligar/desligar a IA pela API não disparam fluxos. Ver
 [Disparar pela API](/produto/trigger-flow/api).
 </Warning>
 
-{/* A CONFIRMAR: quais gatilhos aparecem como "em breve" no editor hoje. O registro de blocos ativos fica no banco e não está em nenhum repositório; as migrations só confirmam como ativos "Conversa encerrada" e "Responsável alterado". Se "Novo lead criado", "Mensagem recebida", "Propriedade alterada" ou "Lead inativo" estiverem "em breve", nem pela API há fluxo para rodar. */}
-
 ## Gatilhos
 
 Filtro vazio vale para qualquer valor. Quando há mais de um filtro, todos precisam
-bater.
+bater. Os gatilhos marcados como **em breve** estão descritos como foram
+desenhados, mas não podem ser usados hoje.
 
 | Gatilho | Campos (filtros) | O que faz |
 |---|---|---|
-| **Novo lead criado** | — | Roda quando um contato entra na base. Só pela API. |
+| **Novo lead criado** | — | **Em breve.** Pensado para rodar quando um contato entra na base. |
 | **Primeira mensagem do lead** | — | Roda na primeira mensagem de cada conversa nova, depois que a mensagem é processada. Publica `{{trigger.message.text}}`. |
-| **Mensagem recebida** | **Contém o texto** (opcional) | Roda a cada mensagem do lead que contém o texto (sem diferenciar maiúsculas e acentos). Só pela API. |
+| **Mensagem recebida** | **Contém o texto** (opcional) | **Em breve.** Pensado para rodar a cada mensagem do lead que contém o texto (sem diferenciar maiúsculas e acentos). |
 | **Movido no Kanban** | **Da coluna**, **Para a coluna** (qualquer, se vazio) | Roda quando o lead muda de coluna. Publica a coluna de destino. |
 | **Tag adicionada** | **Tag** (qualquer, se vazio) | Roda quando a tag é aplicada ao lead. |
 | **Tag removida** | **Tag** (qualquer, se vazio) | Roda quando a tag é retirada. |
-| **Propriedade alterada** | **Propriedade** (obrigatório), **Novo valor** (qualquer, se vazio) | Roda quando a propriedade muda para o valor. Compara o valor exato. Só pela API. |
+| **Propriedade alterada** | **Propriedade** (obrigatório), **Novo valor** (qualquer, se vazio) | **Em breve.** Pensado para rodar quando a propriedade muda para o valor (valor exato). |
 | **Responsável alterado** | **Departamento**, **Usuário** (qualquer, se vazio) | Roda quando o lead muda de fato de departamento ou de responsável. Escolher o mesmo responsável de novo não dispara. |
 | **Conversa encerrada** | — | Roda quando o atendimento é encerrado. Publica o id da conversa encerrada. |
-| **Lead inativo por…** | **Tempo sem interação** (≥ 1), **Unidade** (minutos, horas, dias; padrão 1 hora) | Pensado para leads parados. Só pela API, e o tempo configurado **não é conferido**: o fluxo roda quando a chamada chega. |
+| **Lead inativo por…** | **Tempo sem interação** (≥ 1), **Unidade** (minutos, horas, dias; padrão 1 hora) | **Em breve.** Pensado para leads parados. |
 | **Webhook recebido** | **Path** (obrigatório, único no projeto), **Campos que você vai receber** | Roda quando um sistema externo chama `POST /api/v1/hooks/<path>`. Cada campo declarado vira `{{trigger.body.<campo>}}`. |
 
 <Visibility for="agents">
 | `type` | Campos do `config` | Variáveis publicadas |
 |---|---|---|
-| `lead.created` | — | — |
+| `lead.created` (em breve) | — | — |
 | `lead.first_message` | — | `trigger.message.text` |
-| `lead.message_received` | `contains` (string, `""` = qualquer) | `trigger.message.text` |
+| `lead.message_received` (em breve) | `contains` (string, `""` = qualquer) | `trigger.message.text` |
 | `lead.column_changed` | `from_column_id`, `to_column_id` (`""` = qualquer) | `trigger.column.id`, `trigger.column.name` |
 | `lead.tag_added`, `lead.tag_removed` | `tag_id` (`""` = qualquer) | `trigger.tag.id`, `trigger.tag.name` |
-| `lead.property_changed` | `property` (slug, obrigatório), `value` (`""` = qualquer) | `trigger.property.slug`, `trigger.property.value` |
+| `lead.property_changed` (em breve) | `property` (slug, obrigatório), `value` (`""` = qualquer) | `trigger.property.slug`, `trigger.property.value` |
 | `lead.assignee_changed` | `department_id`, `user_email` (`""` = qualquer; e-mail sem diferença de caixa) | `trigger.assignee.*`, `trigger.previous_assignee.*`, `trigger.actor.user_id`, `trigger.actor.origin` (`CRM`, `API`, `AI_AGENT`, `SYSTEM`) |
 | `lead.conversation_closed` | — | `trigger.thread.id` |
-| `lead.inactive` | `delay` (número ≥ 1), `delay_unit` (`MINUTES`, `HOURS`, `DAYS`) | — |
+| `lead.inactive` (em breve) | `delay` (número ≥ 1), `delay_unit` (`MINUTES`, `HOURS`, `DAYS`) | — |
 | `webhook.inbound` | `path` (`^[a-z0-9]+(-[a-z0-9]+)*$`), `body_fields` (lista de caminhos com ponto) | `trigger.body`, `trigger.body.<campo>`, `trigger.path` |
 
 O texto da mensagem (`trigger.message.text`) é: o corpo, em texto; a legenda, em
@@ -90,7 +90,7 @@ campo + operador + valor.
 | **Tags do lead** | contém, não contém | Escolhe a tag da lista. |
 | **Coluna no Kanban** | é, não é | |
 | **Resposta da IA** | está ligada, está desligada | Pausada conta como desligada. |
-| **Texto da mensagem** | contém algum dos termos, contém todos os termos, contém, não contém, está vazio, não está vazio | Só aparece depois de **Primeira mensagem** ou **Mensagem recebida**. Ver abaixo. |
+| **Texto da mensagem** | contém algum dos termos, contém todos os termos, contém, não contém, está vazio, não está vazio | Só aparece depois de **Primeira mensagem** (ou de **Mensagem recebida**, quando estiver disponível). Ver abaixo. |
 | **Janela de 24h** | é, não é | Valores: **Dentro da janela** ou **Fora da janela**. Avaliada na hora em que a condição roda. Na conexão não oficial é sempre "dentro". |
 | **Departamento** | é, não é, está vazio, não está vazio | |
 | **Usuário responsável** | é, não é, está vazio, não está vazio | |
@@ -157,7 +157,7 @@ Operadores: `contains`, `not_contains`, `is`, `is_not`, `starts_with`, `is_empty
 | **Definir responsável** | **Departamento** (obrigatório), **Usuário** (opcional, filtrado pelo departamento) | Atribui o lead. Sem usuário, a Zatten escolhe pelo **rodízio** do departamento. Dispara os fluxos de "Responsável alterado". |
 | **Ligar, desligar ou pausar a IA** | **O que fazer** (ligar, desligar, pausar), **Pausar por** (1 a 10.080 minutos, só ao pausar) | Desligar vale até alguém religar. Pausar não religa uma IA desligada; numa IA já pausada, só estende (nunca encurta). A IA volta sozinha no fim. Usa a mesma rota da API (`pause_minutes`). |
 | **Notificar responsável** | **Título** (até 100 caracteres; vazio = nome do lead), **Mensagem** (até 500; vazio = texto padrão) | Envia push ao responsável **atual** do lead. Sem responsável, não envia e a execução segue. |
-| **Reiniciar conversa** | — | Apesar do nome, **encerra** o atendimento, como [Encerrar atendimento](/produto/encerrar-atendimento): fecha a conversa, zera o contexto da IA e religa a IA. A conversa nova só nasce na próxima mensagem. Dispara os fluxos de "Conversa encerrada". |
+| **Encerrar atendimento** | — | Encerra o atendimento, como [Encerrar atendimento](/produto/encerrar-atendimento): fecha a conversa, zera o contexto da IA e religa a IA. A conversa nova só nasce na próxima mensagem. Dispara os fluxos de "Conversa encerrada". |
 
 ### Kanban
 
@@ -240,7 +240,9 @@ criação, nomes viram ids. Propriedade vai por slug e template por nome. O usu�
 - **Mensagem enviada por um fluxo de "Conversa encerrada" não reabre a conversa:**
   fica gravada na conversa encerrada. Se o lead já respondeu e abriu outra, vai
   para a nova.
-- **"Lead inativo" pela API ignora o tempo configurado.** Quem chama decide quando.
+- **Gatilho "em breve" não roda.** Novo lead criado, Mensagem recebida, Propriedade
+  alterada e Lead inativo não podem ser usados hoje, nem pela API. Monte o fluxo com
+  um dos 7 gatilhos disponíveis.
 - **"Notificar responsável" com `{{trigger.message.text}}`** envia um push por
   mensagem do lead, sem limite. Filtre com uma condição antes.
 - **`{{trigger.message.text}}` é texto do lead.** Na URL de uma Requisição HTTP ele
@@ -250,8 +252,8 @@ criação, nomes viram ids. Propriedade vai por slug e template por nome. O usu�
 
 <AccordionGroup>
 <Accordion title="Por que meu fluxo de 'Mensagem recebida' nunca roda?">
-Porque esse gatilho não dispara sozinho hoje. Para reagir à mensagem do lead sem
-API, use **Primeira mensagem do lead** com uma condição **Texto da mensagem**. Ela
+Porque esse gatilho está indisponível hoje (em breve). Para reagir à mensagem do
+lead, use **Primeira mensagem do lead** com uma condição **Texto da mensagem**. Ela
 roda uma vez por conversa nova.
 </Accordion>
 <Accordion title="Como pego o nome da coluna para mandar ao meu sistema?">

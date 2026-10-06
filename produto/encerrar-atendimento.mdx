@@ -74,9 +74,9 @@ Os três caminhos fazem exatamente a mesma coisa:
 |---|---|
 | Painel | **Conversas → lead → Ações → Encerrar atendimento** |
 | API | `PATCH /api/v1/leads/{numero}/thread`, com a chave de API do projeto. Responde **204** (inclusive quando não havia conversa aberta). |
-| Trigger Flow | Ação **Reiniciar conversa** (`lead.reset_thread`). |
+| Trigger Flow | Ação **Encerrar atendimento** (`lead.reset_thread`). |
 
-Apesar do nome da ação no Trigger Flow, a rota e a ação **encerram** a conversa: não abrem uma nova nem "reiniciam" a atual. A conversa nova só nasce na próxima mensagem.
+A rota e a ação **encerram** a conversa: não abrem uma nova nem "reiniciam" a atual. A conversa nova só nasce na próxima mensagem.
 
 O encerramento não viaja no template do projeto: é uma ação sobre um lead, não configuração. Veja [Controle da IA por lead (API)](/api/controle-da-ia).
 
@@ -98,7 +98,7 @@ Não. As mensagens ficam na conversa encerrada, que aparece na seção **Convers
 Não. A memória do agente é por conversa: a nova começa sem as mensagens da anterior. O que é do contato (nome, tags e propriedades de vínculo contato) continua no lead.
 </Accordion>
 <Accordion title="Dá para encerrar automaticamente depois de um tempo sem resposta?">
-Não existe gatilho automático por tempo. Use uma rotina externa (um agendador, por exemplo) que chame `PATCH /api/v1/leads/{numero}/thread`, ou que dispare pela API um fluxo com a ação **Reiniciar conversa**. Veja [Disparar fluxos](/api/fluxos-e-webhook-de-entrada).
+Não existe gatilho automático por tempo (o gatilho **Lead inativo** do Trigger Flow está em breve). Use uma rotina externa (um agendador, por exemplo) que chame `PATCH /api/v1/leads/{numero}/thread`, ou que chame o webhook de entrada de um fluxo com a ação **Encerrar atendimento**. Veja [Disparar fluxos](/api/fluxos-e-webhook-de-entrada).
 </Accordion>
 </AccordionGroup>
 

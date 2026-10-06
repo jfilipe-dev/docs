@@ -52,16 +52,15 @@ campanhas e filtros por valor ficam confiáveis. Na lista, cada valor precisa se
 - **Ao encerrar o atendimento**, as propriedades de vínculo **Conversa** saem do lead e
   ficam no histórico daquela conversa. As de vínculo **Contato** continuam.
 - **Enviar para a IA:** cada propriedade tem a opção "enviar para a IA". Ligada, o valor
-  preenchido entra no contexto do agente a cada resposta. Essa opção **não aparece no
-  formulário do painel**: hoje só se liga ou desliga pelo template (MCP ou JSON). Veja
+  preenchido entra no contexto do agente a cada resposta. **Vem ligada por padrão**:
+  propriedade criada pelo painel já vai para a IA. A opção **não aparece no formulário
+  do painel**: para desligar, só pelo template (MCP ou JSON). Veja
   [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado).
 - **O agente preenche pela ação "preencher propriedade"**, sempre pelo slug. Com lista,
   ele só aceita os valores da lista. Veja
   [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten).
 - **Filtro em Contatos:** texto livre busca por "contém"; lista escolhe um dos valores.
   Várias condições valem juntas (todas precisam bater).
-
-{/* A CONFIRMAR: valor padrão de "enviar para a IA" (send_to_ai) numa propriedade criada pelo painel. O formulário não envia o campo; vale o padrão do banco, que não foi conferido. */}
 
 ### O que muda depois que está em uso
 
@@ -80,7 +79,7 @@ As propriedades viajam no bloco `properties` do template, com os valores da list
 - **Renomeie pelo `slug`.** Sem `slug`, um nome novo cria outra propriedade.
 - `is_enum: true` e `values` andam juntos. `values` sem `is_enum: true` é ignorado, com
   nota.
-- `send_to_ai` só se altera por aqui.
+- `send_to_ai` só se altera por aqui. O padrão é `true` (vai para a IA).
 - Valor retirado de `values` continua existindo nos leads.
 
 <Visibility for="agents">
@@ -122,8 +121,9 @@ As propriedades viajam no bloco `properties` do template, com os valores da list
   ficam sem a propriedade. Confira a contagem na confirmação.
 - **Renomear não muda o slug.** Um slug ruim ("teste_1") fica para sempre; escolha bem o
   nome na criação.
-- **"Enviar para a IA" não está no formulário.** Para o agente enxergar a propriedade,
-  ligue pelo template.
+- **"Enviar para a IA" vem ligado e não está no formulário.** Toda propriedade
+  preenchida vai para o agente. Para esconder uma propriedade do agente (dado interno,
+  satisfação), desligue pelo template.
 - **Vínculo Conversa some ao encerrar.** Dados permanentes (CPF, cidade) devem ser de
   vínculo **Contato**.
 - **Valor fora da lista na importação é ignorado**, com aviso no resultado.
@@ -137,7 +137,7 @@ CSV com uma coluna por propriedade, usando o slug como cabeçalho. Veja
 [Contatos](/produto/contatos).
 </Accordion>
 <Accordion title="O agente consegue ler uma propriedade?">
-Sim, se ela estiver com "enviar para a IA" ligado e preenchida no lead. Para o agente
+Sim, se ela estiver preenchida no lead e com "enviar para a IA" ligado (o padrão). Para o agente
 gravar, ele precisa da ação "preencher propriedade" apontando para ela.
 </Accordion>
 <Accordion title="Tag ou propriedade?">

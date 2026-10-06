@@ -246,14 +246,14 @@ departamento: nada foi gravado e ninguém perdeu a vez no rodízio.
 |---|---|---|
 | Mover no funil | Aplica **Desativar IA** e **Transbordo** da coluna; envia conversões, o webhook `LEAD_KANBAN_UPDATED` e roda os fluxos **Movido no Kanban**. | Não aciona **Disparar automações** da coluna. |
 | Pôr ou tirar tag | Webhooks `LEAD_TAG_ADDED` / `LEAD_TAG_REMOVED`; roda os fluxos **Tag adicionada** / **Tag removida**. | — |
-| Propriedade | Grava o valor. | Não roda fluxos de **Propriedade alterada**. |
+| Propriedade | Grava o valor. | Não roda fluxos (o gatilho **Propriedade alterada** está em breve). |
 | Responsável | Roda os fluxos de **Responsável alterado** quando muda de fato; registra no histórico do lead. | Não manda notificação ao novo responsável. |
 | Anotação | Grava o texto. | — |
 
-Para rodar os fluxos de **Propriedade alterada** depois de preencher uma propriedade, chame
-[`/flows/trigger`](/api/fluxos-e-webhook-de-entrada) com `lead.property_changed`. Mover e
-pôr tag já rodam os fluxos sozinhos: não chame `/flows/trigger` de novo para o mesmo
-evento, ou o fluxo roda duas vezes. Para agendar automações, chame
+O gatilho **Propriedade alterada** está indisponível hoje (em breve), também pela API:
+preencher uma propriedade não roda fluxo nenhum. Mover e pôr tag já rodam os fluxos
+sozinhos: não chame [`/flows/trigger`](/api/fluxos-e-webhook-de-entrada) de novo para o
+mesmo evento, ou o fluxo roda duas vezes. Para agendar automações, chame
 [`/automations/trigger`](/api/automacoes) (só na conexão oficial).
 
 <Visibility for="agents">
@@ -275,8 +275,8 @@ evento, ou o fluxo roda duas vezes. Para agendar automações, chame
 - **Mover para coluna com "Desativar IA" desliga a IA do lead.** Diga isso a quem pediu.
 - **Mover pela API não dispara automações.** Se precisar, chame `POST /automations/trigger`
   depois (só na conexão oficial).
-- **Propriedade pela API não roda fluxos.** Dispare `lead.property_changed` com
-  `/flows/trigger`. Mover e pôr ou tirar tag já rodam os fluxos de Kanban e de tag.
+- **Propriedade pela API não roda fluxos.** O gatilho **Propriedade alterada** está em
+  breve. Mover e pôr ou tirar tag já rodam os fluxos de Kanban e de tag.
 - **Propriedade com o mesmo valor volta 200 com `error`.** Não trate esse `error` como
   falha.
 - **`ai_status: "inactive"` não diz se é pausa ou desligamento.**

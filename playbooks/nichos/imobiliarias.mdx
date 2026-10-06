@@ -148,7 +148,7 @@ alguém: avise que o corretor vai chamar e use @kanban_move_com_corretor.
 | **Reengajamento** | Colunas Novo Contato e Qualificado; 60 minutos antes de a janela fechar | Texto livre antes de precisar de template. Só na conexão oficial. |
 | **Pós-visita** (follow-up) | Coluna Visitou; 4 horas | "O que achou do imóvel?" no mesmo dia. A IA responde e encaminha. |
 | **Transbordo por inatividade** | Origem Qualificado; 120 minutos; destino Com corretor; mensagem dentro e fora do horário | Lead qualificado que parou de responder recebe a ligação de um corretor. |
-| **Conversões** (só com anúncios) | `LeadSubmitted` em Qualificado; `QualifiedLead` em Visita agendada (só pelo template); `Purchase` em Ganho, com a comissão média | O Meta Ads aprende a trazer quem visita, não quem só pergunta. |
+| **Conversões** (só com anúncios) | `LeadSubmitted` em Qualificado; `InitiateCheckout` em Visita agendada; `Purchase` em Ganho, com a comissão média | O Meta Ads aprende a trazer quem visita, não quem só pergunta. |
 
 Lembretes costumam ser **Utilitário**; retomada com novas opções, **Marketing**.
 Veja [Follow-up e reengajamento que não queimam o número](/playbooks/follow-up-e-reengajamento)
@@ -206,7 +206,7 @@ e [Anúncios Click-to-WhatsApp com conversões](/playbooks/anuncios-ctwa).
   ],
   "conversions": [
     { "name": "Qualificado", "event": "LeadSubmitted", "column_name": "Qualificado", "value": null },
-    { "name": "Visita agendada", "event": "QualifiedLead", "column_name": "Visita agendada", "value": null }
+    { "name": "Visita agendada", "event": "InitiateCheckout", "column_name": "Visita agendada", "value": null }
   ]
 }
 ```

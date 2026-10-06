@@ -56,8 +56,8 @@ Três ligações que não se deduzem da tela:
 - **Os filtros das automações são conferidos de novo na hora do envio.** Um
   follow-up filtrado pela coluna "Triagem" não sai se o lead já mudou de coluna.
   É isso que torna a coluna o melhor filtro de automação.
-- **O agente vê as propriedades só com "enviar para a IA" ligado**, opção que só
-  existe no template. Veja [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado).
+- **O agente vê as propriedades só com "enviar para a IA" ligado.** A opção vem
+  ligada por padrão e só se muda pelo template. Veja [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado).
 
 ## Padrões
 
@@ -128,7 +128,7 @@ Três ligações que não se deduzem da tela:
 | **Tag para estado que deveria ser coluna** ("Em negociação", "Agendado", "Perdido" como tags) | O lead fica com tags contraditórias; nada liga ou desliga a IA, nem dispara conversão; filtros de automação não acompanham a etapa. | Etapa exclusiva é coluna. Se precisar lembrar que passou por ela, uma tag de marco, de vínculo contato. |
 | **Coluna para atributo** ("Convênio Unimed", "Zona Sul") | O lead perde a etapa ao ser classificado; o funil vira uma lista de categorias. | Atributo é propriedade em lista. |
 | **Propriedade de texto livre que deveria ser lista** (convênio, bairro, plano, origem) | "Unimed", "unimed", "UNIMED": filtros, campanhas e relatórios falham. Depois de preenchida, não vira mais lista. | Lista desde a criação, com "Outro". |
-| **Propriedade que o agente usa sem "enviar para a IA"** | O agente pergunta de novo o que o lead já disse. | Ligue `send_to_ai` pelo template. |
+| **Propriedade que o agente usa com "enviar para a IA" desligado** | O agente pergunta de novo o que o lead já disse. | Religue `send_to_ai` pelo template (o padrão é ligado). |
 | **"Definir tag única" num projeto que usa tags para várias coisas** | Uma tag de temperatura apaga a de origem, a de convênio, a de cliente. | **Adicionar tag** e **Remover tag**. Tag única só para um grupo exclusivo. |
 | **Tag de vínculo conversa para algo permanente** ("Cliente") | Some no primeiro encerramento, e as automações filtradas por ela param. | Vínculo contato. |
 | **Muitas tools** (uma por coluna, uma por tag, um servidor MCP inteiro) | O modelo escolhe a tool errada ou nenhuma; cada mensagem custa mais. | Só as ações necessárias; ações do MCP contam uma por uma; **Filtrar tools** acima de dez. |
