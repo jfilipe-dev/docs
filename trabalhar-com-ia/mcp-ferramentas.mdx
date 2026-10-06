@@ -84,8 +84,8 @@ Resposta:
     {
       "id": "uuid",
       "name": "Clínica Sorriso",
-      "status": "…",
-      "type": "…",
+      "status": "active",
+      "type": "llm_attendant",
       "agent": "langchain",
       "created_at": "2026-09-01T12:00:00Z"
     }
@@ -93,8 +93,13 @@ Resposta:
 }
 ```
 
-`agent` diz o motor do agente: `langchain` (LangChain Agent) ou `openai` (motor
-antigo). Projeto com `openai` ignora o bloco `langchain` numa escrita.
+- `status`: `active` = o agente do projeto responde (dentro do horário de
+  funcionamento, se houver); `inactive` = o agente está desligado para todos os
+  leads.
+- `type`: o tipo do projeto (`llm_attendant` = atendimento com agente de IA).
+- **Motor do agente:** confie em `llm_attendant.llm` do `get_template`
+  (`LANGCHAIN_AGENT` = LangChain Agent; outro valor = motor antigo). Projeto no
+  motor antigo ignora o bloco `langchain` numa escrita.
 </Visibility>
 
 ## get_template
