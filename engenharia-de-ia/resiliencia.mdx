@@ -1,7 +1,12 @@
 ---
 title: "Resiliência: retry, fallback e erro"
-description: "Leia para configurar o que o agente faz quando o modelo falha: tentativas (retry), modelos de reserva (fallback), a mensagem de erro ao lead e o transbordo automático para humano, e a ordem em que cada um age."
+description: "Garanta que o lead nunca fique sem resposta quando o modelo falha, com tentativas, modelos de reserva e transbordo para humano."
+keywords: ["retry", "tentativas", "fallback", "modelo de reserva", "falha do agente", "transbordo", "erro do modelo"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for configurar o que o agente faz quando o modelo falha: tentativas (retry), modelos de reserva (fallback), a mensagem de erro ao lead e o transbordo automático para humano (Falha do agente), e a ordem em que cada um age.
+</Visibility>
 
 Todo provider falha às vezes: fica fora do ar, limita as chamadas, demora demais
 ou fica sem crédito. O LangChain Agent tem três camadas para o lead não ficar sem
@@ -205,7 +210,7 @@ Tudo fica em `langchain.config`: `model.retry`, `model.fallback` e
   do principal; use só no mesmo provider.
 - `settings.error_handling.handoff_tool` precisa ser o `name` de uma tool
   `type: "http"` já declarada em `tools`. Nome que não casa: o lead recebe a
-  mensagem e **não** é transferido (aviso só no log). Composio e MCP não servem.
+  mensagem e **não** é transferido (aviso só no log). Apps integrados e MCP não servem.
 - A tool de transbordo do builder é uma ação da Zatten `kanban.move` com
   `_zatten.target_id` = id da coluna com `transhipment: true`.
 - Ordem dos middlewares: `ModelErrorHandoff` (fora) → `ModelFallback` →

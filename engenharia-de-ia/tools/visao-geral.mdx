@@ -1,7 +1,12 @@
 ---
 title: "Tools: visão geral"
-description: "Leia antes de dar ações ao agente: o que é uma tool, como o modelo decide chamar (pela descrição), os tipos que o LangChain Agent aceita (ações da Zatten, HTTP, Composio, MCP, skill, lista de tarefas) e quantas tools é demais."
+description: "Entenda o que são as tools do agente, como o modelo decide usá-las, os tipos disponíveis e quantas são demais."
+keywords: ["tools", "ferramentas do agente", "funções", "descrição da tool", "tipos de tool", "quantas tools"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for dar ações ao agente: o que é uma tool, como o modelo decide chamar (pela descrição), os tipos que o LangChain Agent aceita (ações da Zatten, HTTP, apps de Integrações, MCP, skill, lista de tarefas) e quantas tools é demais.
+</Visibility>
 
 Uma **tool** é uma ação que o agente pode executar no meio da conversa: mover o
 lead no funil, consultar uma agenda, buscar um pedido na API do cliente final. Sem
@@ -29,7 +34,7 @@ Toda mudança cria um rascunho. A tool só vale para os leads depois de
 |---|---|---|
 | **CRM** (ações da Zatten) | Mover no funil, tags, departamento, propriedade, agendar e cancelar mensagem, transferir para humano, desligar a IA. Prontas, sem configurar API. | [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten) |
 | **Chamada de API** | Uma requisição HTTP para qualquer sistema com API: agenda, ERP, CRM externo, n8n. | [Tool HTTP: referência](/engenharia-de-ia/tools/http) |
-| **Aplicativos** | Ações prontas de apps conectados pela tela Integrações (Google Agenda, HubSpot, Notion…), via Composio. | [Tools da Composio](/engenharia-de-ia/tools/composio) |
+| **Aplicativos** | Ações prontas de apps conectados pela tela Integrações (Google Agenda, HubSpot, Notion…), mais de mil apps. | [Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes) |
 | **Servidor MCP** | Um servidor que entrega várias tools de uma vez. | [Servidores MCP no agente](/engenharia-de-ia/tools/mcp) |
 | **Skill** (em Utilidades) | Conhecimento que o agente carrega só quando precisa. Para o modelo, é uma tool `load_skill`. | [Skills do agente](/engenharia-de-ia/skills) |
 | **Lista de tarefas** (em Utilidades) | Deixa o agente planejar um atendimento longo em etapas. | [Lista de tarefas](/engenharia-de-ia/lista-de-tarefas) |
@@ -103,6 +108,7 @@ Detalhes do filtro e dos limites de chamada em
   painel não tem onde aprovar, e a conversa ficaria parada esperando.
 
 <Visibility for="agents">
+Por trás, as Integrações usam o Composio como provedor; a agência não precisa de conta nele.
 No config (`langchain.config.tools[]`), `type` é um destes: `http`, `composio`,
 `mcp`, `skill`, `builtin`. O tipo `native` não é mais aceito pelo agente: uma tool
 com tipo inválido derruba o agente inteiro. Ações da Zatten são `http` com a

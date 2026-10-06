@@ -1,7 +1,12 @@
 ---
 title: "Servidores MCP no agente"
-description: "Leia para ligar um servidor MCP ao agente do LangChain Agent: o que é, os tipos de conexão (HTTP, SSE; stdio não roda no ambiente do agente), cabeçalhos de autenticação, os servidores prontos (Context7, DeepWiki, Firecrawl), por que os filtros de tools não filtram e por que a aprovação fica desligada."
+description: "Ligue servidores MCP ao agente para ganhar várias tools de uma vez, com autenticação e servidores prontos como Firecrawl."
+keywords: ["MCP", "servidor MCP", "Model Context Protocol", "Context7", "DeepWiki", "Firecrawl", "servidor customizado"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for ligar um servidor MCP ao agente do LangChain Agent: o que é, os tipos de conexão (HTTP, SSE; stdio não roda no ambiente do agente), cabeçalhos de autenticação, os servidores prontos (Context7, DeepWiki, Firecrawl), por que os filtros de tools não filtram e por que a aprovação fica desligada.
+</Visibility>
 
 Um **servidor MCP** é um serviço que entrega **várias tools de uma vez** ao
 agente, num formato padrão (Model Context Protocol). Você cadastra o servidor, e o

@@ -1,7 +1,12 @@
 ---
 title: "Controle da IA por lead e encerrar atendimento"
-description: "Leia para ligar, pausar por N minutos ou desligar a IA de um lead pela API (POST /leads/{numero}/toggle-attendant-response, com pause_minutes de 1 a 10080) e para encerrar o atendimento (PATCH /leads/{numero}/thread), com respostas 200 e 204, erros e o que muda no lead."
+description: "Ligue, pause ou desligue a IA de um lead pela API e encerre o atendimento quando a conversa acabar."
+keywords: ["toggle-attendant-response", "pause_minutes", "pausar IA", "desligar IA", "encerrar atendimento", "thread"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for ligar, pausar por N minutos ou desligar a IA de um lead pela API (`POST /leads/{numero}/toggle-attendant-response`, com pause_minutes de 1 a 10080) e para encerrar o atendimento (`PATCH /leads/{numero}/thread`), com respostas 200 e 204, erros e o que muda no lead.
+</Visibility>
 
 Duas rotas controlam o agente num lead:
 

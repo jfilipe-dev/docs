@@ -1,7 +1,12 @@
 ---
 title: "Trigger Flow: disparar pela API e receber webhooks"
-description: "Leia quando um sistema externo precisa rodar fluxos do Trigger Flow: o disparo genérico (POST /flows/trigger) para avisar um evento de um gatilho disponível, o webhook de entrada por caminho (POST /hooks/<path>), a idempotência de 24h e como o corpo vira {{trigger.body}}."
+description: "Dispare fluxos do Trigger Flow a partir de outro sistema, pela API ou por um webhook de entrada."
+keywords: ["Trigger Flow", "API", "webhook de entrada", "/flows/trigger", "/hooks", "idempotência", "trigger.body"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando um sistema externo precisa rodar fluxos do Trigger Flow: o disparo genérico (`POST /flows/trigger`) para avisar um evento de um gatilho disponível, o webhook de entrada por caminho (`POST /hooks/<path>`), a idempotência de 24h e como o corpo vira `{{trigger.body}}`.
+</Visibility>
 
 Há duas formas de rodar fluxos a partir de outro sistema. As duas usam a
 **chave de API do projeto** no header `x-api-key` e respondem **202** assim que

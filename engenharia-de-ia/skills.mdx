@@ -1,7 +1,12 @@
 ---
 title: "Skills do agente"
-description: "Leia para dar ao agente conhecimento longo (políticas, tabelas, roteiros) sem inchar o prompt: como a skill é carregada, como escrever nome, descrição e conteúdo, tamanho e os dois ajustes que a fazem sumir sem aviso."
+description: "Dê ao agente conhecimento longo, como políticas, tabelas e roteiros, sem inchar o prompt, usando skills do agente."
+keywords: ["skills", "skill do agente", "base de conhecimento", "políticas", "roteiros", "prompt longo"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for dar ao agente conhecimento longo (políticas, tabelas, roteiros) sem inchar o prompt: como a skill é carregada, como escrever nome, descrição e conteúdo, tamanho e os dois ajustes que a fazem sumir sem aviso.
+</Visibility>
 
 Uma **skill do agente** é um bloco de conhecimento que o agente carrega só quando
 precisa: a política de trocas, o roteiro de qualificação, as regras de frete. O
@@ -153,7 +158,7 @@ ajustes ligado, inclua:
 `edits` é uma lista: cada item precisa de `load_skill` em `exclude_tools`.
 
 Citar uma tool no conteúdo (`@nome`) que não existe no agente gera aviso no painel.
-O nome de uma tool da Composio é `TOOLKIT_ACTION` em maiúsculas (ex.:
+O nome de uma ação de app integrado (`type: "composio"`) é `TOOLKIT_ACTION` em maiúsculas (ex.:
 `GMAIL_SEND_EMAIL`).
 </Visibility>
 

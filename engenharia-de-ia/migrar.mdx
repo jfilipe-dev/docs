@@ -1,7 +1,12 @@
 ---
 title: "Migrar para o LangChain Agent (e reverter)"
-description: "Leia antes de migrar um projeto do motor antigo para o LangChain Agent: quem pode, o que é convertido e o que é descartado, o teste automático, o checklist de antes e depois, e como funciona a volta (só pelo suporte)."
+description: "Migre o agente do motor antigo para o LangChain Agent com segurança: o que é convertido, o teste automático e como reverter."
+keywords: ["migrar", "migração", "motor antigo", "LangChain Agent", "reverter", "checklist"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for migrar um projeto do motor antigo para o LangChain Agent: quem pode, o que é convertido e o que é descartado, o teste automático, o checklist de antes e depois, e como funciona a volta (só pelo suporte).
+</Visibility>
 
 Migrar passa o agente de um projeto do motor antigo para o **LangChain Agent**, o
 motor da Zatten. É um clique no painel. Prompt, modelo, chave, funções, skills e
@@ -91,7 +96,7 @@ quantidade do motor antigo, no mínimo 20).
 | — | **Enviar dados** (contexto do lead) ligado |
 | Interpretação de áudio | Transcrição ligada ou desligada igual |
 | Ações da Zatten e webhooks | Tools HTTP |
-| Integrações Composio | Tools Composio |
+| Integrações (apps conectados) | Ações de apps integrados (**Aplicativos**) |
 | Skills | Tools skill, com o conteúdo dentro da configuração |
 | Servidores MCP ativos | Tools MCP (com a aprovação, se havia) |
 | Coluna de transbordo + função que move para ela | **Falha do agente** move o lead para essa coluna |
@@ -99,7 +104,7 @@ quantidade do motor antigo, no mínimo 20).
 ### O que é descartado
 
 - Funções sem URL, sem schema ou com nome repetido.
-- Integração Composio sem toolkit ou ação definida.
+- Integração sem app ou ação definida.
 - Skill sem conteúdo.
 - Servidor MCP inativo ou sem URL.
 - Busca na web, code interpreter e base de arquivos (sem equivalente direto).

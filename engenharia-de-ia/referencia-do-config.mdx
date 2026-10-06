@@ -1,7 +1,12 @@
 ---
 title: "Referência do config do agente (JSON)"
-description: "Consulte para ler ou escrever o config do agente no LangChain Agent (bloco langchain.config do template): a estrutura, todos os campos com tipo, padrão e status, os campos que não têm efeito hoje, o que o template não grava e um exemplo mínimo válido."
+description: "Todos os campos do config do agente em JSON, com tipo, padrão e status, e um exemplo mínimo válido."
+keywords: ["config do agente", "langchain.config", "JSON", "template", "campos", "referência", "schema"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for ler ou escrever o config do agente no LangChain Agent (bloco langchain.config do template): a estrutura, todos os campos com tipo, padrão e status, os campos que não têm efeito hoje, o que o template não grava e um exemplo mínimo válido.
+</Visibility>
 
 O config do agente é o JSON que define o agente de um projeto no LangChain Agent:
 o modelo, o prompt, as tools e os ajustes. O editor do painel (menu **Agente**) e o
@@ -30,7 +35,7 @@ padrão.
 | `name` | Nome interno do agente. O lead não vê. | — |
 | `model` | Provider, modelo, chave, temperatura, Max Tokens, raciocínio, tempo limite, tentativas e modelos de reserva (fallback). | [Providers](/engenharia-de-ia/providers), [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo), [Resiliência](/engenharia-de-ia/resiliencia) |
 | `instructions` | O prompt do agente e se os dados do lead vão junto a cada mensagem. | [Prompt](/engenharia-de-ia/prompt), [Contexto injetado](/engenharia-de-ia/contexto-injetado) |
-| `tools` | Tudo o que o agente pode usar: chamadas de API (incluindo as ações da Zatten), Composio, servidores MCP, skills e a lista de tarefas. | [Tools: visão geral](/engenharia-de-ia/tools/visao-geral) |
+| `tools` | Tudo o que o agente pode usar: chamadas de API (incluindo as ações da Zatten), ações de apps de Integrações, servidores MCP, skills e a lista de tarefas. | [Tools: visão geral](/engenharia-de-ia/tools/visao-geral) |
 | `settings` | Ajustes do comportamento: erro e transbordo, limite de chamadas, dados pessoais, resumo e limpeza de contexto, novas tentativas de tool, filtro de tools, transcrição de áudio e LangSmith. | Ver a tabela abaixo |
 | `agents` | Reservado para vários agentes no futuro. **Sem efeito hoje.** | — |
 
@@ -207,7 +212,7 @@ o agente ignora e devolve intactos. Mantenha-os como vieram do `get_template`.
 | `tools[].timeout_seconds` | inteiro ou null | `null` (180 segundos) | ativo. Segundos |
 | `tools[].require_approval` | boolean | `false` | sempre `false` |
 
-**`type: "composio"`** ([Composio](/engenharia-de-ia/tools/composio))
+**`type: "composio"`** ([Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes)). Por trás, as Integrações usam o Composio como provedor; a agência não precisa de conta nele.
 
 | Caminho | Tipo | Padrão | Status |
 |---|---|---|---|

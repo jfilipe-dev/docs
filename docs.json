@@ -149,7 +149,7 @@
           {
             "group": "Integrações e operação",
             "pages": [
-              "produto/integracoes-composio",
+              "produto/integracoes",
               "produto/mini-apps",
               "produto/chaves-de-api",
               "produto/metricas",
@@ -195,7 +195,7 @@
               "engenharia-de-ia/tools/acoes-da-zatten",
               "engenharia-de-ia/tools/http",
               "engenharia-de-ia/tools/montar-sua-api",
-              "engenharia-de-ia/tools/composio",
+              "engenharia-de-ia/tools/integracoes",
               "engenharia-de-ia/tools/mcp"
             ]
           },
@@ -363,6 +363,16 @@
     ]
   },
   "redirects": [
+    {
+      "source": "/produto/integracoes-composio",
+      "destination": "/produto/integracoes",
+      "permanent": true
+    },
+    {
+      "source": "/engenharia-de-ia/tools/composio",
+      "destination": "/engenharia-de-ia/tools/integracoes",
+      "permanent": true
+    },
     {
       "source": "/introducao/visaogeral",
       "destination": "/comecar/o-que-e-a-zatten",

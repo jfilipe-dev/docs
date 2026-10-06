@@ -1,7 +1,12 @@
 ---
 title: "Webhooks de eventos"
-description: "Leia para receber eventos da Zatten num sistema externo: os eventos e o payload completo de cada um (incluindo adsData), sem retry e sem assinatura, o desligamento automático após 10 falhas e como montar o endpoint que recebe."
+description: "Receba na hora, no seu sistema, os eventos dos leads (criação, mensagens, coluna, tags e erros) para alimentar CRM, planilha ou n8n."
+keywords: ["webhooks", "eventos", "payload", "adsData", "n8n", "Make", "Zapier", "endpoint"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for receber eventos da Zatten num sistema externo: os eventos e o payload completo de cada um (incluindo adsData), sem retry e sem assinatura, o desligamento automático após 10 falhas e como montar o endpoint que recebe.
+</Visibility>
 
 O webhook de eventos faz a Zatten mandar um `POST` com JSON para um endereço seu **na hora** em que algo acontece com um lead: lead criado, mensagem recebida, resposta do agente, mudança de coluna, tag, erro. Serve para alimentar um CRM externo, uma planilha, um painel ou uma automação no n8n, Make ou Zapier.
 

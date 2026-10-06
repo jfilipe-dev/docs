@@ -1,7 +1,12 @@
 ---
 title: "Notificar o responsável"
-description: "Leia para mandar uma notificação push ao responsável de um lead pela API (POST /leads/{numero}/notification): título até 100 caracteres, mensagem até 500, o que acontece sem responsável, respostas sent true/false, erros e cuidados contra spam."
+description: "Avise pela API o responsável por um lead com uma notificação no painel e no celular quando algo pedir atenção."
+keywords: ["POST /leads/{numero}/notification", "notificação push", "responsável", "avisar a equipe", "notificar"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for mandar uma notificação push ao responsável de um lead pela API (`POST /leads/{numero}/notification`): título até 100 caracteres, mensagem até 500, o que acontece sem responsável, respostas sent true/false, erros e cuidados contra spam.
+</Visibility>
 
 `POST /leads/{numero}/notification` manda uma **notificação** ao **responsável atual**
 do lead: o usuário da equipe atribuído a ele. É a mesma ação do bloco **Notificar

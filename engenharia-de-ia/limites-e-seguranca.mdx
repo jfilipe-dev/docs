@@ -1,7 +1,12 @@
 ---
 title: "Limites e segurança"
-description: "Leia para pôr um teto nas chamadas do agente (por mensagem e por conversa), proteger dados pessoais (PII, só pelo template), filtrar tools quando há muitas, e entender por que a aprovação humana fica sempre desligada."
+description: "Ponha um teto nas chamadas do agente, proteja dados pessoais dos leads e filtre tools quando o agente tem muitas."
+keywords: ["limite de chamadas", "PII", "dados pessoais", "filtrar tools", "aprovação humana", "segurança", "LGPD"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for pôr um teto nas chamadas do agente (por mensagem e por conversa), proteger dados pessoais (PII, só pelo template), filtrar tools quando há muitas, ou entender por que a aprovação humana fica sempre desligada.
+</Visibility>
 
 Quatro ajustes do LangChain Agent protegem o atendimento e o custo:
 
@@ -122,8 +127,8 @@ extra não compensa.
 **O risco:** se o filtro esconder a tool certa, o agente responde sem ela, sem erro.
 Ponha em `always_include` as tools que não podem faltar: a de transferir para humano,
 `load_skill` (o painel já faz isso sozinho quando há skill) e `write_todos` se usar a
-[lista de tarefas](/engenharia-de-ia/lista-de-tarefas). O nome de uma tool da
-Composio é `TOOLKIT_ACTION` em maiúsculas (ex.: `GMAIL_SEND_EMAIL`).
+[lista de tarefas](/engenharia-de-ia/lista-de-tarefas). O nome de uma ação de
+app integrado é `APP_ACAO` em maiúsculas (ex.: `GMAIL_SEND_EMAIL`).
 
 ## Por que a aprovação humana fica desligada
 

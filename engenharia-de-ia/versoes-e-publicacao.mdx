@@ -1,7 +1,12 @@
 ---
 title: "Versões e publicação"
-description: "Leia para entender o ciclo de uma mudança no agente: salvar cria um rascunho (versão nova), publicar põe no ar, como voltar a uma versão anterior, em quanto tempo as conversas pegam a mudança e por que o MCP nunca publica."
+description: "Salve rascunhos, publique a versão certa do agente e volte a uma versão anterior quando precisar."
+keywords: ["versões", "publicar", "rascunho", "salvar", "voltar versão", "rollback", "histórico de versões"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando precisar entender o ciclo de uma mudança no agente: salvar cria um rascunho (versão nova), publicar põe no ar, como voltar a uma versão anterior, em quanto tempo as conversas pegam a mudança e por que o MCP nunca publica.
+</Visibility>
 
 No LangChain Agent, cada alteração do agente vira uma **versão** numerada (v1, v2,
 v3…). Duas ações diferentes:
@@ -15,7 +20,7 @@ atrás: a versão anterior continua guardada.
 ## O que é versionado
 
 Tudo o que fica no **config do agente**: modelo e parâmetros, prompt, **Enviar
-dados**, tools (ações da Zatten, HTTP, Composio, MCP), skills, lista de tarefas,
+dados**, tools (ações da Zatten, HTTP, apps integrados, MCP), skills, lista de tarefas,
 resumo do histórico, retry e fallback, falha do agente, monitoramento (LangSmith),
 limite de chamadas, filtro de tools e descarte de resultados.
 

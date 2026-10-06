@@ -1,7 +1,12 @@
 ---
 title: "Histórico de mensagens"
-description: "Leia para ler a conversa de um lead pela API: GET /messages/history em texto pronto para IA (llm_format=true) ou em JSON (llm_format=false, com input_tokens e output_tokens por mensagem), como escolher a conversa com thread_id, o limite de mensagens, a ordem e os erros."
+description: "Puxe pela API o histórico de mensagens de um lead, em texto pronto para outra IA ou em JSON com os tokens de cada mensagem."
+keywords: ["GET /messages/history", "histórico de mensagens", "llm_format", "thread_id", "input_tokens", "output_tokens", "conversa"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for ler a conversa de um lead pela API: GET /messages/history em texto pronto para IA (llm_format=true) ou em JSON (llm_format=false, com input_tokens e output_tokens por mensagem), como escolher a conversa com thread_id, o limite de mensagens, a ordem e os erros.
+</Visibility>
 
 `GET /messages/history` devolve as mensagens de **uma conversa** de um lead, junto com
 os dados do lead. Há dois formatos:

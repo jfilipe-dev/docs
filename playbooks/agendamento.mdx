@@ -1,7 +1,12 @@
 ---
 title: "Agendamento"
-description: "Leia para montar um agente que marca horário no WhatsApp: qual caminho usar (Composio, servidor MCP, tool HTTP ou link de agendamento), confirmação, lembrete por template, reagendar e cancelar, e o que medir."
+description: "Monte um agente que marca horário pelo WhatsApp na agenda que o cliente já usa, com confirmação, lembrete, reagendamento e cancelamento."
+keywords: ["agendamento", "agenda", "Google Agenda", "Cal.com", "lembrete", "marcar horário", "reagendar"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for montar um agente que marca horário no WhatsApp: qual caminho usar (app integrado, servidor MCP, tool HTTP ou link de agendamento), confirmação, lembrete por template, reagendar e cancelar, e o que medir.
+</Visibility>
 
 Um agente de agendamento consulta a agenda do cliente final, oferece horários, marca, confirma e manda um lembrete antes do compromisso. A Zatten não tem agenda própria: o agente conversa com a agenda que o cliente já usa (Google Agenda, Cal.com, o sistema da clínica) por uma tool, e a Zatten cuida do resto: funil, propriedades, lembrete por template e transbordo.
 
@@ -13,7 +18,7 @@ Comece por esta pergunta: **onde a agenda do cliente final mora hoje?**
 
 | Caminho | Quando usar | O agente marca sozinho? | Esforço |
 |---|---|---|---|
-| **[Composio](/engenharia-de-ia/tools/composio)** (Google Agenda, Cal.com e outros apps do catálogo) | A agenda está num app do catálogo da Composio. | Sim | Baixo: conectar a conta e marcar as ações. |
+| **[App integrado](/engenharia-de-ia/tools/integracoes)** (Google Agenda, Cal.com e outros apps de Integrações) | A agenda está num app que aparece em **Integrações**. | Sim | Baixo: conectar a conta e marcar as ações. |
 | **[Servidor MCP](/engenharia-de-ia/tools/mcp)** | O sistema de agenda publica um servidor MCP pronto. | Sim | Baixo, mas você não controla as tools que ele expõe. |
 | **[Tool HTTP](/engenharia-de-ia/tools/http)** | A agenda tem API própria (sistema da clínica, ERP, agenda feita pela agência) ou você quer fixar valores e enxugar a resposta. | Sim | Médio: duas a quatro tools para configurar. |
 | **Link de agendamento** (Cal.com, Calendly) + intermediário | O cliente final prefere que o lead escolha o horário numa página. | Não: o lead marca no link. | Médio: precisa de um intermediário (n8n, Make) para avisar a Zatten. |
@@ -46,7 +51,7 @@ Use vínculo **conversa** para as propriedades do compromisso. Ao [encerrar o at
 
 <Steps>
 <Step title="Conecte a agenda">
-**Composio:** em [Integrações](/produto/integracoes-composio), conecte a conta **do cliente final** (a agenda da clínica, não a da agência). No editor do agente, adicione só as ações necessárias. Para o Google Agenda:
+**App integrado:** em [Integrações](/produto/integracoes), conecte a conta **do cliente final** (a agenda da clínica, não a da agência). No editor do agente, adicione só as ações necessárias. Para o Google Agenda:
 
 | Ação | Nome que o modelo vê | Para quê |
 |---|---|---|
@@ -55,7 +60,7 @@ Use vínculo **conversa** para as propriedades do compromisso. Ao [encerrar o at
 | Patch Event | `GOOGLECALENDAR_PATCH_EVENT` | Remarcar |
 | Delete event | `GOOGLECALENDAR_DELETE_EVENT` | Cancelar |
 
-Para o Cal.com, o toolkit `cal` tem ações equivalentes (horários livres, criar, remarcar e cancelar reserva). Confira os nomes e os parâmetros na [página do toolkit](https://docs.composio.dev/toolkits/cal).
+Para o Cal.com, o app tem ações equivalentes (horários livres, criar, remarcar e cancelar reserva). Confira os nomes e os parâmetros em **Parâmetros da ação**, no editor do agente.
 
 **Tool HTTP:** crie uma tool por operação (`consultar_horarios`, `criar_agendamento`, `remarcar_agendamento`, `cancelar_agendamento`). Deixe em **Fixo** tudo o que o modelo não deve escolher (chave, id da agenda, id do serviço) e em **IA** só o essencial (o horário escolhido). Veja [Tool HTTP](/engenharia-de-ia/tools/http) e [Como montar a sua API](/engenharia-de-ia/tools/montar-sua-api).
 </Step>
@@ -169,23 +174,24 @@ Mover o lead pela API aplica as chaves **Desativar IA** e **Transbordo** da colu
 
 ## Pelo MCP
 
-Viajam no template do projeto: colunas, propriedades (com `send_to_ai`), as ações da Zatten e as tools HTTP, MCP e Composio (bloco `langchain`), e os follow-ups. **Não viajam:**
+Viajam no template do projeto: colunas, propriedades (com `send_to_ai`), as ações da Zatten e as tools HTTP, MCP e de apps integrados (bloco `langchain`), e os follow-ups. **Não viajam:**
 
-- a conexão da conta na Composio: uma pessoa conecta em **Integrações**;
+- a conexão da conta do app: uma pessoa conecta em **Integrações**;
 - os templates da Meta: o MCP só lê; uma pessoa cria e envia à Meta no painel;
 - a publicação da versão do agente.
 
 <Visibility for="agents">
 - Ação de lembrete: `_zatten.template = "schedule.add"`, `_zatten.target_name = "<nome do template>"`, `_zatten.schedule = { "mode": "by_ia", "templateName": "<nome>", "languageCode": "pt_BR" }`. O modelo vê `schedule_add_<template>` com o parâmetro `scheduled_for` (ISO 8601).
 - Cancelar: `_zatten.template = "schedule.remove"`, mesmo `target_name`. Cancela todos os envios futuros daquele template para o lead.
-- Tool Composio: `{ "type": "composio", "toolkit": "googlecalendar", "action": "find_free_slots", "require_approval": false }`. Nome visto pelo modelo: `GOOGLECALENDAR_FIND_FREE_SLOTS`.
+- Por trás, as Integrações usam o Composio como provedor; a agência não precisa de conta nele. Tool de app integrado: `{ "type": "composio", "toolkit": "googlecalendar", "action": "find_free_slots", "require_approval": false }`. Nome visto pelo modelo: `GOOGLECALENDAR_FIND_FREE_SLOTS`.
+- Ações do Cal.com: toolkit `cal`, ver https://docs.composio.dev/toolkits/cal. Google Agenda: https://docs.composio.dev/toolkits/googlecalendar. Catálogo: https://docs.composio.dev/toolkits.
 - Antes de propor o lembrete, confira em `get_template` (bloco `meta_templates`) se o template existe; pergunte se está aprovado. Não prometa envio com template ausente ou pendente.
 - Ligar o follow-up de "não marcou" pede pergunta explícita (regra 4 de [As regras](/trabalhar-com-ia/regras)).
 </Visibility>
 
 ## Armadilhas
 
-- **Conta errada na Composio.** A conta conectada vale para todos os leads do projeto. Conecte a agenda do cliente final.
+- **Conta errada em Integrações.** A conta conectada vale para todos os leads do projeto. Conecte a agenda do cliente final.
 - **Ações demais.** Marcar todas as ações do Google Agenda põe dezenas de tools no contexto e confunde o modelo. Quatro bastam.
 - **Parâmetros que o lead não sabe.** O id da agenda, o id do serviço: diga no prompt de onde tirar cada um, ou use uma tool HTTP com esses valores fixos.
 - **Lembrete sem fuso** sai na hora errada.
@@ -212,10 +218,9 @@ O vídeo pode mostrar uma versão anterior da tela. Quando houver diferença, va
 ## Para saber mais
 
 - [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten): Agendar mensagem e Cancelar agendamento.
-- [Tools da Composio](/engenharia-de-ia/tools/composio), [Tool HTTP](/engenharia-de-ia/tools/http), [Servidores MCP](/engenharia-de-ia/tools/mcp).
+- [Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes), [Tool HTTP](/engenharia-de-ia/tools/http), [Servidores MCP](/engenharia-de-ia/tools/mcp).
 - [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado): o bloco "Agora".
 - [Templates do WhatsApp](/produto/templates-whatsapp) e [Janela de 24h](/comecar/janela-de-24h).
 - [Playbook: clínicas e saúde](/playbooks/nichos/clinicas).
-- Composio: [Google Agenda](https://docs.composio.dev/toolkits/googlecalendar), [Cal.com](https://docs.composio.dev/toolkits/cal), [catálogo](https://docs.composio.dev/toolkits).
 - Cal.com: [API v2](https://cal.com/docs/api-reference/v2/introduction).
 - Termos para buscar: "find free slots", "ISO 8601 timezone offset", "no-show", "Cal.com webhooks", "appointment reminder template".

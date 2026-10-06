@@ -1,7 +1,12 @@
 ---
 title: "API de template (REST)"
-description: "Leia para ler e aplicar o template de um projeto por HTTP, sem o MCP: GET e POST em app.zatten.com/api/v1/projects/{id}/template com a chave do projeto em Authorization: Bearer, envio parcial, publish_agent e submit_meta_templates, resposta, erros e as diferenças para o update_template do MCP."
+description: "Busque e altere por HTTP a configuração de um projeto (funil, tags, propriedades, automações e agente), sem passar pelo MCP."
+keywords: ["API de template", "GET template", "POST template", "publish_agent", "submit_meta_templates", "revision", "update_template"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for ler e aplicar o template de um projeto por HTTP, sem o MCP: GET e POST em `app.zatten.com/api/v1/projects/{id}/template` com a chave do projeto em Authorization: Bearer, envio parcial, publish_agent e submit_meta_templates, resposta, erros e as diferenças para o update_template do MCP.
+</Visibility>
 
 A API de template lê e altera a **configuração** de um projeto (funil, tags,
 propriedades, automações, agente) por HTTP. É o **mesmo motor** do `update_template` do

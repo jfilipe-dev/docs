@@ -1,7 +1,12 @@
 ---
 title: "Disparar fluxos e webhook de entrada"
-description: "Referência dos dois endpoints do Trigger Flow: POST /flows/trigger (gatilho, lead, trigger_event, idempotency_key, resposta com matched, dispatched e runs) e POST /hooks/{path} (payload cru vira {{trigger.body}}), com a tabela dos gatilhos, as variáveis, os códigos de resposta e exemplos."
+description: "Dispare fluxos do Trigger Flow a partir de outro sistema, avisando um evento do lead ou recebendo o JSON de um ERP, formulário ou gateway."
+keywords: ["POST /flows/trigger", "POST /hooks", "Trigger Flow", "webhook de entrada", "idempotency_key", "trigger_event", "trigger.body"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando precisar da referência dos dois endpoints do Trigger Flow: `POST /flows/trigger` (gatilho, lead, trigger_event, idempotency_key, resposta com matched, dispatched e runs) e `POST /hooks/{path}` (payload cru vira `{{trigger.body}}`), com a tabela dos gatilhos, as variáveis, os códigos de resposta e exemplos.
+</Visibility>
 
 Dois endpoints rodam fluxos do [Trigger Flow](/produto/trigger-flow/conceitos) a partir
 de outro sistema. Os dois respondem **202** assim que os fluxos entram na fila.

@@ -1,7 +1,12 @@
 ---
 title: "Como o agente da Zatten funciona"
-description: "Leia para entender o caminho de uma mensagem do lead até a resposta: o que o servidor da Zatten faz (buffer, pausa, horário, envio) e o que o agente faz (middlewares, modelo, tools), e onde investigar quando a IA não responde."
+description: "Entenda o caminho de uma mensagem do lead até a resposta do agente e saiba onde investigar quando a IA não responde."
+keywords: ["fluxo da mensagem", "IA não responde", "middlewares", "servidor da Zatten", "LangChain Agent", "diagnóstico"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando precisar entender o caminho de uma mensagem do lead até a resposta: o que o servidor da Zatten faz (buffer, pausa, horário, envio) e o que o agente faz (middlewares, modelo, tools), e onde investigar quando a IA não responde.
+</Visibility>
 
 Uma mensagem do lead passa por duas partes. O **servidor da Zatten** recebe,
 espera o lead terminar de escrever, decide se a IA pode responder e entrega a
@@ -139,7 +144,7 @@ A ordem, de fora para dentro:
 
 As tools podem ser [ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten)
 (mover no funil, tag, transferir), [HTTP](/engenharia-de-ia/tools/http),
-[Composio](/engenharia-de-ia/tools/composio), [MCP](/engenharia-de-ia/tools/mcp)
+[apps integrados](/engenharia-de-ia/tools/integracoes), [MCP](/engenharia-de-ia/tools/mcp)
 ou [skills](/engenharia-de-ia/skills). Uma ação da Zatten muda o lead na hora:
 se o agente move o lead para uma coluna que desliga a IA, a próxima mensagem já
 não é respondida.

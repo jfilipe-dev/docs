@@ -1,7 +1,12 @@
 ---
 title: "Escrever um bom prompt"
-description: "Leia antes de escrever ou revisar o prompt de um agente: a estrutura recomendada, o que vai no prompt, na descrição da tool e na skill, por que o prompt é fixo (cache), como citar tools com @, exemplos por nicho e os erros mais comuns."
+description: "Escreva um prompt que faz o agente atender bem: estrutura recomendada, exemplos por nicho e os erros mais comuns."
+keywords: ["prompt", "instruções", "system prompt", "exemplos de prompt", "citar tools", "cache de prompt"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for escrever ou revisar o prompt de um agente: a estrutura recomendada, o que vai no prompt, na descrição da tool e na skill, por que o prompt é fixo (cache), como citar tools com @, exemplos por nicho e os erros mais comuns.
+</Visibility>
 
 O prompt (no painel, **Instruções**) é o texto que o agente lê antes de toda
 resposta. Ele diz quem o agente é, o que ele precisa conseguir na conversa, como
@@ -229,7 +234,7 @@ painel. Veja [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-func
 - Nomes das ações da Zatten: `{entity}_{action}_{slug_do_alvo}`, com o alvo em
   minúsculas, sem acento, espaços viram `_` (ex.: `kanban_move_visita_agendada`).
   Ao trocar o alvo, atualize as citações no `system_prompt` na mesma escrita.
-- Tools da Composio: o modelo vê o nome `TOOLKIT_ACTION` em maiúsculas. Ao citar
+- Ações de apps integrados (`type: "composio"`): o modelo vê o nome `TOOLKIT_ACTION` em maiúsculas. Ao citar
   à mão, use esse nome.
 - Não grave dados de lead, data ou hora no `system_prompt`.
 - Antes de propor um prompt novo, leia o atual inteiro e as descrições das tools:

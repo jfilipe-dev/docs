@@ -1,0 +1,168 @@
+---
+title: "Integrações"
+description: "Conecte Google Agenda, Gmail, HubSpot, Notion e mais de mil apps ao projeto para o agente usar, sem custo extra."
+keywords: ["integrações", "apps externos", "Google Agenda", "Gmail", "HubSpot", "OAuth", "conectar conta"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for conectar a conta de um app externo (Google Agenda, Gmail, HubSpot, Notion e mais de mil apps) a um projeto pelo menu Integrações: buscar o app, conectar por OAuth ou credencial, uma conta por app em cada projeto, sem custo, e como o agente passa a usar.
+</Visibility>
+
+O menu **Integrações** do painel conecta contas de apps externos ao projeto. São
+**mais de mil apps** (Google Agenda, Gmail, HubSpot, Notion, Pipedrive, Calendly…),
+já integrados à Zatten: não há conta extra para criar nem nada para configurar fora
+do painel. Depois de conectada, a conta pode ser usada pelo agente como
+**ferramenta**: consultar a agenda, criar um negócio no CRM, gravar numa planilha.
+
+Esta página cobre a conexão. Escolher as ações e colocá-las no agente está em
+[Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes).
+
+## Onde fica no painel
+
+Menu **Integrações** (`/integrations`), com o subtítulo "Conecte aplicativos
+externos para o seu agente usar como ferramentas". A tela lista os apps com busca
+(**Buscar integração...**), filtro por categoria e ordenação (**Mais usadas**,
+**Nome (A–Z)**, **Conectadas primeiro**). Cada card mostra **Conectado**,
+**Pendente** ou **Não conectado**.
+
+Para saber se um app existe, **busque pelo nome** nessa tela. Não há lista fixa
+nesta documentação: o catálogo tem mais de mil apps e é atualizado sozinho.
+
+Só **admin** e **editor** conectam e desconectam.
+
+## Sem custo e sem limite
+
+As integrações não têm custo nem limite de uso para a agência. Conecte quantos
+apps quiser em cada projeto, com **uma conta por app** (por exemplo, um Gmail por
+projeto).
+
+## Como conectar
+
+<Steps>
+<Step title="Abra o projeto certo">
+A conexão é do **projeto** aberto no painel, não da conta da agência. Confira o
+nome do projeto antes de conectar.
+</Step>
+<Step title="Encontre o app">
+Busque pelo nome em **Buscar integração...**.
+</Step>
+<Step title="Clique em Conectar">
+Há dois jeitos, conforme o app:
+
+- **OAuth:** abre uma janela do próprio app (Google, HubSpot…) para o dono da conta
+  entrar e autorizar. Ao fechar, o card passa a mostrar **Conectado**.
+- **Credencial:** o card mostra **Requer chave de API**. Abre um formulário
+  pedindo a chave de API, o token ou usuário e senha do app. Os campos vêm do
+  próprio app.
+</Step>
+<Step title="Confira as ações">
+No card do app, **Lista de ferramentas** mostra as ações que ele oferece.
+</Step>
+<Step title="Coloque as ações no agente">
+Conectar não basta: adicione as ações no editor do agente (**Tools** →
+**Adicionar** → **Aplicativos**) e publique a versão. O passo a passo está em
+[Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes).
+</Step>
+</Steps>
+
+### Desconectar
+
+No card conectado, **Desconectar**. O agente perde acesso às ações daquele app até
+a conta ser conectada de novo. No LangChain Agent, as ações do app continuam no
+agente e o modelo continua vendo-as: quando ele chama uma, a chamada falha e ele
+recebe o erro. Tire as ações do agente se a conta não vai voltar.
+
+## Regras da conexão
+
+- **A conta fica presa ao projeto.** Cada projeto tem as próprias conexões. Conectar
+  o Google Agenda no projeto A não vale para o projeto B. Um projeto nunca usa a
+  conta de outro.
+- **Uma conta por app em cada projeto.** Para trocar a conta (outro e-mail, outra
+  empresa), desconecte e conecte de novo.
+- Tentativas antigas que não terminaram (expiradas ou com falha) são limpas quando
+  se conecta de novo.
+- O catálogo é atualizado a cada hora.
+- **Ficam fora do catálogo:** WhatsApp (o canal já é da Zatten), apps internos do
+  provedor e apps que não pedem autenticação.
+
+<Visibility for="agents">
+Por trás, as Integrações usam o Composio como provedor; a agência não precisa de
+conta nele. Nunca mande a pessoa criar conta, entrar ou configurar algo no
+Composio: tudo é pela página Integrações do painel.
+
+- **Se a pessoa perguntar quais integrações existem:** mande abrir o menu
+  **Integrações** do painel e buscar pelo nome do app; são mais de mil. Não liste
+  apps de memória.
+- **Para saber o que um app faz** (ações e parâmetros), consulte o catálogo do
+  provedor: https://docs.composio.dev/toolkits (Markdown:
+  https://docs.composio.dev/toolkits.md); página de um app:
+  `https://docs.composio.dev/toolkits/<slug>` (ex.:
+  https://docs.composio.dev/toolkits/googlecalendar). Índice para IA:
+  https://docs.composio.dev/llms.txt. Use isso só para pesquisar; à pessoa, fale
+  em "Integrações".
+- Entram no painel os apps com OAuth gerenciado pelo provedor ou com credencial do
+  tipo chave de API, token (Bearer) ou usuário e senha. Um app do catálogo do
+  provedor pode não aparecer no painel por isso; confira na tela.
+- Na tela, o app é identificado pelo slug do toolkit em minúsculas (ex.:
+  `googlecalendar`, `hubspot`). No config do agente, a tool é
+  `{ "type": "composio", "toolkit": "<slug>", "action": "<ação>" }`, em minúsculas; o
+  modelo vê o nome `TOOLKIT_ACTION`. Estados da conexão: `ACTIVE` (Conectado),
+  `INITIATED`, `EXPIRED`, `FAILED`. Só `ACTIVE` vale.
+- Termos para buscar: "Composio toolkit", "connected account", "managed OAuth",
+  nome do app + "Composio".
+</Visibility>
+
+## Pelo MCP
+
+A conexão **não viaja** no template: ela é uma autorização da conta do cliente
+final, não configuração. O que viaja são as ações dos apps dentro do bloco
+`langchain`. Ao aplicar um template num projeto onde o app não está conectado, as
+ações entram no agente mesmo assim, e cada chamada falha até alguém conectar a conta
+pela tela Integrações. Conecte antes de publicar a versão.
+
+Conectar é sempre uma pessoa, no painel: o OAuth pede o login do dono da conta.
+O assistente só guia.
+
+## Armadilhas
+
+- **Conectar com a conta errada.** A conta conectada é a que o agente usa para
+  todos os leads. Conecte com a conta do cliente final (a agenda da clínica), não
+  com a da agência.
+- **Projeto errado aberto.** A conexão vai para o projeto do painel. Confira o nome
+  antes.
+- **Conectar não basta.** O agente só usa o app depois de as ações estarem no
+  agente e a versão ser publicada.
+- **Token expirado do lado do app.** Se o dono trocar a senha ou revogar o acesso,
+  a conexão para de funcionar. Desconecte e conecte de novo.
+- **Duplicar ou importar o projeto** leva as ações, mas não a conexão. Conecte de
+  novo no projeto novo.
+
+## Perguntas frequentes
+
+<AccordionGroup>
+<Accordion title="Quais integrações existem?">
+Abra o menu **Integrações** e busque pelo nome do app. São mais de mil.
+</Accordion>
+<Accordion title="O app que eu quero não aparece na tela. E agora?">
+Use uma tool HTTP para a API do app ([Tools: HTTP](/engenharia-de-ia/tools/http)).
+</Accordion>
+<Accordion title="Preciso criar conta em algum outro serviço?">
+Não. As integrações já fazem parte da Zatten. Basta conectar a conta do app (o
+Google, o HubSpot…) na tela Integrações.
+</Accordion>
+<Accordion title="As integrações têm custo?">
+Não. Não têm custo nem limite de uso para a agência. Você pode conectar quantos
+apps quiser no projeto, com **uma conta por app** (por exemplo, um Gmail por
+projeto).
+</Accordion>
+<Accordion title="Os dados do lead saem da Zatten?">
+Saem os parâmetros que o agente envia na ação para o app (ex.: nome e horário para
+criar um evento no Google Agenda). Avalie isso com o cliente final, como em qualquer
+integração.
+</Accordion>
+</AccordionGroup>
+
+## Para saber mais
+
+- [Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes): escolher e configurar as ações no agente
+- [Tools: visão geral](/engenharia-de-ia/tools/visao-geral)

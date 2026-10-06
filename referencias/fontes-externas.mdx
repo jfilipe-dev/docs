@@ -1,7 +1,12 @@
 ---
 title: "Fontes oficiais e o que buscar em cada uma"
-description: "Leia quando a resposta não está na doc da Zatten: preço e regras da Meta/WhatsApp, modelos e preços da OpenAI e do OpenRouter, LangChain, LangSmith, Composio, MCP e guias de prompt e de agentes. Diz aonde ir, o que buscar e qual índice para IA usar."
+description: "Onde buscar o que não está na doc da Zatten: regras e preços da Meta e do WhatsApp, modelos da OpenAI e do OpenRouter, LangChain, MCP e guias de prompt."
+keywords: ["fontes oficiais", "Meta", "WhatsApp", "OpenAI", "OpenRouter", "LangChain", "LangSmith", "MCP"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando a resposta não estiver na doc da Zatten: preço e regras da Meta/WhatsApp, modelos e preços da OpenAI e do OpenRouter, LangChain, LangSmith, MCP e guias de prompt e de agentes. Diz aonde ir, o que buscar e qual índice para IA usar.
+</Visibility>
 
 Esta página é um roteador. Para cada tipo de pergunta, ela diz **em qual site
 oficial ir, qual página abrir e quais termos buscar**. Todos os links foram
@@ -9,7 +14,7 @@ abertos e responderam em 06/10/2026.
 
 A regra geral: o que é da Zatten (painel, template, API, agente) está nesta doc.
 O que é de outra empresa (preço por mensagem da Meta, preço por token da OpenAI,
-limites da Meta, catálogo da Composio) se lê **na fonte**, na hora, porque muda.
+limites da Meta) se lê **na fonte**, na hora, porque muda.
 
 ## Regras para o agente de IA
 
@@ -23,8 +28,7 @@ limites da Meta, catálogo da Composio) se lê **na fonte**, na hora, porque mud
    e uma linha de resumo. Ache a página certa ali e leia só ela.
 4. **Leia a versão em Markdown.** Na maioria das fontes abaixo, acrescentar
    `.md` ao endereço da página devolve o texto limpo, sem menu nem script.
-   Confirmado em OpenAI, Anthropic, LangChain/LangSmith, OpenRouter, Composio e
-   MCP.
+   Confirmado em OpenAI, Anthropic, LangChain/LangSmith, OpenRouter e MCP.
 5. **Doc da Meta: só endereços novos.** Veja o aviso logo abaixo.
 
 <Warning>
@@ -47,7 +51,6 @@ equivalente no índice da Meta (abaixo).
 | Anthropic | https://platform.claude.com/llms.txt |
 | OpenRouter | https://openrouter.ai/docs/llms.txt |
 | LangChain e LangSmith (o mesmo site) | https://docs.langchain.com/llms.txt |
-| Composio | https://docs.composio.dev/llms.txt (índice curto: https://docs.composio.dev/llms-index.txt) |
 | MCP | https://modelcontextprotocol.io/llms.txt |
 | ElevenLabs (voz) | https://elevenlabs.io/docs/llms.txt |
 | Mintlify | https://www.mintlify.com/docs/llms.txt |
@@ -79,7 +82,7 @@ ele, vá direto aos links desta página e use o índice só se não achar.
 | Como desenhar tools que o modelo usa bem | Anthropic, "Writing tools for agents" | "tool description", "namespacing", "token-efficient" |
 | Ver o que o agente fez numa conversa | LangSmith | "trace", "threads", "cost tracking" |
 | Conceito do motor (middleware, memória, contexto) | LangChain | "middleware", "summarization", "context engineering" |
-| Qual app a Composio tem e com que login | Composio, catálogo | slug do app, "auth scheme", "OAuth" |
+| Quais apps existem para conectar ao agente | Menu Integrações do painel; veja [Integrações](/produto/integracoes) | nome do app |
 | Como funciona um servidor MCP | MCP, introdução e especificação | "tools", "transport", "Streamable HTTP" |
 
 ## Meta / WhatsApp
@@ -317,30 +320,35 @@ da doc: [observabilidade com LangSmith](/engenharia-de-ia/langsmith).
 - **[Preços](https://www.langchain.com/pricing)**: planos do LangSmith (não há
   página separada só do LangSmith). *Busque:* "LangSmith", "traces", "retention".
 
-## Composio
+## Integrações (apps conectados)
 
-Para saber quais apps a Composio conecta, com que tipo de login e quais ações.
-Páginas da doc: [Composio no agente](/engenharia-de-ia/tools/composio) e
-[integrações Composio](/produto/integracoes-composio).
+Para saber quais apps existem, abra o menu **Integrações** do painel e busque
+pelo nome: são mais de mil, já integrados à Zatten, sem conta extra para criar.
+Páginas da doc: [Integrações](/produto/integracoes) e
+[Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes).
+
+<Visibility for="agents">
+Por trás, as Integrações usam o Composio como provedor; a agência não precisa de
+conta nele. Nunca mande a pessoa criar conta, entrar, gerar chave ou configurar
+algo no Composio: tudo é pela página Integrações do painel. Use as fontes abaixo
+só para pesquisar o que um app faz; à pessoa, fale em "Integrações".
 
 - **[Catálogo de toolkits](https://docs.composio.dev/toolkits)** (também em
   [Markdown](https://docs.composio.dev/toolkits.md)): tabela com todos os apps,
-  o slug, quantas tools e triggers, o tipo de login e se a Composio cuida do app
-  OAuth. É a melhor fonte para a IA.
-  *Vá quando:* conferir se um app existe e qual o slug. *Busque:* nome do app,
-  "OAUTH2", "API_KEY", "managed".
+  o slug, quantas tools e triggers, o tipo de login e se o provedor cuida do app
+  OAuth. *Vá quando:* conferir o que um app faz e qual o slug. *Busque:* nome do
+  app, "OAUTH2", "API_KEY", "managed". Se o app aparece no painel é o que vale.
 - **Página de um toolkit**: `https://docs.composio.dev/toolkits/<slug>` (ex.:
-  [googlecalendar](https://docs.composio.dev/toolkits/googlecalendar),
-  [whatsapp](https://docs.composio.dev/toolkits/whatsapp)): as ações e os campos
-  de cada uma. *Busque:* nome da ação, "required".
+  [googlecalendar](https://docs.composio.dev/toolkits/googlecalendar)): as ações
+  e os campos de cada uma. *Busque:* nome da ação, "required".
 - **[Conceitos de toolkits](https://docs.composio.dev/docs/toolkits)**: como as
-  tools são descobertas e autenticadas. *Busque:* "auth config", "connected
-  account", "COMPOSIO_SEARCH_TOOLS".
-- **[CLI](https://docs.composio.dev/docs/cli)**: buscar e testar tools pelo
-  terminal. *Busque:* "composio search".
-- **[Referência da API de toolkits](https://docs.composio.dev/reference/api-reference/toolkits)**:
-  a listagem por API exige chave da Composio. Para consulta, prefira o catálogo
-  em Markdown.
+  tools são descobertas e autenticadas. *Busque:* "connected account".
+- Índice para IA: https://docs.composio.dev/llms.txt (curto:
+  https://docs.composio.dev/llms-index.txt).
+- A API do provedor exige chave, que a agência não tem nem precisa: para
+  consulta, use o catálogo público em Markdown.
+- Termos para buscar: "Composio toolkits", nome do app + "Composio".
+</Visibility>
 
 ## MCP (Model Context Protocol)
 
@@ -459,8 +467,6 @@ Catálogo de modelos do OpenRouter, sem chave: `GET https://openrouter.ai/api/v1
 - **Doc da LangChain é Python.** Os nomes de classe (ex.: `SummarizationMiddleware`)
   servem para buscar o conceito. Não são campos do template da Zatten; esses
   estão em [referência do template](/trabalhar-com-ia/referencia-do-template).
-- **API da Composio exige chave.** Para saber se um app existe, use o catálogo
-  em Markdown, que é público.
 
 ## Para saber mais
 
@@ -474,4 +480,4 @@ Catálogo de modelos do OpenRouter, sem chave: `GET https://openrouter.ai/api/v1
 **Termos para buscar:** "WhatsApp Business Platform pricing Brazil", "WhatsApp
 service messages pricing October 2026", "WhatsApp messaging limits", "WhatsApp
 template categorization", "OpenAI API pricing", "OpenRouter models API",
-"LangSmith threads", "Composio toolkits", "Model Context Protocol specification".
+"LangSmith threads", "Model Context Protocol specification".

@@ -1,7 +1,12 @@
 ---
 title: "Testar o agente"
-description: "Leia antes de publicar uma mudança no agente: como usar o chat de teste do painel (que roda o rascunho na tela com o contato de teste), o que ele não testa, como testar uma tool HTTP sozinha e o roteiro do que conferir antes de publicar."
+description: "Teste o agente antes de publicar, no chat de teste do painel e com o teste de tools HTTP, sem afetar leads reais."
+keywords: ["testar agente", "chat de teste", "contato de teste", "testar tool", "rascunho", "antes de publicar"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for testar uma mudança antes de publicá-la no agente: como usar o chat de teste do painel (que roda o rascunho na tela com o contato de teste), o que ele não testa, como testar uma tool HTTP sozinha e o roteiro do que conferir antes de publicar.
+</Visibility>
 
 O painel tem dois jeitos de testar o LangChain Agent sem afetar leads reais:
 
@@ -48,7 +53,7 @@ propriedades.
 <Warning>
 **As tools rodam de verdade.** Mover no funil, aplicar tag ou preencher propriedade
 age sobre o contato de teste. Uma tool HTTP chama a API real do cliente (cria o
-pedido, reserva o horário). Uma tool da Composio envia o e-mail de verdade. Antes de
+pedido, reserva o horário). Uma ação de app integrado (Gmail) envia o e-mail de verdade. Antes de
 testar uma tool que mexe em sistema externo, combine com o cliente final um ambiente
 ou um dado de teste.
 </Warning>
@@ -164,7 +169,7 @@ Em **Para você fazer no painel**, inclua "testar no chat de teste" antes de
   não passam pelo chat de teste.
 - **Contato de teste num estado esquecido.** Uma tag ou etapa deixada por um teste
   anterior muda o contexto. Use **Resetar dados do contato**.
-- **Efeito real fora da Zatten.** Tools HTTP e da Composio agem em sistemas reais.
+- **Efeito real fora da Zatten.** Tools HTTP e ações de apps integrados agem em sistemas reais.
 - **A aprovação aparece no teste, mas não existe no WhatsApp.** Um cartão de aprovação
   no chat de teste indica uma tool com aprovação ligada; no atendimento real, isso
   trava a conversa. Desligue ([Limites e segurança](/engenharia-de-ia/limites-e-seguranca)).

@@ -1,7 +1,12 @@
 ---
 title: "Clínicas e saúde"
-description: "Leia para montar ou revisar o projeto de uma clínica, consultório ou serviço com hora marcada: funil, tags, propriedades, prompt, tools de agenda, lembrete de consulta, automações, configurações recomendadas, métricas e erros comuns."
+description: "Projeto pronto para clínicas e consultórios: triagem, agendamento da consulta, lembrete e passagem para a recepção nos casos urgentes."
+keywords: ["clínica", "consultório", "saúde", "agendamento", "lembrete de consulta", "convênio", "odontologia", "estética"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for montar ou revisar o projeto de uma clínica, consultório ou serviço com hora marcada: funil, tags, propriedades, prompt, tools de agenda, lembrete de consulta, automações, configurações recomendadas, métricas e erros comuns.
+</Visibility>
 
 O agente de uma clínica faz a **triagem** (motivo, especialidade, convênio),
 **agenda a consulta** e manda o **lembrete**. Casos urgentes e tudo o que exige
@@ -88,7 +93,7 @@ agente pergunta de novo o convênio que o paciente já informou.
 
 | Opção | Tools | Página |
 |---|---|---|
-| Google Agenda da clínica | `GOOGLECALENDAR_FIND_FREE_SLOTS` e `GOOGLECALENDAR_CREATE_EVENT` (confira o slug exato no app) | [Composio](/engenharia-de-ia/tools/composio) |
+| Google Agenda da clínica | `GOOGLECALENDAR_FIND_FREE_SLOTS` e `GOOGLECALENDAR_CREATE_EVENT` (confira o slug exato no app) | [Integrações](/engenharia-de-ia/tools/integracoes) |
 | Sistema da clínica com API | `consultar_horarios` e `criar_agendamento` | [Tool HTTP](/engenharia-de-ia/tools/http), [Montar sua API](/engenharia-de-ia/tools/montar-sua-api) |
 | Outras agendas | — | [Agendamento](/playbooks/agendamento) |
 
@@ -267,9 +272,8 @@ Blocos para um plano (adapte nomes e valores ao cliente; automações desligadas
 ## Para saber mais
 
 - [Agendamento](/playbooks/agendamento), [Transbordo para humano bem feito](/playbooks/transbordo), [Follow-up e reengajamento](/playbooks/follow-up-e-reengajamento)
-- [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten), [Tools da Composio](/engenharia-de-ia/tools/composio)
+- [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten), [Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes)
 - [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
-- Composio, Google Agenda: https://docs.composio.dev/toolkits/googlecalendar
 - Meta, categorias de template: https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-categorization
 - Termos para buscar: "lembrete de consulta WhatsApp", "no-show clínica",
   "taxa de comparecimento", "LGPD dados de saúde".

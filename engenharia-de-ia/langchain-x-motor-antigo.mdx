@@ -1,7 +1,12 @@
 ---
 title: "LangChain Agent x motor antigo"
-description: "Leia para saber em qual motor um projeto está, o que o LangChain Agent traz que o motor antigo não tem, e como substituir busca na web, code interpreter e base de arquivos depois de migrar. A recomendação é sempre migrar."
+description: "Compare o LangChain Agent com o motor antigo, descubra em qual motor seu projeto está e veja por que vale migrar."
+keywords: ["motor antigo", "LangChain Agent", "legado", "busca na web", "code interpreter", "base de arquivos", "llm_attendant"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando precisar saber em qual motor um projeto está, o que o LangChain Agent traz que o motor antigo não tem, e como substituir busca na web, code interpreter e base de arquivos depois de migrar. A recomendação é sempre migrar.
+</Visibility>
 
 O **LangChain Agent** é o motor da Zatten. Todo projeto novo nasce nele. O
 **motor antigo** (OpenAI e OpenRouter chamados direto) é legado: continua
@@ -30,7 +35,7 @@ arquivos) tem substituto no LangChain Agent, descrito abaixo. Como migrar está 
 | **Versões com rascunho e publicação** | Mudar sem afetar o que está no ar; restaurar uma versão anterior | [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao) |
 | **LangSmith** | Ver cada conversa passo a passo: o que o modelo recebeu, que tools chamou, quanto custou | [Observabilidade com LangSmith](/engenharia-de-ia/langsmith) |
 | **Editor de tools HTTP** | Variáveis do lead, valor fixo, variável ou preenchido pela IA, importar cURL, botão Testar | [Tool HTTP](/engenharia-de-ia/tools/http) |
-| **Servidores MCP e Composio** | Ligar o agente a serviços externos sem programar | [MCP](/engenharia-de-ia/tools/mcp), [Composio](/engenharia-de-ia/tools/composio) |
+| **Servidores MCP e Integrações** | Ligar o agente a serviços externos sem programar | [MCP](/engenharia-de-ia/tools/mcp), [Integrações](/engenharia-de-ia/tools/integracoes) |
 | **Skills na config** | Conhecimento longo carregado só quando o agente precisa | [Skills do agente](/engenharia-de-ia/skills) |
 | **Lista de tarefas** | O agente planeja tarefas de vários passos | [Lista de tarefas](/engenharia-de-ia/lista-de-tarefas) |
 | **Resumo e limpeza de contexto** | Conversas longas sem estourar o limite do modelo | [Conversas longas](/engenharia-de-ia/conversas-longas) |
@@ -53,7 +58,7 @@ novo motor: …"). Monte o substituto antes de publicar.
 
 | Motor antigo | Substituto no LangChain Agent |
 |---|---|
-| Busca na web | Servidor MCP Firecrawl, tool HTTP para uma API de busca, ou toolkit de busca da Composio |
+| Busca na web | Servidor MCP Firecrawl, tool HTTP para uma API de busca, ou um app de busca em Integrações |
 | Code interpreter | Tool HTTP para um endpoint seu que calcula; tabelas em skill; modelo com raciocínio para contas simples |
 | Base de arquivos (file search) | Skill, para conteúdo curto e estável; tool HTTP ou MCP para uma busca, para bases grandes |
 | Verbosidade | Instrução de tamanho no prompt; `max_tokens` como teto |
@@ -83,8 +88,8 @@ Teste no chat do builder com uma pergunta que exige busca. Depois publique.
 </Steps>
 
 Alternativas: uma [tool HTTP](/engenharia-de-ia/tools/http) que chama uma API de
-busca da sua escolha (você controla o formato da resposta), ou um toolkit de busca
-da [Composio](/engenharia-de-ia/tools/composio), se o catálogo tiver um que sirva.
+busca da sua escolha (você controla o formato da resposta), ou um app de busca
+em [Integrações](/engenharia-de-ia/tools/integracoes), se houver um que sirva.
 
 ### Code interpreter → tool HTTP ou skill
 

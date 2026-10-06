@@ -1,7 +1,12 @@
 ---
 title: "Disparar automações"
-description: "Leia para agendar pela API as automações nativas de um lead (POST /automations/trigger com lead_id): o que agenda (follow-up, reengajamento, webhook por inatividade), o que não agenda (transbordo), a exigência da conexão oficial, a resposta e os erros."
+description: "Agende pela API os follow-ups, o reengajamento e os webhooks por inatividade de um lead, como se ele tivesse acabado de interagir."
+keywords: ["POST /automations/trigger", "disparar automações", "follow-up", "reengajamento", "lead_id", "webhook por inatividade"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for agendar pela API as automações nativas de um lead (POST /automations/trigger com lead_id): o que agenda (follow-up, reengajamento, webhook por inatividade), o que não agenda (transbordo), a exigência da conexão oficial, a resposta e os erros.
+</Visibility>
 
 `POST /automations/trigger` faz para um lead o mesmo que uma **interação concluída**:
 agenda os follow-ups, o reengajamento e os webhooks por inatividade que casam com ele. É a

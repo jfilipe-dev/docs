@@ -1,7 +1,12 @@
 ---
 title: "Arquitetura de um bom projeto"
-description: "Leia antes de desenhar ou revisar um projeto: o papel de cada peça (funil, tags, propriedades, departamentos, automações, tools, prompt e skills), como elas se acionam umas às outras, e os padrões e antipadrões que fazem um projeto funcionar ou falhar em silêncio."
+description: "O papel de cada peça de um projeto (funil, tags, propriedades, automações, tools, prompt e skills) e os padrões que evitam falhas silenciosas."
+keywords: ["arquitetura", "funil", "tags", "propriedades", "antipadrões", "boas práticas", "desenho do projeto"]
 ---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for desenhar ou revisar um projeto: o papel de cada peça (funil, tags, propriedades, departamentos, automações, tools, prompt e skills), como elas se acionam umas às outras, e os padrões e antipadrões que fazem um projeto funcionar ou falhar em silêncio.
+</Visibility>
 
 Um projeto bom tem cada informação no lugar certo. O **funil** diz onde o lead
 está, as **tags** e **propriedades** dizem o que se sabe dele, as **automações**
@@ -21,7 +26,7 @@ falha com lead real.
 | O que o agente pode **fazer**? | [Tools](/engenharia-de-ia/tools/visao-geral) | Mover, marcar, gravar, transferir, consultar a agenda. |
 | Como o agente conduz a conversa? | [Prompt](/engenharia-de-ia/prompt) | Identidade, objetivo, fluxo, regras, quando transferir. |
 | O que ele precisa saber só às vezes? | [Skill](/engenharia-de-ia/skills) | Tabelas, políticas e roteiros longos, carregados sob demanda. |
-| Que dado muda a cada minuto (agenda, estoque, pedido)? | [Tool HTTP](/engenharia-de-ia/tools/http) ou [Composio](/engenharia-de-ia/tools/composio) | Dado vivo se busca na hora. Nunca fica escrito no prompt. |
+| Que dado muda a cada minuto (agenda, estoque, pedido)? | [Tool HTTP](/engenharia-de-ia/tools/http) ou [app integrado](/engenharia-de-ia/tools/integracoes) | Dado vivo se busca na hora. Nunca fica escrito no prompt. |
 
 ## Como as peças conversam
 
