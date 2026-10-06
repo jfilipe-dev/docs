@@ -130,10 +130,12 @@ da pasta do cliente. O assistente não os repete na conversa nem os grava em
 arquivos versionados.
 
 O `get_template` devolve a chave do modelo, a do LangSmith, headers e endereços
-**preenchidos**. Por isso os snapshots são tratados como o `.env`: `snapshots/` e
-`.env` ficam no `.gitignore` antes do primeiro arquivo, e num relatório ou diff o
+**preenchidos**. O assistente nunca grava uma chave em arquivo: o snapshot sai com
+as chaves e os headers trocados por `"<removido>"` (a regra completa está em
+[Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia#snapshots)). O
+`.env` fica no `.gitignore` antes da primeira chave. Num relatório ou diff, o
 assistente diz que uma chave mudou, nunca o valor. Ao devolver o bloco `langchain`,
-ele omite a chave ou devolve o valor lido, nunca `""` (string vazia apaga a chave;
+ele omite a chave, nunca manda `""` nem `"<removido>"` (os dois apagam a chave;
 veja [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona)).
 
 **Por quê:** credencial colada numa conversa ou num commit é o jeito mais comum

@@ -15,7 +15,7 @@ minha-agencia/
   AGENTS.md            regras fixas, lidas pelo Codex, Cursor e outros
   CLAUDE.md            aponta para o AGENTS.md (o Claude Code lê este)
   AGENCIA.md           quem é a agência; lido em toda sessão
-  .gitignore           .env e snapshots/ fora do versionamento
+  .gitignore           .env fora do versionamento
   clientes/
     clinica-sorriso/
       CLIENTE.md       project_id, nome exato do projeto, nicho, objetivos, regras
@@ -88,6 +88,19 @@ O template do projeto lido **depois** de cada escrita, com nome
   automações não têm histórico, e o snapshot é o único registro do estado
   anterior.
 
+**O snapshot nunca leva chave.** O `get_template` devolve credenciais preenchidas;
+antes de gravar, o assistente troca por `"<removido>"`:
+
+- todo campo `api_key` (do modelo, dos modelos de reserva, da transcrição, do
+  LangSmith, do motor antigo e `eleven_labs_api_key`);
+- os valores de todos os `headers` (de tools HTTP, servidores MCP e ações
+  personalizadas);
+- os valores de `query_params` e `body_params` das ações personalizadas.
+
+Endereços (`url`, `webhook_url`) ficam, porque o diff precisa deles. Ao usar um
+snapshot para desfazer, nunca devolva um campo com `"<removido>"`: omita-o, e a
+Zatten mantém o valor atual.
+
 Um snapshot por escrita basta: o "antes" de uma escrita é o "depois" da anterior.
 
 ### .env
@@ -112,10 +125,9 @@ vira mais uma camada de registro.
 
 ## Armadilhas
 
-- **O snapshot contém credenciais.** O template lido pelo MCP traz a chave do
-  modelo, endereços de webhook e de MCP e headers. `clientes/*/snapshots/` entra no
-  `.gitignore` junto com o `.env`, sempre, mesmo em repositório privado. A skill
-  confere isso antes de gravar o primeiro snapshot.
+- **Snapshot gravado com chave.** Se um snapshot antigo foi salvo antes desta
+  regra, ele tem chaves dentro: apague-o ou troque os valores por `"<removido>"`,
+  e confira que ele nunca foi para um commit.
 - **`.env` fora do `.gitignore`** vaza a chave do projeto no primeiro commit. A
   skill confere isso, mas confira também.
 - **Nome do projeto mudou no painel.** O MCP exige o nome exato. Se a escrita for

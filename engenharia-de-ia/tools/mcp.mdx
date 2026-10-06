@@ -93,7 +93,8 @@ conversa fica parada para sempre. Por isso:
 
 O servidor viaja no bloco `langchain` do template do projeto, como uma tool
 `type: "mcp"`. O `get_template` devolve os cabeçalhos preenchidos: nunca mostre a
-chave na conversa e mantenha snapshots e `.env` fora do git.
+chave na conversa nem a grave em arquivo (o snapshot troca os headers por
+`"<removido>"`).
 
 O bloco `mcps` do template é do **motor antigo**. No LangChain Agent, os
 servidores ficam no bloco `langchain`.

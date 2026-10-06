@@ -148,11 +148,14 @@ histórico de versões do painel. Ver [Versões e publicação](/engenharia-de-i
 
 ## Armadilhas
 
-- **Snapshot tem segredo.** O template lido pelo MCP traz a chave do modelo, a
-  chave do LangSmith, headers de tools e de servidores MCP e endereços de
-  webhooks. Trate `snapshots/` como o `.env`: `clientes/*/snapshots/` no
-  `.gitignore`, sempre, e nunca colado no chat. Num diff, mostre que uma chave
-  mudou, nunca o valor.
+- **Snapshot sem segredo.** O template lido pelo MCP traz a chave do modelo, a do
+  LangSmith e os headers preenchidos. Antes de gravar o snapshot, troque esses
+  valores por `"<removido>"` (regra em
+  [Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia#snapshots)). Por
+  isso o diff não mostra se uma chave mudou: para isso, compare só se o campo
+  existe, nunca o valor.
+- **Nunca restaure um campo `"<removido>"`.** Ao usar um snapshot para desfazer,
+  omita as chaves e os headers na escrita. Mandar o marcador grava o marcador.
 - **Rascunho muda a revision.** Alguém salvar o agente no painel sem publicar já
   troca a `revision`. Não é erro; registre como mudança externa.
 - **Escrita recusada por revision velha.** Se `update_template` responde que o

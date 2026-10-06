@@ -1,6 +1,6 @@
 ---
 title: "Instalar a skill e o MCP"
-description: "Leia para conectar um assistente de IA à Zatten: criar a conexão no painel, colar o prompt de instalação, instalar a skill, ligar a atualização automática e revogar o acesso."
+description: "Leia para conectar um assistente de IA à Zatten: criar a conexão no painel, colar o prompt de instalação (e o prompt na íntegra), passar o token, instalar a skill e o MCP da doc, ligar a atualização automática e revogar o acesso."
 ---
 
 Conectar um assistente à Zatten leva três peças: a **skill `zatten`**, o **MCP da
@@ -33,33 +33,88 @@ e confirma listando os seus projetos.
       edição* (também cria e altera, mas nunca apaga, nunca publica o agente e
       nunca envia template à Meta).
   </Step>
-  <Step title="Copie o prompt">
-    A tela **Conexão criada** mostra o prompt de instalação já com o endereço do
-    servidor e o token. O token aparece mascarado na tela e vai inteiro ao copiar.
+  <Step title="Copie o prompt e o token">
+    A tela **Conexão criada** mostra duas coisas separadas: o **prompt de
+    instalação** (já com o endereço do servidor) e o **token**. O prompt não leva
+    o token dentro: assim ele pode ser compartilhado sem risco. O token aparece
+    mascarado e vai inteiro ao copiar.
   </Step>
-  <Step title="Cole no assistente">
-    Peça para ele executar. O prompt manda o assistente instalar a skill,
-    adicionar o servidor MCP chamado `zatten` e chamar `list_projects` para
-    confirmar.
+  <Step title="Cole o prompt no assistente">
+    O assistente vai pedir o token antes de continuar: cole quando ele pedir. Com
+    ele, o assistente instala a skill e o MCP da doc, adiciona o servidor MCP
+    `zatten` e confirma.
   </Step>
-  <Step title="Confira a lista de projetos">
-    Se apareceram os projetos que você marcou, está pronto.
+  <Step title="Reinicie se ele pedir">
+    Um MCP recém-adicionado costuma só aparecer depois de reiniciar a sessão do
+    assistente. Se ele pedir, reinicie e diga para continuar.
+  </Step>
+  <Step title="Confira a conta e os projetos">
+    O assistente chama `whoami` e `list_projects` e diz em nome de qual conta age,
+    se pode alterar ou só ler, e quais projetos apareceram. Se são os que você
+    marcou, está pronto. Em seguida ele mostra o que dá para fazer e pergunta por
+    onde começar, sem alterar nada.
   </Step>
 </Steps>
 
 <Warning>
-**Copie o prompt na hora.** A Zatten guarda só uma assinatura do token. Ele não
+**Copie o token na hora.** A Zatten guarda só uma assinatura dele. O token não
 aparece de novo, nem para o suporte. Se perder, crie outra conexão; a antiga
 continua funcionando até ser revogada.
 </Warning>
+
+<Accordion title="O prompt de instalação, na íntegra">
+`<endereço do servidor>` é o que a tela preenche com o domínio do seu painel.
+
+```text
+Conecte a Zatten neste ambiente.
+
+Você vai precisar do meu token da Zatten. Se eu ainda não colei um nesta
+conversa, PERGUNTE antes de continuar — eu gero no painel, em
+Configurações → Conectar ferramentas de IA. Nunca repita o token na
+resposta e nunca o grave em arquivo deste projeto.
+
+1. SKILL E DOCUMENTAÇÃO
+No Claude Code:
+  claude plugin marketplace add zatten-ai/skills
+  claude plugin install zatten@zatten
+  (o plugin já traz o MCP da documentação)
+Em outro agente:
+  npx skills add zatten-ai/skills --skill zatten
+  e adicione um MCP por HTTP chamado "zatten-docs" em
+  https://docs.zatten.com/mcp (sem token).
+
+2. SERVIDOR MCP DA ZATTEN
+Adicione um MCP por HTTP chamado "zatten", no endereço <endereço do servidor>, com o cabeçalho
+  Authorization: Bearer <o token que eu te passar>
+
+No Claude Code (escopo do usuário, nunca --scope project):
+  claude mcp add --transport http zatten <endereço do servidor> --header "Authorization: Bearer <token>"
+No Codex, em ~/.codex/config.toml:
+  [mcp_servers.zatten]
+  url = "<endereço do servidor>"
+  http_headers = { Authorization = "Bearer <token>" }
+Em outro agente, a configuração equivalente de MCP por HTTP.
+
+3. CONFIRME
+Se as ferramentas da Zatten ainda não aparecerem, me peça para reiniciar a
+sessão e continue depois. Então chame whoami e list_projects e me diga: em
+nome de qual conta você age, se pode alterar ou só ler, e quais projetos
+apareceram.
+
+4. PRÓXIMO PASSO
+Use a skill zatten para me mostrar, em poucas linhas, o que dá para fazer, e me
+pergunte por onde começar. Não altere nada ainda.
+```
+</Accordion>
 
 O endereço do servidor usa o domínio em que você está no painel. Numa conta
 white-label, o prompt já sai com o domínio da agência.
 
 ### Instalar à mão
 
-Na mesma tela, **Instalar manualmente** mostra o endereço do servidor e um trecho
-de configuração no formato aceito pela maioria dos assistentes. Use se preferir
+Na mesma tela, **Instalar manualmente** mostra o comando da skill, o endereço do
+servidor e um trecho de configuração no formato aceito pela maioria dos
+assistentes. Use se preferir
 conferir antes de deixar o assistente mexer na própria configuração. O token
 continua vindo só da tela de criação.
 
@@ -144,9 +199,12 @@ certo e revogue a antiga.
   que ele altere projetos.
 - **Projeto fora do alcance não aparece.** Se `list_projects` não mostra um
   projeto, não há como lê-lo nem alterá-lo por essa conexão, nem pelo id.
-- **O token é da conta, não de uma pessoa.** Quem tiver o prompt copiado age em
-  nome da conta. Não cole o token em arquivos versionados nem em conversas
+- **O token é da conta, não de uma pessoa.** Quem tiver o token age em nome da
+  conta. Não cole o token em arquivos versionados nem em conversas
   compartilhadas.
+- **`--scope project` vaza o token.** No Claude Code, adicionar o MCP com
+  `--scope project` grava o token num `.mcp.json` dentro do repositório, e ele
+  vai parar num commit. Use o escopo padrão (do usuário).
 
 ## Para saber mais
 

@@ -27,9 +27,10 @@ doc. Ela é curta de propósito.
    Feito / Não feito (e por quê) / Ficou de fora sem ser apagado / Para você
    fazer no painel.
 9. **Proteja as chaves.** O `get_template` devolve chaves, headers e endereços
-   preenchidos. Nunca mostre uma chave na conversa; `snapshots/` e `.env` ficam
-   fora do versionamento. Ao devolver o bloco `langchain`, omita a chave ou
-   devolva o valor lido: `""` apaga a chave e derruba o agente.
+   preenchidos. Nunca mostre uma chave na conversa e nunca a grave em arquivo:
+   o snapshot é gravado com as chaves trocadas por `"<removido>"`. Ao devolver o
+   bloco `langchain`, omita a chave: `""` ou `"<removido>"` apagam a chave e
+   derrubam o agente.
 
 O porquê de cada regra está em [As regras que o assistente segue](/trabalhar-com-ia/regras).
 

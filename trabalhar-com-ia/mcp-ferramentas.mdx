@@ -110,8 +110,9 @@ templates da Meta e o agente. A referência de cada bloco está em
   devolvem a mesma; se mudou, alguém mexeu.
 - O JSON traz endereços de webhook e de MCP, headers e as chaves do agente (do
   modelo e do LangSmith), preenchidos. Trate-o como confidencial: nunca mostre uma
-  chave na conversa, e guarde snapshots só em pasta fora do versionamento (ver
-  [Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia)).
+  chave na conversa nem a grave em arquivo. O snapshot é gravado com as chaves
+  trocadas por `"<removido>"` (ver
+  [Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia#snapshots)).
 
 
 <Visibility for="agents">
