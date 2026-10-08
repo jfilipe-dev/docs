@@ -8,7 +8,7 @@ keywords: ["painel", "limites do MCP", "publicar agente", "ações manuais", "ro
 **Quando ler esta página:** quando o MCP não conseguir fazer o que a agência pediu: lista o que só se faz no painel da Zatten, a rota de cada ação e se o assistente pode fazer pelo navegador (com um sim) ou só guiar uma pessoa.
 </Visibility>
 
-O MCP da Zatten configura o projeto pelo template, mas algumas ações ficam de fora
+O MCP da Zatten cria projetos, organiza as organizações, configura o projeto pelo template e testa o agente, mas algumas ações ficam de fora
 **de propósito**, porque têm efeito externo, são irreversíveis ou mexem em dinheiro.
 Elas só se fazem no painel. Para cada uma, esta página diz a rota e quem faz:
 
@@ -33,7 +33,9 @@ As regras do navegador estão em [Usar o painel pelo navegador](/trabalhar-com-i
 | Conectar, trocar ou remover a conexão do WhatsApp | `/meta`, aba **WhatsApp** | **Só guiar** | Pode derrubar o atendimento do cliente final. |
 | Apagar qualquer coisa | Na tela de cada item | **Só guiar** | Irreversível. O MCP nunca apaga. |
 | Reverter a migração de motor | Suporte da Zatten | **Só guiar** | Não existe botão; o suporte faz. Peça pelo [WhatsApp do suporte](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0). |
-| Assinatura e plano | `/project/billing` | **Só guiar** | Envolve pagamento. |
+| Assinatura e plano | `/project/billing` | **Só guiar** | Envolve pagamento. O projeto criado pelo MCP nasce com a assinatura pendente. |
+| Dar ou tirar acesso de usuários | **Configurações → Gerenciar Acessos** | **Só guiar** | É da conta inteira. Pelo MCP, só leitura (`list_members`). |
+| Marca e domínio (white label) | **Configurações → Minha Empresa** e **Domínios Customizados** | **Só guiar** | Errar o domínio derruba o painel do cliente final. Pelo MCP, só leitura (`get_white_label`). |
 
 
 <Note>
