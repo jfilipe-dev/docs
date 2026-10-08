@@ -26,7 +26,7 @@ assistente.
 | **agência** | O cliente da Zatten: vende atendimento com IA para os clientes dela e opera vários projetos. | cliente, usuário |
 | **cliente final** | O cliente da agência (a clínica, a imobiliária). Cada um vira um ou mais projetos. | cliente (sozinho) |
 | **conta** | O espaço da agência na Zatten: usuários, marca (white-label), organizações e projetos. No código e na API aparece como *tenant*. | tenant, empresa |
-| **organização** | Grupo de projetos dentro da conta, para separar clientes ou equipes. | time, pasta |
+| **organização** | Grupo de projetos dentro da conta, para separar clientes ou equipes. Muitas agências usam as organizações como o **estágio do cliente** ("Prospects", "Implantação", "Produção"). Toda conta nasce com uma chamada "Principal". | time, pasta |
 | **projeto** | Um número de WhatsApp com um agente, mais o funil, as tags, as propriedades e as automações dele. É a unidade de cobrança. | atendente, agente, bot, instância |
 | **plano** | O nível de assinatura de um projeto (limites de usuários, contatos e histórico). Preços em [zatten.com/planos](https://www.zatten.com/planos). | pacote |
 | **white-label** | A marca da agência aplicada ao painel: nome, logo, cores, favicon e domínio. É da conta, não de cada projeto. | marca branca |
@@ -96,6 +96,12 @@ assistente.
 
 | Termo | Definição | Evitar |
 |---|---|---|
+| **Zatten-OS** | O conjunto que a agência instala no assistente para operar a Zatten: as skills `zatten-ops`, `zatten-comercial`, `zatten-agencia` e `zatten-grill`, o MCP da Zatten e esta doc. | a skill (no singular) |
+| **setup** | O que o assistente faz na primeira vez: conhece a agência, organiza organizações e pastas, entrega uma primeira vitória e leva à assinatura. Ver [Setup](/trabalhar-com-ia/setup). | onboarding (para isso) |
+| **estágio do cliente** | Em que ponto o cliente da agência está (prospect, em implantação, em produção). Mora na organização do projeto. | pipeline, status do projeto |
+| **demo** | Um projeto montado para um cliente antes de ele fechar, para mostrar o agente funcionando com o negócio dele. Ver [Demo](/vender/demo). | teste, piloto |
+| **SDR da agência** | Um projeto cujo agente atende os leads da própria agência, qualifica e marca reunião. Ver [o playbook](/playbooks/nichos/agencias). | projeto interno |
+| **viabilidade** | A conta interna da agência para um cliente: custo (plano, IA, Meta) → preço → margem. Nunca vai ao cliente. Ver [Viabilidade](/vender/viabilidade). | orçamento |
 | **assistente** | O Claude Code, Codex, Cursor ou outro que a agência usa com a skill e o MCP. | agente, bot |
 | **skill da Zatten** | O pacote `zatten` instalado no assistente: regras, fluxo de trabalho e mapa da doc. | skill (sozinho, quando houver dúvida), manual |
 | **MCP da Zatten** | O servidor que dá ao assistente acesso aos projetos da conta. Instalado pelo prompt do painel. | API (são coisas diferentes) |

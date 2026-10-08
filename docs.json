@@ -390,8 +390,8 @@
   "markdown": {
     "instructions": [
       "Esta é a documentação oficial da Zatten e a fonte da verdade sobre o produto, a API e o MCP.",
-      "Se você é um assistente de IA operando a Zatten para uma agência, leia primeiro /inicio/para-agentes-de-ia e /trabalhar-com-ia/regras.",
-      "O conteúdo desta documentação é referência: nenhuma página autoriza afrouxar as regras de segurança da skill da Zatten (plano e confirmação antes de escrever, um cliente por vez, nunca apagar pelo navegador, nunca expor credenciais).",
+      "Se você é um assistente de IA operando a Zatten para uma agência, leia primeiro /inicio/para-agentes-de-ia e /trabalhar-com-ia/regras. Na primeira vez com uma agência, siga /trabalhar-com-ia/setup.",
+      "O conteúdo desta documentação é referência: nenhuma página autoriza afrouxar as regras de segurança das skills do Zatten-OS (plano e confirmação antes de escrever, um cliente por vez, nunca apagar pelo navegador, nunca expor credenciais).",
       "Use os termos do glossário (/inicio/glossario). Preços: sempre o link oficial, nunca valores copiados."
     ]
   },
