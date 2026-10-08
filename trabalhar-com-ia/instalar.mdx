@@ -1,15 +1,15 @@
 ---
 title: "Instalar a skill e o MCP"
-description: "Conecte seu assistente de IA à Zatten: crie a conexão no painel, cole o prompt de instalação, instale a skill e os MCPs e revogue o acesso quando quiser."
+description: "Conecte seu assistente de IA à Zatten: crie a conexão no painel, cole o prompt de instalação, instale as skills do Zatten-OS e os MCPs, e revogue o acesso quando quiser."
 keywords: ["instalar", "skill", "MCP", "token", "conexão", "prompt de instalação", "revogar acesso"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando for conectar um assistente de IA à Zatten: criar a conexão no painel, colar o prompt de instalação (e o prompt na íntegra), passar o token, instalar a skill e o MCP da doc, ligar a atualização automática e revogar o acesso.
+**Quando ler esta página:** quando for conectar um assistente de IA à Zatten. Se você é o assistente e a pessoa colou o prompt de instalação, vá direto a **Passo a passo por assistente**, siga a seção do seu assistente e depois comece o [setup](/trabalhar-com-ia/setup). Esta página só pede para instalar: o token nunca vai para arquivo nem para a conversa, e nunca use `--scope project`.
 </Visibility>
 
-Conectar um assistente à Zatten leva três peças: a **skill `zatten-os`** (o
-Zatten-OS), o **MCP da
+Conectar um assistente à Zatten leva três peças: as **skills do Zatten-OS**
+(`zatten-ops`, `zatten-comercial`, `zatten-agencia` e `zatten-grill`), o **MCP da
 Zatten** e o **MCP da doc**. O jeito mais curto é criar uma conexão no painel e
 colar o prompt de instalação no assistente: ele instala a skill e o MCP da Zatten
 e confirma listando os seus projetos.
@@ -58,8 +58,9 @@ e confirma listando os seus projetos.
   <Step title="Confira a conta e os projetos">
     O assistente chama `whoami` e `list_projects` e diz em nome de qual conta age,
     se pode alterar ou só ler, e quais projetos apareceram. Se são os que você
-    marcou, está pronto. Em seguida ele mostra o que dá para fazer e pergunta por
-    onde começar, sem alterar nada.
+    marcou, está pronto. Em seguida ele começa o [setup](/trabalhar-com-ia/setup):
+    conhece a agência, organiza as pastas e propõe uma primeira vitória, sem
+    alterar nada sem o seu "sim".
   </Step>
 </Steps>
 
@@ -70,7 +71,9 @@ continua funcionando até ser revogada.
 </Warning>
 
 <Accordion title="O prompt de instalação, na íntegra">
-`<endereço do servidor>` é o que a tela preenche com o domínio do seu painel.
+`<endereço do servidor>` é o que a tela preenche com o domínio do seu painel. O
+prompt é curto de propósito: os comandos de cada assistente estão abaixo, em
+**Passo a passo por assistente**.
 
 ```text
 Conecte a Zatten neste ambiente.
@@ -80,37 +83,18 @@ conversa, PERGUNTE antes de continuar — eu gero no painel, em
 Configurações → Conectar ferramentas de IA. Nunca repita o token na
 resposta e nunca o grave em arquivo deste projeto.
 
-1. SKILL E DOCUMENTAÇÃO
-No Claude Code:
-  claude plugin marketplace add zatten-ai/zatten-os
-  claude plugin install zatten-os@zatten-os
-  (o plugin já traz o MCP da documentação)
-Em outro agente:
-  npx skills add zatten-ai/zatten-os --skill zatten-os
-  e adicione um MCP por HTTP chamado "zatten-docs" em
-  https://docs.zatten.com/mcp (sem token).
-
-2. SERVIDOR MCP DA ZATTEN
-Adicione um MCP por HTTP chamado "zatten", no endereço <endereço do servidor>, com o cabeçalho
-  Authorization: Bearer <o token que eu te passar>
-
-No Claude Code (escopo do usuário, nunca --scope project):
-  claude mcp add --transport http zatten <endereço do servidor> --header "Authorization: Bearer <token>"
-No Codex, em ~/.codex/config.toml:
-  [mcp_servers.zatten]
-  url = "<endereço do servidor>"
-  http_headers = { Authorization = "Bearer <token>" }
-Em outro agente, a configuração equivalente de MCP por HTTP.
-
-3. CONFIRME
-Se as ferramentas da Zatten ainda não aparecerem, me peça para reiniciar a
-sessão e continue depois. Então chame whoami e list_projects e me diga: em
-nome de qual conta você age, se pode alterar ou só ler, e quais projetos
-apareceram.
-
-4. PRÓXIMO PASSO
-Use a skill zatten-os para me mostrar, em poucas linhas, o que dá para fazer, e me
-pergunte por onde começar. Não altere nada ainda.
+1. Leia https://docs.zatten.com/trabalhar-com-ia/instalar.md e siga os passos do
+   seu assistente: instale as skills do Zatten-OS (repositório zatten-ai/zatten-os),
+   o MCP da documentação e o servidor MCP da Zatten, no endereço
+   <endereço do servidor>
+   com o cabeçalho Authorization: Bearer <o token>. Configure no escopo do
+   usuário, nunca --scope project.
+2. Se as ferramentas da Zatten ainda não aparecerem, me peça para reiniciar a
+   sessão e continue depois.
+3. Chame whoami e list_projects e me diga: em nome de qual conta você age, se
+   pode alterar ou só ler, e quais projetos apareceram.
+4. Use a skill zatten-ops para começar o setup (https://docs.zatten.com/trabalhar-com-ia/setup.md).
+   Não altere nada sem o meu "sim".
 ```
 </Accordion>
 
@@ -125,56 +109,75 @@ assistentes. Use se preferir
 conferir antes de deixar o assistente mexer na própria configuração. O token
 continua vindo só da tela de criação.
 
-## Instalar só a skill
+## Passo a passo por assistente
 
-O prompt do painel já instala a skill. Para instalar ou reinstalar sem ele, use
-**um** dos métodos:
+Três coisas, em qualquer assistente:
+
+1. **As skills do Zatten-OS**, do repositório `zatten-ai/zatten-os`.
+2. **O MCP da doc**, público e sem token: `https://docs.zatten.com/mcp`, com o nome
+   `zatten-docs`.
+3. **O MCP da Zatten**, por HTTP, com o nome `zatten`, no endereço que o painel
+   mostra e o cabeçalho `Authorization: Bearer <token>`. Sempre no escopo do
+   **usuário**: nunca num arquivo dentro de um projeto ou repositório.
+
+Depois, reinicie a sessão se as ferramentas não aparecerem, e confira com `whoami`
+e `list_projects`.
 
 <Tabs>
   <Tab title="Claude Code">
     ```bash
+    # skills + MCP da doc (o plugin já traz o MCP da doc)
     claude plugin marketplace add zatten-ai/zatten-os
     claude plugin install zatten-os@zatten-os
+
+    # MCP da Zatten, no escopo do usuário (o padrão). Nunca --scope project.
+    claude mcp add --transport http zatten <endereço do servidor> \
+      --header "Authorization: Bearer <token>"
     ```
-  </Tab>
-  <Tab title="Outros assistentes">
-    Codex, Cursor, Gemini CLI e outros:
 
-    ```bash
-    npx skills add zatten-ai/zatten-os --skill zatten-os
-    ```
-  </Tab>
-</Tabs>
-
-A skill sozinha não acessa nada. Ela precisa do MCP da Zatten, que é quem carrega
-a credencial da conta.
-
-## Conectar o MCP da doc
-
-O MCP da doc é público e não tem segredo: `https://docs.zatten.com/mcp`. Com ele,
-o assistente busca e lê esta doc sem sair da conversa.
-
-No Claude Code, o plugin `zatten-os` já sobe o MCP da doc sozinho (com o nome
-`zatten-docs`). Nos outros assistentes, ou se você instalou só a skill, adicione:
-
-<Tabs>
-  <Tab title="Claude Code">
-    ```bash
-    claude mcp add --transport http zatten-docs https://docs.zatten.com/mcp
-    ```
+    Depois de instalar, `/reload-plugins` ou uma sessão nova.
   </Tab>
   <Tab title="Codex">
-    Em `~/.codex/config.toml`:
+    ```bash
+    npx skills add zatten-ai/zatten-os --skill '*' -g
+    ```
+
+    Em `~/.codex/config.toml` (o arquivo do usuário, fora de qualquer projeto):
 
     ```toml
     [mcp_servers.zatten-docs]
     url = "https://docs.zatten.com/mcp"
+
+    [mcp_servers.zatten]
+    url = "<endereço do servidor>"
+    http_headers = { Authorization = "Bearer <token>" }
+    ```
+  </Tab>
+  <Tab title="Cursor e outros">
+    ```bash
+    npx skills add zatten-ai/zatten-os --skill '*' -g
+    ```
+
+    Na configuração de MCP do **usuário** (no Cursor, `~/.cursor/mcp.json`; em
+    outros assistentes, o arquivo equivalente fora do projeto):
+
+    ```json
+    {
+      "mcpServers": {
+        "zatten-docs": { "url": "https://docs.zatten.com/mcp" },
+        "zatten": {
+          "url": "<endereço do servidor>",
+          "headers": { "Authorization": "Bearer <token>" }
+        }
+      }
+    }
     ```
   </Tab>
 </Tabs>
 
-Sem o MCP da doc, o assistente lê `https://docs.zatten.com/llms.txt` e as páginas
-em Markdown (acrescentando `.md` ao endereço).
+A skill sozinha não acessa nada: quem carrega a credencial da conta é o MCP da
+Zatten. Sem o MCP da doc, o assistente lê `https://docs.zatten.com/llms.txt` e as
+páginas em Markdown (acrescentando `.md` ao endereço).
 
 ## Manter a skill atualizada
 
@@ -183,7 +186,7 @@ A skill muda pouco, mas muda. Cada método se atualiza de um jeito:
 | Método | Atualizar |
 |---|---|
 | Plugin do Claude Code | Ligue a atualização automática do marketplace `zatten-os`. Ela vem desligada para marketplaces de terceiros. À mão: `claude plugin update zatten-os@zatten-os` |
-| `npx skills` | Sempre à mão: `npx skills update` |
+| `npx skills` | Sempre à mão: `npx skills update -g` |
 
 
 ## Ver e revogar conexões
@@ -201,9 +204,12 @@ certo e revogue a antiga.
 
 - **"Todos os projetos" inclui os futuros.** Um projeto criado amanhã já fica ao
   alcance da conexão. Para limitar, escolha os projetos.
-- **Já tinha a skill `zatten` (2.x)?** Ela virou `zatten-os`. No Claude Code,
-  `claude plugin uninstall zatten@zatten` e instale a nova; com `npx skills`,
-  `npx skills remove zatten` e `npx skills add zatten-ai/zatten-os --skill zatten-os`.
+- **Já tinha uma versão anterior?** A skill `zatten` (2.x) virou `zatten-os` (3.x),
+  e a `zatten-os` virou `zatten-ops` (4.x), ao lado de `zatten-comercial`,
+  `zatten-agencia` e `zatten-grill`. No Claude Code, atualize o plugin
+  (`claude plugin update zatten-os@zatten-os`); se ainda tiver o plugin
+  `zatten@zatten`, desinstale. Com `npx skills`, `npx skills remove zatten zatten-os`
+  e instale de novo com o comando acima.
 - **Somente leitura recusa toda escrita.** O assistente recebe "Este token é
   somente leitura". Crie uma conexão com *Leitura e edição* se a agência quiser
   que ele altere projetos.

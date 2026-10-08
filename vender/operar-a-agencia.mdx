@@ -1,0 +1,71 @@
+---
+title: "Operar a agência"
+description: "A rotina da semana, o relatório mensal de cada cliente com os números do projeto e a avaliação do SDR, feitos com o assistente."
+keywords: ["rotina", "relatório mensal", "get_metrics", "métricas", "avaliar o SDR", "operação da agência"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando a agência pedir a visão da semana (clientes por estágio, propostas abertas, pendências), o relatório mensal de um cliente final, ou uma avaliação de como um agente (o SDR da agência ou o de um cliente) está indo: de onde vem cada número e o que dizer.
+</Visibility>
+
+A skill `zatten-agencia` cuida do negócio da agência: a rotina, os relatórios e a
+saúde dos agentes.
+
+## A rotina da semana
+
+Uma visão de 5 minutos, montada pelo assistente:
+
+| O quê | De onde vem |
+|---|---|
+| **Clientes por estágio** | `list_projects`: projetos por organização ("Prospects", "Implantação", "Produção"…) |
+| **Propostas abertas** | O histórico comercial de cada cliente (`comercial/`) |
+| **Pendências no painel** | A memória de cada cliente: publicar uma versão, ligar uma automação, conectar o WhatsApp |
+| **Agentes com mudança esperando publicação** | `get_template` → `project.agent.has_unpublished_changes` |
+| **Assinaturas pendentes ou vencidas** | `list_projects` → `billing.paid` |
+| **WhatsApp desconectado** | `list_projects` → `whatsapp.connected` |
+
+## O relatório mensal do cliente
+
+O relatório é o que segura o cliente: mostra que o atendimento trabalha. O roteiro
+completo está em [Entregar ao cliente](/playbooks/entregar-ao-cliente). O
+assistente monta com o `get_metrics` do projeto e do mês:
+
+| Indicador | Campo |
+|---|---|
+| Contatos novos (anúncio x orgânico) | `totals.new_contacts`, `new_contacts_from_ads`, `new_contacts_organic` |
+| Mensagens recebidas e enviadas | `totals.messages_received`, `messages_sent` |
+| Quanto a IA atendeu | `messages_by_ai` ÷ (`messages_by_ai` + `messages_by_humans`) |
+| Funil | `funnel` (é uma foto do momento: tire no mesmo dia de cada mês) |
+| Anúncios que trouxeram contatos | `ads` |
+| Conversões enviadas ao Meta Ads | `conversions` |
+| Dia a dia | `by_day` |
+
+Cuidados:
+
+- **São os mesmos números da tela de [Métricas](/produto/metricas)**, atualizados
+  uma vez por dia (o dia de hoje pode estar incompleto).
+- **O custo da IA não vem** no LangChain Agent. Use o provider ou o LangSmith
+  ([Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia)).
+- **Fale a língua do cliente:** atendimentos, agendamentos, vendas, horas
+  economizadas. Não tokens.
+- Feche com até três próximos passos (eles costumam virar a próxima venda: veja
+  [Oportunidades](/vender/oportunidades)).
+
+## Avaliar um agente (o SDR ou o de um cliente)
+
+| Pergunta | Como responder |
+|---|---|
+| Quantos leads chegaram e quantos avançaram? | `get_metrics`: `new_contacts` e o `funnel` |
+| A IA resolve ou passa tudo para humano? | `messages_by_ai` x `messages_by_humans`; leads na coluna de transbordo |
+| Onde as conversas travam? | `find_contacts` por coluna (os parados) → as conversas pela [API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia) |
+| Por que o agente respondeu aquilo? | O trace no [LangSmith](/engenharia-de-ia/langsmith), se estiver ligado |
+
+O resultado vira ajuste no agente, testado antes de publicar
+([Construir o agente iterando](/trabalhar-com-ia/construir-o-agente-iterando)).
+
+## Para saber mais
+
+- [Entregar ao cliente](/playbooks/entregar-ao-cliente)
+- [Métricas](/produto/metricas)
+- [O SDR da sua agência](/playbooks/nichos/agencias)
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)

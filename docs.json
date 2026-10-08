@@ -58,6 +58,7 @@
             "pages": [
               "trabalhar-com-ia/visao-geral",
               "trabalhar-com-ia/instalar",
+              "trabalhar-com-ia/setup",
               "trabalhar-com-ia/versao-da-skill",
               "trabalhar-com-ia/loop-de-trabalho",
               "trabalhar-com-ia/organizar-a-agencia",
@@ -88,6 +89,35 @@
             "group": "Referências",
             "pages": [
               "referencias/fontes-externas"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Vender",
+        "groups": [
+          {
+            "group": "Começar",
+            "pages": [
+              "vender/visao-geral",
+              "vender/diagnostico-do-cliente",
+              "vender/demo"
+            ]
+          },
+          {
+            "group": "Proposta",
+            "pages": [
+              "vender/proposta",
+              "vender/viabilidade",
+              "vender/objecoes",
+              "vender/follow-up"
+            ]
+          },
+          {
+            "group": "Crescer",
+            "pages": [
+              "vender/oportunidades",
+              "vender/operar-a-agencia"
             ]
           }
         ]
@@ -234,6 +264,7 @@
           {
             "group": "Por nicho",
             "pages": [
+              "playbooks/nichos/agencias",
               "playbooks/nichos/clinicas",
               "playbooks/nichos/imobiliarias",
               "playbooks/nichos/advocacia",

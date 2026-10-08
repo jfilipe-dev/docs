@@ -1,0 +1,38 @@
+---
+title: "Objeções do cliente final"
+description: "As objeções mais comuns de quem vai contratar o atendimento com IA da agência, e o recurso da Zatten que sustenta cada resposta."
+keywords: ["objeções", "contorno de objeções", "IA vai errar", "é caro", "LGPD", "já tenho atendente", "venda"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando a agência pedir ajuda para responder uma objeção do cliente final (dono da clínica, da imobiliária, da loja) ou para preparar uma reunião de vendas: as objeções comuns, uma resposta curta para cada uma e o recurso da Zatten que sustenta a resposta.
+</Visibility>
+
+Cada resposta abaixo se apoia num recurso que existe. Prometa só o que o recurso
+entrega. Se o cliente pedir algo que a Zatten não faz, diga que não faz.
+
+| Objeção | Resposta curta | O que sustenta |
+|---|---|---|
+| **"Já tenho atendente."** | A IA não tira o atendente: responde na hora, à noite e no fim de semana, e passa para ele o que precisa de uma pessoa. Ele atende menos repetição e mais venda. | [Transbordo para humano](/playbooks/transbordo), [Departamentos](/produto/departamentos) |
+| **"A IA vai falar besteira."** | O agente segue regras escritas para o seu negócio e é testado antes de ir ao ar. Mudança nova só entra quando alguém publica. | [Testar o agente](/engenharia-de-ia/testar), [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao), [Prompt](/engenharia-de-ia/prompt) |
+| **"E se o cliente quiser falar com uma pessoa?"** | Ele pede e a conversa vai para a equipe, que é avisada. Quando a equipe responde, a IA para de responder naquela conversa. | [Transbordo](/playbooks/transbordo), [Pausa humana](/engenharia-de-ia/pausa-humana) |
+| **"E se der errado?"** | Toda conversa fica registrada e dá para ver por que o agente respondeu cada coisa. Erro vira correção, testada antes de publicar. | [Observabilidade com LangSmith](/engenharia-de-ia/langsmith), [Logs](/produto/logs) |
+| **"É caro."** | Compare com o que se perde hoje: mensagens sem resposta fora do horário, leads que somem, horas da equipe em pergunta repetida. | O diagnóstico do cliente; [Métricas](/produto/metricas) no relatório mensal |
+| **"Meu cliente não usa WhatsApp."** | Se o público não está no WhatsApp, talvez não seja o momento. A Zatten atende pelo WhatsApp. | — (seja honesto) |
+| **"Vai mandar mensagem demais e queimar meu número."** | O follow-up usa template aprovado pela Meta, com hora certa e filtro; mensagem para muitos vai por campanha, com controle. | [Follow-up e reengajamento](/playbooks/follow-up-e-reengajamento), [Campanhas](/playbooks/campanhas) |
+| **"E a LGPD? E os dados dos meus clientes?"** | O atendimento pede só o necessário, e dá para proteger dados pessoais antes de irem ao modelo. Os dados ficam no seu projeto. | [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) |
+| **"Preciso ver funcionando."** | Ótimo: monte a demo com o negócio dele. | [Montar a demo](/vender/demo) |
+| **"Preciso falar com meu sócio."** | Mande a proposta curta e a demo para o sócio ver; combine a data da resposta. | [Proposta](/vender/proposta), [Follow-up](/vender/follow-up) |
+
+## Como o assistente ajuda
+
+- Antes da reunião, lista as objeções prováveis para o nicho e o porte do
+  cliente, a partir do diagnóstico.
+- Depois, registra no histórico comercial quais objeções apareceram e como foram
+  respondidas. Isso melhora a próxima proposta.
+
+## Para saber mais
+
+- [Diagnóstico do cliente](/vender/diagnostico-do-cliente)
+- [Proposta](/vender/proposta)
+- [Como o agente funciona](/engenharia-de-ia/como-o-agente-funciona)

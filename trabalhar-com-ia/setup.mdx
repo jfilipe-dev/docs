@@ -1,0 +1,130 @@
+---
+title: "Setup: a primeira vez com o Zatten-OS"
+description: "O que o assistente faz na primeira vez que a agência usa o Zatten-OS: conhece a agência, organiza as pastas e os projetos, entrega uma primeira vitória e leva até a assinatura e a conexão do WhatsApp."
+keywords: ["setup", "primeira vez", "onboarding", "começar", "AGENCIA.md", "organizar pastas", "primeiro projeto", "SDR da agência", "demo"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** logo depois da instalação, ou quando a pasta em que você está não tem `AGENTS.md` nem `AGENCIA.md`. Siga os passos na ordem; se a pessoa quiser ir direto ao ponto, pule para o passo 4. Anote o progresso no `AGENCIA.md` para retomar numa próxima sessão.
+</Visibility>
+
+Na primeira vez, o próprio assistente monta o Zatten-OS no computador da agência.
+Ele não pede para ninguém preencher formulário: conversa, lê o que já existe na
+conta e deixa tudo pronto para o dia a dia.
+
+O setup leva de 30 a 40 minutos. Pode ser feito em partes: o assistente anota onde
+parou e continua na próxima sessão.
+
+## O caminho
+
+<Steps>
+  <Step title="1. Quem está conectado">
+    `whoami` e `list_projects`. O assistente diz em nome de qual conta age, se pode
+    alterar ou só ler, quantos projetos e organizações existem.
+
+    Se a conexão for **somente leitura**, ele avisa logo: dá para organizar as
+    pastas e conhecer a agência, mas não para criar nada. A pessoa gera uma conexão
+    de **Leitura e edição** no painel quando quiser.
+  </Step>
+  <Step title="2. Conhecer a agência">
+    O diagnóstico da agência vira o `AGENCIA.md`, a referência de tudo o que vem
+    depois (o SDR fala da oferta da agência; a proposta usa o preço dela). O
+    assistente lê o site e pergunta o que faltar:
+
+    - o que a agência vende hoje, para quais nichos, e o ticket médio;
+    - quantos clientes ativos;
+    - como vende (canal, processo, quem vende);
+    - quanto quer cobrar pela solução de IA (setup e mensalidade) e quantos clientes
+      quer colocar nela;
+    - como trata os clientes (tom, prazos, o que entrega todo mês).
+
+    São uns 5 minutos de conversa. Se a pessoa preferir, pula e volta depois.
+  </Step>
+  <Step title="3. Organizar a casa">
+    - **Organizações.** Toda conta nasce com uma organização chamada "Principal". O
+      assistente sugere usar as organizações como **estágio do cliente**
+      ("Prospects", "Implantação", "Produção") e, com o "sim", renomeia e cria
+      (`rename_organization`, `create_organization`). A agência decide os nomes.
+    - **Pastas.** Uma pasta por projeto que já existe, em
+      `clientes/<organização>/<cliente>/`, com `CLIENTE.md`, `operacao/` e
+      `comercial/` ([Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia)).
+    - **Cada cliente.** O assistente pede o site de cada um, lê o projeto
+      (`get_template`) e preenche o `CLIENTE.md`: nicho, objetivo, motor do agente,
+      se o WhatsApp está conectado.
+    - **Git.** `git init`, `.gitignore` com `.env` antes de qualquer chave, e o
+      primeiro commit. Para quem nunca usou, o assistente explica em poucas linhas
+      e cuida dos commits.
+  </Step>
+  <Step title="4. A primeira vitória">
+    Algo funcionando de verdade, no mesmo dia:
+
+    | A conta… | O assistente propõe |
+    |---|---|
+    | Não tem projeto nenhum | O **SDR da agência**: um agente que atende os leads da própria agência, qualifica e marca reunião ([playbook](/playbooks/nichos/agencias)) |
+    | Já tem clientes | Uma **demo** para o próximo cliente que a agência está negociando ([Montar a demo](/vender/demo)) |
+
+    Com o "sim", ele cria o projeto (`create_project`), monta o agente e testa
+    (`test_agent`) até responder bem ([Construir o agente iterando](/trabalhar-com-ia/construir-o-agente-iterando)).
+  </Step>
+  <Step title="5. Assinar e conectar">
+    O projeto nasce com a assinatura pendente. Para atender no WhatsApp, a pessoa
+    assina e conecta o número no painel. Isso é sempre dela; o assistente guia passo
+    a passo e, se tiver navegador, acompanha na tela
+    ([Usar o painel pelo navegador](/trabalhar-com-ia/navegador),
+    [Conexões do WhatsApp](/comecar/conexoes-whatsapp)).
+
+    No fim, ele não publica nada: diz qual versão do agente está pronta para a pessoa
+    publicar e quais automações ela pode ligar.
+  </Step>
+</Steps>
+
+## Quem já é cliente da Zatten
+
+Para uma agência que já tem projetos, o setup é sobretudo **organizar e
+enriquecer**:
+
+1. todas as pastas criadas a partir do `list_projects`, cada uma na organização
+   certa;
+2. o site de cada cliente pedido e lido, e o `CLIENTE.md` preenchido;
+3. um [diagnóstico](/trabalhar-com-ia/diagnostico) rápido de cada projeto vira uma
+   lista de oportunidades: o que melhorar e o que vender a mais
+   ([Oportunidades na carteira](/vender/oportunidades));
+4. a primeira vitória costuma ser a demo do próximo cliente.
+
+## Retomar
+
+O `AGENCIA.md` guarda o progresso do setup:
+
+```markdown
+## Setup
+- [x] Conta e conexão (08/10/2026)
+- [x] Diagnóstico da agência
+- [ ] Organizações e pastas — faltam os sites de 3 clientes
+- [ ] Primeira vitória
+- [ ] Assinatura e WhatsApp
+```
+
+Numa sessão nova, o assistente lê esse trecho e continua de onde parou, sem
+refazer o que já foi feito.
+
+## Dicas pelo caminho
+
+Na primeira vez que um conceito aparece, o assistente explica em uma linha
+marcada "Dica:" — o que é o funil, que o agente tem ações nativas que movem o lead
+no funil, que uma versão nova do agente só vale depois de publicada. Os conceitos
+já explicados ficam anotados no `AGENCIA.md`, para não repetir.
+
+## O que o setup nunca faz
+
+- Apagar qualquer coisa, inclusive a organização "Principal" vazia (isso é no
+  painel).
+- Publicar o agente, assinar ou conectar o WhatsApp pela pessoa.
+- Criar projeto ou mexer em organização sem o "sim".
+
+## Para saber mais
+
+- [Instalar a skill e o MCP](/trabalhar-com-ia/instalar)
+- [Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia)
+- [O loop de trabalho do Zatten-OS](/trabalhar-com-ia/loop-de-trabalho)
+- [Vender com o Zatten-OS](/vender/visao-geral)
+- [As regras que o assistente segue](/trabalhar-com-ia/regras)

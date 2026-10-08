@@ -74,7 +74,12 @@ O que vale saber aqui:
 
 Em **Configurações → Projetos**, o ícone de lápis do projeto abre **Editar Projeto**,
 com dois campos: **Nome** e **Organização**. Trocar a organização move o projeto, com
-tudo o que ele tem, para outra organização da mesma conta.
+tudo o que ele tem, para outra organização da mesma conta. **O acesso da equipe vai
+junto:** quem via o projeto continua vendo. Mover exige o papel Admin, Editor ou
+Gestor.
+
+Muitas agências usam as organizações como **estágio do cliente** ("Prospects",
+"Implantação", "Produção"): mover o projeto é o cliente mudando de fase.
 
 ### Copiar o ID
 
@@ -142,9 +147,11 @@ Um projeto pendente (nunca assinado) pode ser excluído direto.
 
 ## Pelo MCP
 
-O MCP **cria e duplica** projetos (`create_project`, com o "sim" da pessoa), mas
-não move nem exclui. Ele lista os projetos que a conexão de IA alcança, com a
-organização de cada um (`list_projects`), e lê e escreve o template de um projeto.
+O MCP **cria e duplica** projetos (`create_project`), **cria e renomeia**
+organizações (`create_organization`, `rename_organization`) e **move** projetos entre
+organizações (`move_project`, com o acesso da equipe junto), sempre com o "sim" da
+pessoa. Ele **não exclui** nada: projeto e organização se excluem no painel. O
+`list_projects` traz as organizações da conta e a de cada projeto.
 
 Um projeto criado pelo MCP nasce com a assinatura pendente, numa organização
 escolhida pelo `team_id` (obrigatório quando a conta tem mais de uma). Veja
@@ -162,7 +169,7 @@ no par `project_id` + `project_name`.
 | `icon` | string ou null | Ignorado na escrita |
 
 O `project_id` é o ID copiado em **Configurações → Projetos**. Organização não viaja no
-template: mover de organização é só pelo painel.
+template (mudaria a `revision`): mover é pelo `move_project` ou pelo painel.
 </Visibility>
 
 ## Armadilhas
@@ -170,9 +177,10 @@ template: mover de organização é só pelo painel.
 - **Excluir um projeto com pagamento vencido não cancela a assinatura.** O botão de
   excluir libera para assinatura que não está ativa, mas a cobrança continua até
   alguém cancelar em **Assinatura**. Cancele antes de excluir.
-- **Mover o projeto de organização pode tirar o acesso de quem o via.** O acesso de
-  cada usuário é gravado por organização. Depois de mover, confira em **Configurações →
-  Gerenciar Acessos** se a equipe do cliente final continua vendo o projeto.
+- **Acessos de projetos movidos antes de outubro de 2026.** Até então, mover não
+  levava o acesso junto, e quem não é admin podia ter parado de ver o projeto. Se
+  alguém da equipe não vê um projeto que foi movido, abra o usuário em
+  **Configurações → Gerenciar Acessos** e salve: o acesso é corrigido.
 - **Projeto novo não aparece sozinho para a equipe.** O acesso de quem não é admin
   lista os projetos um a um, mesmo dentro da organização que a pessoa já vê. Depois de
   criar um projeto, inclua-o no acesso de cada pessoa em **Gerenciar Acessos**.

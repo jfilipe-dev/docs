@@ -1,0 +1,65 @@
+---
+title: "Proposta"
+description: "A proposta que a agência manda ao cliente: o problema dele, a solução, o que está incluso, o investimento e os próximos passos, num HTML limpo com a marca da agência."
+keywords: ["proposta comercial", "proposta", "orçamento", "HTML", "PDF", "investimento", "setup", "mensalidade"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for escrever a proposta para um cliente final: a estrutura, o que incluir e o que nunca incluir, onde pegar a marca da agência, como gerar o HTML e o PDF, e onde salvar.
+</Visibility>
+
+A proposta fala do **problema do cliente** e do **resultado**, não de tecnologia.
+Ela é curta (uma ou duas páginas), assinada pela agência e com o preço claro.
+
+## Estrutura
+
+| Seção | Conteúdo |
+|---|---|
+| **O que vimos** | O problema do cliente, com as palavras do diagnóstico: "hoje 40% das mensagens chegam fora do horário e ficam sem resposta". |
+| **A solução** | O que o atendimento vai fazer: responder 24h, qualificar, agendar, passar para a equipe. Sem jargão. |
+| **O que está incluso** | A implantação (configuração, agente, testes, treinamento da equipe) e o mês a mês (ajustes, relatório mensal, suporte). |
+| **Investimento** | Setup (uma vez) e mensalidade. Diga o que está incluso na mensalidade e o que é cobrado à parte. |
+| **Prazo** | Quanto tempo da assinatura até estar no ar. |
+| **Próximos passos** | O que o cliente faz para começar (aceite, pagamento, conexão do WhatsApp). |
+
+A demo, se houver, entra como prova: "o agente que você viu na reunião".
+
+## O que nunca entra
+
+- O custo da Zatten, da IA e da Meta para a agência.
+- A margem da agência.
+- Nomes de ferramentas internas que o cliente não precisa saber.
+
+Esses números ficam na [viabilidade](/vender/viabilidade), que é interna.
+
+## O arquivo
+
+O assistente gera um **HTML único, limpo**:
+
+- tipografia legível, espaço generoso, cores neutras;
+- a **marca da agência**: logo, cores e nome vêm do `get_white_label` (a agência
+  assina a proposta). O logo do cliente entra se a agência passar ou se estiver
+  no site dele;
+- pronto para imprimir em PDF pelo navegador (Imprimir → Salvar como PDF).
+
+Salvo em `clientes/<organização>/<cliente>/comercial/proposta-AAAA-MM-DD.html`. A
+viabilidade fica ao lado, em Markdown.
+
+## Preço
+
+O preço é da agência. Para chegar nele, veja
+[Quanto cobrar do cliente final](/comecar/quanto-cobrar) e
+[Viabilidade](/vender/viabilidade). O assistente não decide o preço: ele mostra a
+conta e a agência escolhe.
+
+## Depois de enviar
+
+Registre a data de envio no histórico comercial do cliente e combine quando
+cobrar resposta. Veja [Follow-up da proposta](/vender/follow-up).
+
+## Para saber mais
+
+- [Viabilidade](/vender/viabilidade)
+- [Objeções do cliente final](/vender/objecoes)
+- [White label](/comecar/white-label)
+- [O que a agência entrega](/playbooks/entregar-ao-cliente)

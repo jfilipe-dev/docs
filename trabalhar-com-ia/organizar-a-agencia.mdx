@@ -1,17 +1,18 @@
 ---
 title: "Organizar sua agência no computador"
-description: "Monte no computador o diretório da agência que o assistente usa, com AGENTS.md, AGENCIA.md e uma pasta por cliente final com memória e snapshots."
-keywords: ["diretório", "AGENTS.md", "AGENCIA.md", "CLIENTE.md", "MEMORIA.md", "snapshots", ".env"]
+description: "O diretório da agência que o assistente usa: AGENTS.md, AGENCIA.md e uma pasta por cliente, organizada como as organizações do painel, com a operação e o comercial de cada um, versionada com Git."
+keywords: ["diretório", "pastas", "AGENTS.md", "AGENCIA.md", "CLIENTE.md", "MEMORIA.md", "snapshots", ".env", "git", "organizações"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando for montar o diretório da agência que o assistente usa: AGENTS.md, AGENCIA.md, uma pasta por cliente final com CLIENTE.md, MEMORIA.md, snapshots e .env.
+**Quando ler esta página:** quando for montar ou sincronizar o diretório da agência: a estrutura `clientes/<organização>/<cliente>/{operacao, comercial}`, o que vai em cada arquivo, como manter as pastas iguais às organizações do painel e como usar o Git.
 </Visibility>
 
-A agência trabalha com o assistente num diretório só, com uma pasta por cliente
-final. Ali ficam o contexto da agência, o de cada cliente, a memória do que foi
-feito e cópias do projeto depois de cada alteração. Na primeira vez, a skill
-monta essa estrutura sozinha.
+A agência trabalha com o assistente num diretório só. As pastas espelham a
+Zatten: cada **organização** do painel é uma pasta, e cada cliente fica dentro da
+organização em que o projeto dele está. Dentro do cliente, a **operação** (o que o
+assistente configurou) e o **comercial** (a venda e o relacionamento) ficam
+separados. Na primeira vez, o [setup](/trabalhar-com-ia/setup) monta tudo.
 
 ## A estrutura
 
@@ -22,14 +23,44 @@ minha-agencia/
   AGENCIA.md           quem é a agência; lido em toda sessão
   .gitignore           .env fora do versionamento
   clientes/
-    clinica-sorriso/
-      CLIENTE.md       project_id, nome exato do projeto, nicho, objetivos, regras
-      MEMORIA.md       ## Vigente e ## Histórico
-      snapshots/       AAAA-MM-DD_HHMM_<assunto>.json
-      .env             chaves do cliente: API do dia a dia, LangSmith (nunca versionado)
-    imobiliaria-norte/
-      ...
+    Implantação/                 o nome da organização no painel
+      clinica-sorriso/
+        CLIENTE.md               quem é, project_id, estágio, site, regras
+        operacao/
+          MEMORIA.md             ## Vigente e ## Histórico
+          snapshots/             AAAA-MM-DD_HHMM_<assunto>.json
+          .env                   chaves do cliente (nunca versionado)
+        comercial/
+          diagnostico.md         o diagnóstico da venda
+          proposta-AAAA-MM-DD.html
+          viabilidade-AAAA-MM-DD.md   interna: custo, preço e margem
+          historico.md           conversas, follow-ups, contrato
+    Produção/
+      imobiliaria-norte/
+        ...
 ```
+
+**Todo mundo é cliente.** Não existe pasta separada de prospect: o estágio do
+cliente (prospect, em implantação, em produção…) é a **organização** do projeto, e
+fica anotado no `CLIENTE.md`. Um cliente que ainda não tem projeto na Zatten (só a
+conversa e a proposta) fica na organização de estágio inicial que a agência usa;
+o `project_id` entra no `CLIENTE.md` quando a demo nasce.
+
+## As pastas seguem o painel
+
+A Zatten manda. Sempre que um `list_projects` mostrar diferença em relação às
+pastas, o assistente lista o que mudou e, com um "sim", sincroniza:
+
+| Mudou no painel | No computador |
+|---|---|
+| Projeto mudou de organização | `git mv` da pasta do cliente para a organização nova |
+| Projeto novo | Pasta nova, com o `CLIENTE.md` preenchido pelo `get_template` |
+| Organização renomeada | A pasta da organização é renomeada |
+| Projeto apagado no painel | A pasta fica; o `CLIENTE.md` ganha a nota "projeto apagado em …" |
+
+Cada sincronização entra no Histórico do cliente e vira um commit. Mudar o
+cliente de estágio pelo assistente é o caminho inverso: `move_project` na Zatten,
+e a pasta vai junto.
 
 ## O que vai em cada arquivo
 
@@ -41,19 +72,26 @@ Claude Code lê `CLAUDE.md`; o Codex e o Cursor leem `AGENTS.md`. Por isso o
 
 ### AGENCIA.md
 
-O documento da agência, compartilhado por todos os clientes:
+O documento da agência, compartilhado por todos os clientes. Sai do diagnóstico
+da agência, no [setup](/trabalhar-com-ia/setup):
 
-- site da agência (o assistente pode ler o site para completar o resto);
-- nicho em que atua;
-- canal de vendas;
-- por quanto vende e o que entrega em cada pacote;
-- como trata os clientes (tom, prazos, o que precisa de aprovação do cliente final).
+- site da agência (o assistente lê o site para completar o resto);
+- o que vende hoje, para quais nichos e o ticket médio;
+- quantos clientes ativos;
+- como vende: canal, processo comercial, quem vende;
+- quanto cobra pela solução de IA (setup e mensalidade) e quantos clientes quer
+  colocar nela;
+- como trata os clientes (tom, prazos, o que entrega todo mês);
+- o **progresso do setup**, para retomar;
+- as **dicas já dadas** e as **chamadas comerciais recusadas** (com a data), para
+  o assistente não repetir.
 
 ### CLIENTE.md
 
-O contexto de um cliente final:
+O contexto de um cliente final, na raiz da pasta dele:
 
 - `project_id` e o **nome exato** do projeto, como vêm de `list_projects`;
+- o estágio (a organização) e o site;
 - nicho e o que o cliente vende;
 - objetivos (por exemplo, "agendar avaliação", "qualificar antes de passar ao
   corretor");
@@ -62,7 +100,7 @@ O contexto de um cliente final:
 É preenchido no [diagnóstico](/trabalhar-com-ia/diagnostico), na primeira vez que
 o assistente abre o cliente. O que não dá para inferir do projeto, ele pergunta.
 
-### MEMORIA.md
+### operacao/MEMORIA.md
 
 Duas seções, com papéis diferentes:
 
@@ -82,7 +120,7 @@ Cada entrada do Histórico traz:
 Mudanças feitas por outra pessoa no painel também entram, como "mudança externa".
 Veja [Mudanças feitas pelo painel](/trabalhar-com-ia/mudancas-pelo-painel).
 
-### snapshots/
+### operacao/snapshots/
 
 O template do projeto lido **depois** de cada escrita, com nome
 `AAAA-MM-DD_HHMM_<assunto>.json`. Serve para dois fins:
@@ -108,7 +146,7 @@ Zatten mantém o valor atual.
 
 Um snapshot por escrita basta: o "antes" de uma escrita é o "depois" da anterior.
 
-### .env
+### operacao/.env
 
 As chaves do cliente, uma por linha:
 
@@ -125,6 +163,12 @@ as chaves direto no arquivo, ou o assistente copia a do LangSmith que veio no
 - [API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia)
 - [Extrair dados do LangSmith pela API](/engenharia-de-ia/langsmith)
 
+### comercial/
+
+Tudo da venda e do relacionamento com aquele cliente: o diagnóstico, as propostas
+(HTML pronto para imprimir em PDF), a viabilidade interna e um `historico.md` com
+reuniões, follow-ups e o contrato. Veja [Vender com o Zatten-OS](/vender/visao-geral).
+
 ## Um cliente ativo por vez
 
 No início da sessão, o assistente declara com qual cliente vai trabalhar e usa o
@@ -134,10 +178,17 @@ Outro cliente só entra como leitura e citado em voz alta: "usando o follow-up d
 Clínica Sorriso como referência para a Imobiliária Norte". Escrever em dois
 clientes na mesma tarefa exige dois planos e dois "sim".
 
-## Git é opcional
+## Git
 
-A skill sugere `git init` e funciona sem ele. Com git, o histórico do diretório
-vira mais uma camada de registro.
+O setup inicia o Git no diretório: `git init`, o `.gitignore` com `.env` **antes**
+da primeira chave, e o primeiro commit. Depois, o assistente faz um commit por
+mudança aplicada (o snapshot e a memória juntos) e um por sincronização de pastas.
+
+Para quem nunca usou: o Git guarda cada versão dos arquivos. Com ele, dá para ver
+o que mudou num cliente em qualquer dia e voltar um arquivo ao que era. A Zatten
+guarda versões só do agente; colunas, tags e automações não têm histórico, e o Git
+com os snapshots é esse histórico. O assistente cuida dos commits; a pessoa não
+precisa digitar nada.
 
 ## Armadilhas
 

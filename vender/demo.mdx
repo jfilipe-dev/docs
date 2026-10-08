@@ -1,0 +1,87 @@
+---
+title: "Montar a demo"
+description: "Monte um projeto para o cliente antes de ele fechar, teste até responder bem sobre o negócio dele e mostre o agente funcionando na reunião."
+keywords: ["demo", "demonstração", "prospect", "create_project", "test_agent", "reunião de vendas", "move_project"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando a agência quiser mostrar o agente funcionando a um cliente antes de ele fechar: em qual organização criar, como montar a partir do playbook do nicho e do site, testar com test_agent, como apresentar na reunião e o que fazer quando o cliente fecha ou não fecha.
+</Visibility>
+
+Uma demo é um projeto da Zatten montado para um cliente que ainda não fechou. Ela
+mostra o agente respondendo sobre o negócio **dele**, com os serviços, o tom e as
+regras dele. Isso vende mais que qualquer apresentação.
+
+## Antes de criar
+
+- **O diagnóstico.** Sem ele, a demo é genérica. Veja
+  [Diagnóstico do cliente](/vender/diagnostico-do-cliente).
+- **A organização de estágio.** A demo nasce numa organização como "Prospects".
+  Se ela ainda não existe, o assistente a cria (`create_organization`, com o
+  "sim" da pessoa).
+- **O custo.** O projeto nasce com a **assinatura pendente**. Ele não atende no
+  WhatsApp até ser assinado, e fica na conta até alguém apagar pelo painel (o
+  MCP não apaga).
+
+## Montar
+
+<Steps>
+  <Step title="Criar o projeto">
+    `create_project` com os blocos do playbook do nicho (funil, tags,
+    propriedades) e o nome do cliente. Os playbooks estão em
+    [Nichos](/playbooks/como-usar).
+  </Step>
+  <Step title="Escrever o agente">
+    O prompt com o que veio do diagnóstico e do site: serviços, horários, tom, o
+    que nunca fazer. Perguntas frequentes viram [skills](/engenharia-de-ia/skills).
+  </Step>
+  <Step title="Testar">
+    `test_agent` com as perguntas que o cliente final mais recebe, e uma ou duas
+    difíceis (preço, reclamação, pedido de humano). Ajuste e teste de novo. Veja
+    [Construir o agente iterando](/trabalhar-com-ia/construir-o-agente-iterando).
+  </Step>
+</Steps>
+
+<Warning>
+Na demo, deixe de fora tools que agem em sistemas reais do cliente (agenda, CRM)
+ou use um ambiente de teste dele. As tools executam de verdade no teste.
+</Warning>
+
+## Mostrar na reunião
+
+| Jeito | Como |
+|---|---|
+| **Chat de teste do painel** | A agência abre o projeto no painel e conversa com o agente na frente do cliente. Veja [Testar o agente](/engenharia-de-ia/testar). |
+| **Pelo assistente** | O assistente roda `test_agent` com as perguntas que o cliente fizer e mostra as respostas. |
+
+Dicas para a reunião:
+
+- Deixe o cliente fazer as perguntas dele, não as suas.
+- Mostre o que acontece quando o lead pede uma pessoa (o transbordo).
+- Mostre o funil: onde o lead vai parar depois da conversa.
+
+## Quando fecha
+
+1. O assistente move o projeto para a organização de implantação
+   (`move_project`). As configurações vão juntas, e quem tinha acesso continua
+   tendo.
+2. A pasta do cliente vai junto (de `clientes/Prospects/<cliente>` para
+   `clientes/Implantação/<cliente>`), com o histórico comercial.
+3. A pessoa assina o projeto e conecta o WhatsApp no painel
+   ([Conexões do WhatsApp](/comecar/conexoes-whatsapp)).
+4. Segue o [onboarding](/playbooks/entregar-ao-cliente).
+
+## Quando não fecha
+
+A demo fica parada na organização de prospects. A agência decide:
+
+- mandar um [follow-up](/vender/follow-up);
+- deixar parada para retomar depois;
+- apagar no painel (o assistente guia).
+
+## Para saber mais
+
+- [Proposta](/vender/proposta)
+- [Construir o agente iterando](/trabalhar-com-ia/construir-o-agente-iterando)
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Organizações e projetos](/produto/organizacoes-e-projetos)
