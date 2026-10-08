@@ -1,0 +1,182 @@
+---
+title: "O SDR da sua agência"
+description: "Um agente que atende os leads da própria agência no WhatsApp: entende o que a empresa precisa, qualifica e marca a reunião com o comercial."
+keywords: ["SDR", "agência", "pré-vendas", "qualificação", "reunião", "agendamento", "leads da agência"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for montar o agente que atende os leads da PRÓPRIA agência (quem quer contratá-la), por exemplo como primeira vitória do setup: objetivo, funil, tags, propriedades, tools, agenda pelas Integrações, prompt personalizado pelo AGENCIA.md, automações, como montar pelo assistente e pelo painel, e erros comuns.
+</Visibility>
+
+O SDR é o primeiro projeto que muitas agências põem no ar: um agente que atende,
+no WhatsApp da **própria agência**, as empresas que querem contratá-la. Ele
+entende o que a empresa precisa, qualifica e **marca a reunião** com quem vende.
+Uma conversa termina bem quando a reunião está marcada.
+
+É também a melhor demonstração que a agência pode ter: o cliente conversa com o
+SDR antes de comprar o mesmo serviço para o negócio dele.
+
+## O objetivo do atendimento
+
+| | |
+|---|---|
+| **Conversão** | Reunião marcada com o comercial. Depois, reunião realizada. |
+| **A IA faz** | Recebe, entende o negócio do lead, qualifica, explica a oferta da agência em linhas gerais, marca a reunião, lembra. |
+| **O comercial faz** | A reunião, a proposta, preço sob medida, quem pede uma pessoa. |
+| **Nunca** | Fechar preço que não está nas regras, prometer resultado (faturamento, número de leads), falar mal de concorrente. |
+
+## A oferta vem do AGENCIA.md
+
+O SDR fala da agência com as palavras dela. O assistente monta o prompt a partir
+do `AGENCIA.md` (o diagnóstico da agência):
+
+- o que a agência vende e para quem (nichos, porte);
+- como trabalha (implantação, mês a mês, relatório);
+- faixa de preço, **só se a agência quiser que o SDR diga**;
+- o que diferencia a agência;
+- quem faz a reunião e em que horários.
+
+Sem `AGENCIA.md`, faça o diagnóstico da agência antes. Um SDR que não sabe o que a
+agência vende responde genérico, e lead de agência percebe.
+
+## Funil recomendado
+
+| Coluna | O que significa | Quem move | Desativar IA | Transbordo |
+|---|---|---|---|---|
+| **Novo Contato** (entrada) | Chegou; a IA está entendendo o negócio | Automático | Não | Não |
+| **Qualificado** | Tem perfil; falta marcar | Agente | Não | Não |
+| **Reunião marcada** | Data e hora confirmadas | Agente (ou comercial) | Não | Não |
+| **Sem perfil** | Fora do que a agência atende | Agente | Não | Não |
+| **Atendimento Humano** | O comercial assumiu | Agente, transbordo por inatividade | Sim | **Sim** |
+| **Cliente** | Fechou | Comercial | Sim | Não |
+
+A IA fica ligada em Qualificado e Reunião marcada: o lead que quer remarcar ou
+tirar uma dúvida antes da reunião é atendido.
+
+## Propriedades
+
+| Propriedade (slug) | Tipo | Valores | Vínculo |
+|---|---|---|---|
+| Segmento (`segmento`) | Lista | Os nichos que a agência atende, mais Outro | Contato |
+| Porte (`porte`) | Lista | Faixas de faturamento ou de equipe que façam sentido para a agência | Contato |
+| Investe em anúncios (`investe_em_anuncios`) | Lista | Sim, Não, Pretende começar | Contato |
+| Urgência (`urgencia`) | Lista | Este mês, Próximos 3 meses, Só pesquisando | Conversa |
+| Data da reunião (`data_da_reuniao`) | Texto | `AAAA-MM-DD HH:MM` | Conversa |
+
+O critério de qualificação vai escrito no prompt, combinando essas respostas (por
+exemplo: "segmento atendido **e** porte a partir de X **e** urgência até 3
+meses"). Veja [Qualificação de leads](/playbooks/qualificacao).
+
+## Tags
+
+| Tag | Vínculo | Para quê |
+|---|---|---|
+| **Indicação** | Contato | Veio por indicação de cliente. Segmenta e prioriza. |
+| **Parceria** | Contato | Não é cliente: é fornecedor ou parceiro. Vai para uma pessoa. |
+
+## Tools
+
+**Ações da Zatten:** preencher cada propriedade, mover para Qualificado, Reunião
+marcada e Sem perfil, agendar e cancelar o lembrete da reunião, transferir para
+humano. Veja [Ações da Zatten](/engenharia-de-ia/tools/acoes-da-zatten).
+
+**Agenda**, para o SDR marcar sozinho:
+
+| Opção | Como | Página |
+|---|---|---|
+| **Google Agenda da agência** | Pelas Integrações do agente: conectar a conta do Google no painel e acrescentar as ações de buscar horário livre e criar evento | [Integrações](/engenharia-de-ia/tools/integracoes) |
+| **Link de agendamento** (Calendly, Cal.com) | O agente manda o link; o lead escolhe o horário. Avisar a Zatten precisa de um intermediário | [Agendamento](/playbooks/agendamento) |
+| **Sem agenda integrada** | O agente coleta a preferência (dia e período) e transfere para o comercial marcar | — |
+
+Conectar a conta do Google é no painel, pela pessoa: o assistente guia, passo a
+passo, e depois acrescenta as ações ao agente.
+
+## Esqueleto do prompt
+
+```markdown
+# Identidade
+Você é o atendimento da <agência>, no WhatsApp.
+
+# Objetivo
+Marcar uma reunião com o nosso comercial para empresas com perfil. A conversa
+termina bem quando a reunião está marcada.
+
+# O que a <agência> faz
+<do AGENCIA.md: o que vende, para quem, como trabalha, o diferencial>
+
+# Fluxo
+1. Cumprimente e pergunte o que a empresa faz e o que ela procura.
+2. Entenda o segmento (@properties_update_segmento), o porte
+   (@properties_update_porte), se investe em anúncios
+   (@properties_update_investe_em_anuncios) e a urgência
+   (@properties_update_urgencia). Uma pergunta por vez, no meio da conversa.
+3. Qualificado (critério abaixo): @kanban_move_qualificado e ofereça a reunião.
+4. Com data e hora confirmadas: crie o evento, salve a data
+   (@properties_update_data_da_reuniao), @kanban_move_reuniao_marcada e agende o
+   lembrete.
+5. Sem perfil: agradeça, indique o que fazer (conteúdo, outro serviço) e
+   @kanban_move_sem_perfil.
+
+# Critério de qualificação
+<o critério da agência>
+
+# Quando transferir
+@transbordo_notify quando: o lead pedir uma pessoa; for parceiro ou fornecedor;
+pedir preço fechado; houver reclamação.
+
+# O que nunca fazer
+- Prometer faturamento, número de leads ou resultado.
+- Dar preço que não está nas regras.
+- Falar mal de concorrente.
+```
+
+## Automações
+
+| Automação | Configuração | Por quê |
+|---|---|---|
+| **Lembrete da reunião** | Ação **Agendar mensagem** do agente, 24 horas antes (ou 2 horas, se for no mesmo dia) | Reunião de vendas que fura é venda perdida. |
+| **Retomada** (follow-up) | Coluna Novo Contato e Qualificado; 2 horas e 24 horas | Lead que parou no meio da qualificação. |
+| **Transbordo por inatividade** | Opcional: Qualificado, 240 minutos, para Atendimento Humano | Para o comercial ligar para quem tem perfil e sumiu. |
+
+## Montar
+
+**Pelo assistente** (com o "sim" da pessoa):
+
+1. Diagnóstico da agência (`AGENCIA.md`).
+2. `create_project` com o funil, as propriedades e as tags acima, e o prompt
+   personalizado.
+3. `test_agent` com conversas típicas: um lead com perfil, um sem perfil, um que
+   pede preço, um que pede uma pessoa. Veja
+   [Construir o agente iterando](/trabalhar-com-ia/construir-o-agente-iterando).
+4. A agenda: guiar a conexão do Google no painel e acrescentar as ações.
+5. A pessoa assina o projeto, conecta o número da agência
+   ([Conexões do WhatsApp](/comecar/conexoes-whatsapp)) e publica.
+
+**Pelo painel:** crie o projeto em branco, monte o funil, as propriedades e as
+ações seguindo as tabelas acima, escreva o prompt e teste no chat de teste.
+
+## Métricas
+
+| Métrica | Como medir |
+|---|---|
+| Leads novos (anúncio x orgânico) | [Métricas](/produto/metricas), ou `get_metrics` |
+| Taxa de qualificação | Qualificado ÷ leads novos |
+| Taxa de reunião | Reunião marcada ÷ Qualificado |
+| Reuniões que viram cliente | Cliente ÷ Reunião marcada |
+
+## Erros comuns
+
+- **SDR genérico.** Sem o `AGENCIA.md`, o agente não sabe o que a agência vende.
+- **Interrogatório.** Cinco perguntas seguidas antes de responder qualquer coisa
+  afastam o lead. Responda a dúvida dele e pergunte no meio da conversa.
+- **Preço no WhatsApp.** Preço de agência costuma ser sob medida. Se não houver
+  faixa nas regras, o agente leva para a reunião.
+- **Agenda conectada com a conta errada.** Conecte a agenda de quem faz a reunião.
+- **Coluna final com a IA desligada cedo.** Quem quer remarcar fica sem resposta.
+
+## Para saber mais
+
+- [Qualificação de leads](/playbooks/qualificacao), [Agendamento](/playbooks/agendamento), [Transbordo para humano bem feito](/playbooks/transbordo)
+- [Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes)
+- [Vender com o Zatten-OS](/vender/visao-geral)
+- Termos para buscar: "SDR", "pré-vendas", "qualificação BANT", "taxa de comparecimento em reunião".

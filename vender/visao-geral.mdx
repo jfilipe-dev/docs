@@ -1,0 +1,102 @@
+---
+title: "Vender com o Zatten-OS"
+description: "Como o assistente ajuda a agência a vender: do primeiro contato com o cliente à demo, à proposta com a conta fechada e à entrega."
+keywords: ["vender", "comercial", "demo", "proposta", "viabilidade", "jornada do cliente", "zatten-comercial", "zatten-agencia"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando a agência pedir ajuda para vender (um cliente novo, uma reunião, uma proposta, um preço) ou para organizar o lado comercial: a jornada cliente → diagnóstico → demo → proposta e viabilidade → fechamento → entrega, onde cada coisa fica nas pastas e qual página ler em cada passo.
+</Visibility>
+
+A agência sabe vender. O que trava a venda de IA costuma ser outra coisa:
+
+- mostrar o agente funcionando antes de o cliente assinar;
+- responder "quanto custa, quanto eu cobro, quanto sobra";
+- entregar sem virar uma empresa de tecnologia.
+
+O Zatten-OS cuida dessas três partes. A skill `zatten-comercial` conduz a venda,
+e a `zatten-agencia` cuida do negócio da agência (diagnóstico, rotina, relatório
+mensal, o SDR da própria agência).
+
+## A jornada de um cliente
+
+Todo cliente final é **cliente** desde o primeiro contato. O estágio dele é a
+**organização** em que o projeto está no painel, por exemplo "Prospects",
+"Implantação" e "Produção". Os nomes são da agência.
+
+<Steps>
+  <Step title="Diagnóstico">
+    O que o cliente faz, como atende hoje, onde perde venda. Registrado na pasta
+    dele. Veja [Diagnóstico do cliente](/vender/diagnostico-do-cliente).
+  </Step>
+  <Step title="Demo">
+    Um projeto montado para o negócio dele, na organização de prospects, testado
+    até responder bem. Veja [Montar a demo](/vender/demo).
+  </Step>
+  <Step title="Proposta e viabilidade">
+    A proposta vai para o cliente, num HTML limpo com a marca da agência. A
+    viabilidade fica com a agência: custo, preço e margem. Veja
+    [Proposta](/vender/proposta) e [Viabilidade](/vender/viabilidade).
+  </Step>
+  <Step title="Follow-up">
+    Acompanhar até a resposta. Veja [Follow-up da proposta](/vender/follow-up).
+  </Step>
+  <Step title="Fechou">
+    O assistente move o projeto para a organização de implantação
+    (`move_project`). O projeto, as configurações e a pasta vão junto. A pessoa
+    assina e conecta o WhatsApp no painel.
+  </Step>
+  <Step title="Entrega e operação">
+    Onboarding, relatório mensal e a próxima oportunidade. Veja
+    [Entregar ao cliente](/playbooks/entregar-ao-cliente) e
+    [Operar a agência](/vender/operar-a-agencia).
+  </Step>
+</Steps>
+
+## Onde cada coisa fica
+
+O assistente mantém as pastas espelhando o painel:
+
+```
+clientes/
+  <organização>/            o estágio: "Prospects", "Implantação", "Produção"…
+    <cliente>/
+      CLIENTE.md            quem é, project_id, estágio, site
+      operacao/             memória, snapshots, .env (a configuração do projeto)
+      comercial/            diagnóstico, demo, proposta, viabilidade, histórico da venda
+```
+
+Quando o projeto muda de organização no painel, a pasta muda junto. Veja
+[Organizar sua agência no computador](/trabalhar-com-ia/organizar-a-agencia).
+
+## O que o assistente faz e o que é da agência
+
+| O assistente faz | A agência decide |
+|---|---|
+| Lê o site do cliente, monta o diagnóstico e a demo | Se vale a pena atender o cliente |
+| Calcula a viabilidade com números medidos ou informados | O preço final e a margem |
+| Escreve a proposta com a marca da agência | Enviar a proposta e negociar |
+| Lembra das propostas sem resposta | O que oferecer no follow-up |
+| Move o projeto quando fecha | Assinar e conectar o WhatsApp |
+
+## Ferramentas que o assistente usa
+
+| Para | Ferramenta |
+|---|---|
+| Criar a demo | `create_project` (o projeto nasce com a assinatura pendente) |
+| Testar a demo | `test_agent` |
+| Organizar estágios | `create_organization`, `rename_organization`, `move_project` |
+| A marca da proposta | `get_white_label` |
+| Resultados para relatório e renovação | `get_metrics` |
+
+Detalhes em [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas).
+
+## Para saber mais
+
+- [Diagnóstico do cliente](/vender/diagnostico-do-cliente)
+- [Montar a demo](/vender/demo)
+- [Proposta](/vender/proposta) e [Viabilidade](/vender/viabilidade)
+- [Objeções do cliente final](/vender/objecoes)
+- [Oportunidades na carteira](/vender/oportunidades)
+- [O SDR da sua agência](/playbooks/nichos/agencias)
+- [Quanto cobrar do cliente final](/comecar/quanto-cobrar)

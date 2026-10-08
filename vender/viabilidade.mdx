@@ -1,0 +1,61 @@
+---
+title: "Viabilidade: quanto custa, quanto cobrar, quanto sobra"
+description: "A conta interna da agência para cada cliente: o custo da Zatten, da IA e da Meta, o preço e a margem por mês."
+keywords: ["viabilidade", "margem", "custo por cliente", "economia unitária", "quanto sobra", "precificação"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando a agência perguntar se um cliente "fecha a conta", quanto vai sobrar por mês, ou junto com uma proposta: as linhas da conta, de onde vem cada número, o que fazer quando falta um número e onde salvar a viabilidade.
+</Visibility>
+
+A pergunta que mais trava a agência não é o preço. É **quanto sobra** depois de
+pagar a Zatten, a IA e a Meta. A viabilidade responde isso para cada cliente,
+antes de a proposta sair.
+
+Ela é **interna**: nunca vai para o cliente.
+
+## A conta
+
+| Linha | De onde vem |
+|---|---|
+| **Plano da Zatten** | O plano do projeto. Preços em [zatten.com/planos](https://www.zatten.com/planos) e as regras em [Planos e limites](/comecar/planos-e-limites). |
+| **IA** | O modelo e o volume de conversas. Veja [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia). |
+| **Meta** | As mensagens do WhatsApp, quando a conexão é oficial. Veja [Quanto custa operar um projeto](/comecar/custos-de-operacao). |
+| **O trabalho da agência** | Horas por mês × o valor da hora (ajustes, relatório, suporte). |
+| **= Custo por mês** | A soma. |
+| **Preço** | Setup + mensalidade que a agência cobra ([Quanto cobrar](/comecar/quanto-cobrar)). |
+| **= Margem por mês** | Mensalidade − custo por mês. E o setup paga o quê? |
+
+Quem paga a IA e a Meta (a agência ou o cliente) muda muito a conta. Veja os dois
+modelos em [Quanto cobrar do cliente final](/comecar/quanto-cobrar).
+
+## Só número medido ou informado
+
+O assistente não chuta:
+
+- **plano e preço:** lê na página de planos e no `AGENCIA.md`;
+- **volume:** pergunta, ou mede num projeto parecido com `get_metrics`;
+- **IA:** estima pelo roteiro de [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia),
+  com o modelo escolhido.
+
+Falta um número? A linha fica marcada como "a confirmar", com o que falta para
+fechar.
+
+## Com folga
+
+- Volume de conversas varia mês a mês. Calcule com o mês cheio, não com a média.
+- No modelo "tudo incluso", defina uma franquia e o preço do excedente.
+- Reveja a viabilidade depois do primeiro mês, com os números reais do
+  `get_metrics`.
+
+## O arquivo
+
+`clientes/<organização>/<cliente>/comercial/viabilidade-AAAA-MM-DD.md`, ao lado
+da proposta. Em Markdown, para entrar no histórico do Git da agência.
+
+## Para saber mais
+
+- [Proposta](/vender/proposta)
+- [Quanto custa operar um projeto](/comecar/custos-de-operacao)
+- [Planos e limites](/comecar/planos-e-limites)
+- [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia)

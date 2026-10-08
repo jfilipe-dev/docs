@@ -1,0 +1,124 @@
+---
+title: "O loop de trabalho do Zatten-OS"
+description: "Como o assistente trabalha cada pedido da agência: parte de um sinal, descobre o estado, separa o que ele resolve do que é decisão da pessoa, entrega e confere."
+keywords: ["loop", "ciclo de trabalho", "Zatten-OS", "triagem", "feedback", "telemetria", "correção verificável", "julgamento humano"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** no começo de qualquer pedido, para seguir o loop do Zatten-OS: de onde vem o sinal, onde descobrir o estado (MCP, pasta do cliente, esta doc), como decidir se a correção é sua ou da pessoa, como entregar e como conferir o efeito.
+</Visibility>
+
+O Zatten-OS trabalha como um desenvolvedor de software trabalha: parte de um
+sinal, entende o estado atual, decide quem resolve, entrega e confere se
+resolveu. O loop é curto e se repete a cada pedido.
+
+<Steps>
+  <Step title="1. Sinal">
+    O que disparou o trabalho: um pedido da agência ("monta o follow-up da
+    clínica"), uma reclamação de cliente final ("o agente não marcou a consulta da
+    Maria"), um erro numa conversa, uma nota do MCP, um teste que falhou.
+  </Step>
+  <Step title="2. Estado atual">
+    Antes de mudar qualquer coisa, o assistente descobre como as coisas estão:
+
+    - **Esta doc.** Uma busca (`search_docs_zatten`) devolve o título e a descrição
+      das páginas; ele lê só as que batem com o assunto. Vale em toda tarefa nova,
+      mesmo quando ele acha que sabe: o produto muda.
+    - **O projeto.** `get_template` (configuração e o bloco `project`, com plano,
+      WhatsApp e versões do agente), `find_contacts` e a
+      [API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia) para chegar a uma
+      conversa.
+    - **A pasta do cliente.** O `CLIENTE.md` e a memória (`MEMORIA.md`): o que foi
+      decidido antes e por quê ([Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia)).
+  </Step>
+  <Step title="3. Triagem: do assistente ou da pessoa?">
+    A pergunta é uma só: **o assistente consegue conferir sozinho que a correção
+    funcionou?**
+
+    | Correção verificável → o assistente faz | Julgamento humano → a pessoa decide |
+    |---|---|
+    | Um campo, uma tag, uma coluna, um follow-up, que ele relê com `get_template` | Tom de marca, o que o agente pode prometer, preço |
+    | O prompt ou uma tool do agente, que ele testa com `test_agent` | Publicar a versão do agente |
+    | Uma automação desligada, montada para a pessoa revisar | Ligar uma automação que fala com lead real |
+    | Um diagnóstico com a lista de problemas | Conectar o WhatsApp, pagar, apagar |
+
+    Se for dos dois, ele faz a parte dele e diz exatamente o que fica com a
+    pessoa.
+  </Step>
+  <Step title="4. Entrega">
+    Com plano e "sim" ([As regras](/trabalhar-com-ia/regras)), pelo MCP, pela API ou
+    pelo navegador. O que é da pessoa vai em **Para você fazer no painel**, passo a
+    passo.
+  </Step>
+  <Step title="5. Conferir e voltar ao sinal">
+    Relê o projeto, lê as `notes`, testa o agente, olha a conversa de novo. Se o
+    resultado surpreendeu (uma nota inesperada, um teste que falhou), volta ao
+    passo 2, **começando pela doc**, antes de tentar outra vez. Errar duas vezes
+    do mesmo jeito é sinal de que falta informação, não de que falta insistência.
+  </Step>
+</Steps>
+
+No fim, o assistente registra na memória do cliente e chama `send_feedback`,
+contando à Zatten como foi e onde travou.
+
+## Três exemplos
+
+### Um pedido de configuração
+
+"Cria um follow-up de 24h para quem parou de responder."
+
+1. **Sinal:** o pedido.
+2. **Estado:** busca "follow-up" na doc e lê
+   [Follow-up](/produto/automacoes/follow-up) (o follow-up sempre envia um
+   template da Meta); `get_template` do projeto, para ver os templates que já
+   existem em `meta_templates` e as automações que já rodam.
+3. **Triagem:** montar o follow-up é verificável (ele relê). Ligar é da pessoa.
+4. **Entrega:** plano, "sim", `update_template` com o follow-up desligado.
+5. **Conferir:** relê, lê as `notes`, e reporta "ligar o follow-up" em **Para
+   você fazer no painel** — ou pergunta se pode ligar.
+
+### Uma reclamação de cliente final
+
+"O agente não marcou a consulta da Maria ontem."
+
+1. **Sinal:** a reclamação.
+2. **Estado:** `find_contacts` com `query: "Maria"` e o período de ontem → o
+   número dela → `GET /leads/{numero}/threads` e `GET /messages/history` pela API
+   do dia a dia. Com o [LangSmith](/engenharia-de-ia/langsmith) ligado, o trace da
+   resposta mostra se a tool de agendamento foi chamada e o que voltou.
+3. **Triagem:** se a tool falhou porque a API do cliente recusou, a correção é na
+   tool (verificável). Se o agente não devia agendar naquele caso, é regra de
+   negócio (da pessoa).
+4. **Entrega:** corrige a tool numa versão nova.
+5. **Conferir:** `test_agent` com a mesma mensagem da Maria. Passou: diz à pessoa
+   que a versão N está pronta para publicar.
+
+### Um cliente novo inteiro
+
+"Fechei com uma clínica, monta tudo."
+
+1. **Estado:** a pasta do cliente ainda não existe; ele pergunta o que não dá para
+   inferir (objetivo, público, regras) e lê o
+   [playbook do nicho](/playbooks/como-usar).
+2. **Entrega:** `create_project` (com "sim"; o projeto nasce com a assinatura
+   pendente), depois funil, tags e propriedades por `update_template`, depois o
+   agente, [iterando com testes](/trabalhar-com-ia/construir-o-agente-iterando).
+3. **Da pessoa:** conectar o WhatsApp (e assinar), publicar o agente, ligar as
+   automações.
+
+## Por que assim
+
+- **Ler a doc primeiro** evita o erro mais comum de um assistente: agir com o que
+  ele "sabe" de uma versão velha do produto.
+- **A triagem pela verificação** não depende de o assistente adivinhar o que é
+  arriscado. Se ele não consegue conferir o efeito, a decisão não é dele.
+- **Voltar ao sinal** faz cada entrega ser conferida, em vez de dada como pronta.
+
+## Para saber mais
+
+- [As regras que o assistente segue](/trabalhar-com-ia/regras)
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Construir o agente iterando](/trabalhar-com-ia/construir-o-agente-iterando)
+- [Diagnóstico de um cliente](/trabalhar-com-ia/diagnostico)
+- Anthropic: [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents).
+  Termos para buscar: "agent loop", "human in the loop", "verifiable tasks".

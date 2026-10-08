@@ -245,7 +245,12 @@ Referência completa da API REST: [api.smith.langchain.com/redoc](https://api.sm
 Consultas com o SDK: [Query traces](https://docs.langchain.com/langsmith/export-traces).
 
 A chave do LangSmith dá acesso a dados pessoais de leads. Guarde no `.env` da pasta do
-cliente, nunca na conversa nem em arquivo versionado.
+cliente (`LANGSMITH_API_KEY`), nunca na conversa nem em arquivo versionado. Se ela
+veio no `get_template` (`settings.tracing.api_key`), o assistente pode copiá-la
+para o `.env` — e só para lá, depois de conferir que o `.env` está no `.gitignore`.
+
+Para chegar à conversa de um lead, o caminho do assistente costuma ser:
+`find_contacts` (pelo nome ou número) → o `wa_id` → o filtro por `wa_id` acima.
 </Visibility>
 
 ## Avaliar o agente

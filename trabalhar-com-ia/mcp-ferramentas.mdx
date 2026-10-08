@@ -1,22 +1,35 @@
 ---
 title: "O MCP da Zatten: ferramentas"
-description: "As quatro ferramentas do MCP da Zatten (list_projects, get_template, update_template e whoami): o que pedem, o que devolvem e os erros possíveis."
-keywords: ["MCP", "ferramentas", "list_projects", "get_template", "update_template", "whoami", "erros"]
+description: "As ferramentas do MCP da Zatten (projetos, template, criar projeto, organizações, testar o agente, contatos, métricas, acessos, white label e feedback): o que pedem, o que devolvem e os erros possíveis."
+keywords: ["MCP", "ferramentas", "list_projects", "get_template", "update_template", "create_project", "test_agent", "find_contacts", "get_metrics", "create_organization", "rename_organization", "move_project", "list_members", "get_white_label", "send_feedback", "whoami", "erros"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando precisar saber o que fazem list_projects, get_template, update_template e whoami, o que cada uma pede e devolve, e os erros que cada uma pode dar.
+**Quando ler esta página:** quando precisar saber o que faz cada ferramenta do MCP da Zatten (list_projects, get_template, update_template, create_project, create_organization, rename_organization, move_project, test_agent, find_contacts, get_metrics, list_members, get_white_label, whoami e send_feedback), o que cada uma pede e devolve, e os erros que cada uma pode dar.
 </Visibility>
 
-O MCP da Zatten tem quatro ferramentas. Três leem e uma escreve. Todas agem em
-nome da conta da agência, dentro do alcance da conexão criada no painel.
+O MCP da Zatten tem catorze ferramentas. Todas agem em nome da conta da agência,
+dentro do alcance da conexão criada no painel.
 
 | Ferramenta | Faz | Escreve? |
 |---|---|---|
 | `whoami` | Diz em nome de qual conta o assistente está agindo | Não |
-| `list_projects` | Lista os projetos que a conexão alcança, com id e nome | Não |
-| `get_template` | Lê um projeto inteiro em JSON, com a `revision` | Não |
+| `list_projects` | Lista os projetos que a conexão alcança, com organização, plano, cobrança e WhatsApp | Não |
+| `get_template` | Lê um projeto inteiro em JSON, com a `revision` e as informações do projeto | Não |
 | `update_template` | Aplica alterações num projeto: cria e atualiza, nunca apaga | Sim |
+| `create_project` | Cria um projeto: em branco, com blocos ou como cópia de outro | Sim |
+| `create_organization` | Cria uma organização (pasta do painel) | Sim |
+| `rename_organization` | Renomeia uma organização | Sim |
+| `move_project` | Move um projeto para outra organização, com o acesso dos membros junto | Sim |
+| `test_agent` | Manda uma mensagem ao agente de IA e devolve a resposta e as tools chamadas | Sim (as tools do agente executam) |
+| `find_contacts` | Procura contatos por nome, número, coluna, tag ou data | Não |
+| `get_metrics` | Os números do projeto num mês, os mesmos da tela de Métricas | Não |
+| `list_members` | Mostra quem tem acesso a quê na conta | Não |
+| `get_white_label` | Mostra a marca, o endereço do painel e o domínio da conta | Não |
+| `send_feedback` | Conta à Zatten como terminou a tarefa | Só o registro |
+
+Toda ferramenta aceita também `intent` e `skill_version`, dois campos opcionais
+para a Zatten entender o uso (ver [O que a Zatten registra](#o-que-a-zatten-registra)).
 
 ## O ciclo de uso
 
@@ -77,14 +90,22 @@ Resposta:
 Os projetos que a conexão alcança, em ordem de nome. A lista é o limite da
 conexão: projeto que não aparece aqui não pode ser lido nem alterado, nem pelo id.
 
+Cada projeto traz, além do id e do nome, o que ajuda a se orientar: a
+organização (a pasta do painel), o plano, se está pago e se o WhatsApp está
+conectado. O detalhe (limites, uso, versões do agente) vem no `get_template`.
+
 <Visibility for="agents">
-Entrada: nenhuma.
+Entrada: nenhuma (além de `intent` e `skill_version`, opcionais).
 
 Resposta:
 
 ```json
 {
   "can_write": false,
+  "organizations": [
+    { "id": "uuid", "name": "Implantação", "projects": 3 },
+    { "id": "uuid", "name": "Produção", "projects": 9 }
+  ],
   "projects": [
     {
       "id": "uuid",
@@ -92,7 +113,11 @@ Resposta:
       "status": "active",
       "type": "llm_attendant",
       "agent": "langchain_agent",
-      "created_at": "2026-09-01T12:00:00Z"
+      "created_at": "2026-09-01T12:00:00Z",
+      "team": { "id": "uuid", "name": "Clientes de saúde" },
+      "plan": "PRO",
+      "billing": { "kind": "stripe", "paid": true },
+      "whatsapp": { "connected": true, "mode": "oficial" }
     }
   ]
 }
@@ -108,6 +133,18 @@ Resposta:
   porque muda onde mora a configuração do agente: em `langchain_agent` vale o
   bloco `langchain`; nos outros, o `llm_attendant`. Mexer no bloco errado não dá
   erro: simplesmente não tem efeito.
+- `organizations`: as organizações da conta, inclusive as vazias, com quantos
+  projetos cada uma tem. Numa conexão restrita a alguns projetos, só as que têm
+  algum projeto ao alcance.
+- `team`: a organização do projeto (a pasta do painel). É o `team_id` que o
+  `create_project` pede quando a conta tem mais de uma.
+- `plan`: PRO, BUSINESS, SCALE, ENTERPRISE, ou um plano legado.
+- `billing.kind`: `stripe` (assinatura), `contract` (contrato), `courtesy`
+  (cortesia), `pending` (criado e ainda não assinado) ou `legacy` (projeto antigo,
+  tratado como pago). `billing.paid: false` = assinatura pendente ou vencida.
+- `whatsapp`: `connected` e o `mode` (`oficial`, que inclui coexistência, ou
+  `nao_oficial`, por QR). `null` quando não deu para ler, o que não é o mesmo
+  que desconectado.
 </Visibility>
 
 ## get_template
@@ -121,6 +158,9 @@ templates da Meta e o agente. A referência de cada bloco está em
 - Todos os templates da Meta do projeto vêm no bloco `meta_templates`.
 - A `revision` é a marca do estado atual. Duas leituras sem mudança no meio
   devolvem a mesma; se mudou, alguém mexeu.
+- Ao lado do template vem `project`: as informações do projeto que não são
+  configuração (organização, plano e uso, cobrança, WhatsApp e as versões do
+  agente). Ver abaixo.
 - O JSON traz endereços de webhook e de MCP, headers e as chaves do agente (do
   modelo e do LangSmith), preenchidos. Trate-o como confidencial: nunca mostre uma
   chave na conversa nem a grave em arquivo. O snapshot é gravado com as chaves
@@ -142,9 +182,61 @@ Resposta:
   "project_id": "uuid",
   "project_name": "Clínica Sorriso",
   "revision": "1a2b3c4d",
+  "project": {
+    "id": "uuid",
+    "name": "Clínica Sorriso",
+    "status": "active",
+    "team": { "id": "uuid", "name": "Clientes de saúde" },
+    "created_at": "2026-09-01T12:00:00Z",
+    "plan": {
+      "type": "pro",
+      "name": "PRO",
+      "limits": {
+        "contacts": { "max": 10000, "used": 2310 },
+        "users": { "max": 5, "used": 3 },
+        "message_history_days": 90,
+        "storage_mb": 1000
+      }
+    },
+    "billing": {
+      "kind": "stripe",
+      "status": "active",
+      "paid": true,
+      "renews_at": "2026-11-01T00:00:00Z",
+      "summary": "Assinatura ativa."
+    },
+    "whatsapp": { "connected": true, "mode": "oficial" },
+    "agent": {
+      "engine": "langchain_agent",
+      "name": "Ana — Clínica Sorriso",
+      "published_version": 14,
+      "latest_version": 15,
+      "has_unpublished_changes": true,
+      "model": null
+    }
+  },
   "template": { "version": "1.0", "meta": {}, "llm_attendant": {}, "tags": [], "columns": [] }
 }
 ```
+
+O bloco `project`:
+
+- **Fica fora do `template` de propósito.** Uso e cobrança mudam sem ninguém
+  mexer na configuração; dentro do template, mudariam a `revision` e recusariam
+  as escritas. Não devolva `project` no `update_template`.
+- `plan.limits`: o limite do plano (`max`, `null` = sem limite) contra o uso de
+  hoje (`used`). `users.used` conta quem enxerga o projeto: todo admin e os
+  outros papéis que o têm liberado. `message_history_days: null` = ilimitado.
+- `billing.summary`: uma frase pronta para repetir à pessoa. Sem id do Stripe e
+  sem valor cobrado.
+- `whatsapp`: só `connected` e `mode`. Número e dados da conexão ficam no painel.
+- `agent`: `published_version` é a que o WhatsApp roda; `latest_version`, a que
+  este `get_template` devolve e o `test_agent` roda por padrão.
+  `has_unpublished_changes: true` = existe versão esperando alguém publicar.
+  `model` só vem no motor antigo; no LangChain Agent, o modelo está em
+  `template.langchain.config.model`.
+- Uma parte que não pôde ser lida volta `null`. `project` inteiro `null` = não
+  foi possível ler as informações; o template continua valendo.
 </Visibility>
 
 ## update_template
@@ -213,6 +305,425 @@ Resposta:
 - A resposta **não traz `revision`**. Releia com `get_template`.
 </Visibility>
 
+## create_project
+
+Cria um projeto novo na conta. Três jeitos:
+
+- **Em branco:** só o nome. Nasce como o "em branco" do painel: funil Novo
+  Contato / Atendimento Humano / Ganho / Perdido e o departamento Atendimento.
+- **Com blocos:** nome + `template`, no mesmo formato do `update_template`. Cada
+  bloco enviado **substitui** o do em branco por inteiro (mandar `columns` com
+  três colunas dá um funil de três).
+- **Duplicando:** nome + `source_project_id`. O projeto novo nasce como cópia do
+  outro, inclusive chaves e endereços, que são lidos no servidor e não passam pela
+  conversa.
+
+Criar é livre. O projeto nasce com a **assinatura pendente**, o agente de IA e as
+automações **desligados**. O pagamento é cobrado quando a pessoa conectar o
+WhatsApp, no painel ([Conexões do WhatsApp](/comecar/conexoes-whatsapp)). Mesmo
+assim, o assistente confirma com a pessoa antes de criar: é um projeto a mais na
+conta dela.
+
+Em branco ou com blocos, o projeto nasce no LangChain Agent. Duplicado, fica no
+motor da origem.
+
+**Quem pode:** uma conexão de **Leitura e edição** que alcance **todos os
+projetos** da conta, gerada por alguém que continua admin. Uma conexão restrita a
+alguns projetos não cria projetos.
+
+<Visibility for="agents">
+Entrada:
+
+```json
+{
+  "name": "Clínica Sorriso",
+  "team_id": "uuid (obrigatório se a conta tem mais de uma organização)",
+  "template": { "tags": [ { "name": "Retorno", "color": "#22c55e" } ] }
+}
+```
+
+Ou, para duplicar: `{ "name": "Clínica Sorriso — unidade 2", "source_project_id": "uuid" }`.
+`template` e `source_project_id` não vêm juntos. `llm_attendant.functions` é
+ignorada, como no `update_template`.
+
+Resposta:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "team": { "id": "uuid", "name": "Clientes de saúde" },
+  "duplicated_from": null,
+  "payment_pending": true,
+  "notes": ["O projeto nasceu com a assinatura PENDENTE. Para conectar o WhatsApp, a pessoa assina no painel — a doc da Zatten explica o passo a passo."],
+  "next": "Chame get_template com este project_id e project_name antes de qualquer update_template. O agente de IA e as automações nascem desligados."
+}
+```
+
+Chamar duas vezes cria **dois** projetos.
+
+Sem `team_id` numa conta com várias organizações, a recusa lista as que existem:
+pergunte à pessoa qual.
+</Visibility>
+
+## test_agent
+
+Manda uma mensagem ao agente de IA do projeto, como se fosse o contato de teste no
+WhatsApp, e devolve o que ele respondeu, as tools que chamou (com argumentos e
+resultado) e o que falhou. É o [chat de teste](/engenharia-de-ia/testar) do
+painel, pelo MCP.
+
+É o que fecha o ciclo de construção do agente: o `update_template` cria uma versão
+nova → o `test_agent` roda essa versão → o assistente lê a resposta e as tools →
+ajusta → testa de novo. Veja [Construir o agente iterando](/trabalhar-com-ia/construir-o-agente-iterando).
+
+- **Roda a versão mais nova**, publicada ou não. O WhatsApp continua na
+  publicada até uma pessoa publicar no painel. O assistente nunca publica.
+- **As tools executam de verdade.** Uma tool HTTP chama o sistema do cliente
+  (um agendamento de teste vira agendamento real); as ações da Zatten mexem no
+  contato de teste. Antes da primeira rodada, o assistente avisa a pessoa e espera
+  o "sim"; com ele, itera sem pedir de novo a cada rodada.
+- **Conversa:** a resposta traz `thread_id`. Mandado de volta, continua a mesma
+  conversa de teste. Só conversas de teste do projeto são aceitas: uma conversa
+  real de lead nunca é lida nem continuada por aqui.
+- **Só no LangChain Agent**, e exige conexão de **Leitura e edição**. Cada rodada
+  leva até 3 minutos.
+
+O que o chat de teste não testa (buffer, pausa humana, mídia, segmentação,
+automações) o `test_agent` também não testa.
+
+<Visibility for="agents">
+Entrada:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "message": "Quero marcar uma limpeza amanhã às 10h",
+  "thread_id": "uuid (opcional, para continuar)",
+  "version": 15
+}
+```
+
+`version` é opcional: sem ela, roda a mais nova.
+
+Resposta:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "thread_id": "uuid",
+  "version": 15,
+  "published_version": 14,
+  "published": false,
+  "reply": "Pronto! Marquei sua limpeza amanhã às 10h.",
+  "transcript": [
+    { "role": "user", "text": "Quero marcar uma limpeza amanhã às 10h" },
+    { "role": "tool", "tool": "agendar", "text": "{\"ok\":true}" },
+    { "role": "agent", "text": "Pronto! Marquei sua limpeza amanhã às 10h." }
+  ],
+  "tool_calls": [
+    {
+      "name": "agendar",
+      "args": { "data": "2026-10-09", "hora": "10:00" },
+      "result": "{\"ok\":true}",
+      "status": "ok",
+      "http": { "method": "POST", "url": "https://api.clinica.com/agenda", "status": 201, "elapsed_ms": 340 }
+    }
+  ],
+  "errors": [],
+  "notes": [
+    "Rodou a versão 15, que NÃO está publicada: no WhatsApp continua a 14. Publicar é com a pessoa, no painel.",
+    "As tools do agente executaram de verdade, no lead de teste."
+  ]
+}
+```
+
+- `reply`: a última resposta do agente, como iria ao lead.
+- `transcript`: só o que **esta** rodada produziu, em ordem.
+- `tool_calls[].http`: nas tools HTTP, a requisição **sem headers** e sem valores
+  de parâmetros com cara de credencial (`key`, `token`, `secret`…). O `result` e
+  os textos vêm cortados em 2.000 caracteres.
+- `errors`: falha de tool (com o status HTTP e o começo da resposta) e falha do
+  modelo (com o transbordo que o agente tentou).
+- Se o agente parar esperando aprovação humana, a nota avisa: a aprovação fica
+  desligada nos projetos da Zatten.
+</Visibility>
+
+## create_organization, rename_organization e move_project
+
+As organizações são as pastas do painel que agrupam projetos. Para a agência,
+costumam ser o **estágio do cliente**: "Prospects", "Implantação", "Produção". Toda
+conta nasce com uma chamada "Principal". Veja
+[Organizações e projetos](/produto/organizacoes-e-projetos).
+
+- `create_organization` cria; nome repetido é recusado.
+- `rename_organization` renomeia; os projetos dela não mudam.
+- `move_project` move um projeto para outra organização. Funil, agente,
+  automações e leads vão juntos, e **o acesso dos membros vai junto**: quem via o
+  projeto continua vendo.
+- **Apagar organização não existe pelo MCP.** É no painel, com o assistente
+  guiando.
+
+**Quem pode:** criar e renomear exigem conexão de **Leitura e edição** com acesso
+a **todos os projetos** (organização é da conta, não de um projeto). Mover exige
+o projeto no alcance da conexão, como toda escrita num projeto.
+
+<Visibility for="agents">
+`create_organization`: `{ "name": "Implantação" }` → `{ "team": { "id": "uuid", "name": "Implantação" } }`.
+
+`rename_organization`: `{ "team_id": "uuid", "name": "Clientes ativos" }` → `{ "team": { "id": "uuid", "name": "Clientes ativos", "previous_name": "Principal" } }`.
+
+`move_project`:
+
+```json
+{ "project_id": "uuid", "project_name": "Clínica Sorriso", "team_id": "uuid da organização de destino" }
+```
+
+Resposta:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "moved": true,
+  "from": { "id": "uuid", "name": "Prospects" },
+  "to": { "id": "uuid", "name": "Implantação" },
+  "members_access_updated": 2,
+  "notes": []
+}
+```
+
+`moved: false` = o projeto já estava nessa organização. Se o acesso de algum
+membro não puder ser atualizado, a nota diz; o projeto continua movido.
+
+Depois de mover, a pasta do cliente muda junto: `clientes/<organização>/<cliente>/`
+([Organizar sua agência](/trabalhar-com-ia/organizar-a-agencia)).
+</Visibility>
+
+## find_contacts
+
+Procura contatos (leads) de um projeto. É **busca, não exportação**: serve para
+chegar ao número de um contato e, com ele, ler a conversa pela
+[API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia).
+
+- Exige pelo menos um filtro: `query` (parte do nome ou do número), `column`,
+  `tag`, ou um período da última interação.
+- Devolve no máximo **20**, os de interação mais recente.
+- Só identificação: nome, número, coluna, tags e datas. Nunca o conteúdo das
+  mensagens, notas ou propriedades.
+- Até **30 buscas por minuto** por conexão.
+
+Para a base inteira, a pessoa exporta o CSV no painel (**Contatos → Exportar**).
+
+<Visibility for="agents">
+Entrada:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "query": "Maria",
+  "column": "Agendado",
+  "tag": "Retorno",
+  "last_interaction_after": "2026-10-01T00:00:00-03:00",
+  "last_interaction_before": "2026-10-08T00:00:00-03:00"
+}
+```
+
+Os filtros se somam. `column` e `tag` pelo nome, exatamente como no
+`get_template` (sem diferenciar maiúsculas); se não existirem, a recusa lista os
+que existem.
+
+Resposta:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "contacts": [
+    {
+      "id": "uuid",
+      "name": "Maria Souza",
+      "number": "5511999998888",
+      "column": "Agendado",
+      "tags": ["Retorno"],
+      "last_interaction": "2026-10-07T14:02:11Z",
+      "created_at": "2026-09-20T10:00:00Z"
+    }
+  ],
+  "truncated": false,
+  "notes": ["Para ler a conversa de um contato, use a API do dia a dia com o `number` (GET /leads/{numero}/threads, GET /messages/history)."]
+}
+```
+
+`truncated: true` = havia mais de 20; refine a busca. Contatos sem nenhuma
+interação registrada ficam fora de um filtro por período.
+</Visibility>
+
+## get_metrics
+
+Os números de um projeto num mês, os **mesmos da tela de Métricas**
+([Métricas](/produto/metricas)), pela mesma conta: contatos novos (anúncio x
+orgânico), mensagens recebidas e enviadas, mensagens da IA x de humanos, tokens, o
+funil por coluna, os anúncios que trouxeram contatos e as conversões. Total e por
+dia.
+
+Para avaliar como um agente está indo, montar o relatório mensal do cliente final
+ou mostrar resultado numa renovação ([Operar a agência](/vender/operar-a-agencia)).
+
+<Visibility for="agents">
+Entrada: `{ "project_id": "uuid", "project_name": "Clínica Sorriso", "month": "2026-09" }`.
+`month` em `AAAA-MM`; sem ele, o mês atual.
+
+Resposta:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "month": "2026-09",
+  "totals": {
+    "new_contacts": 92, "new_contacts_from_ads": 40, "new_contacts_organic": 52,
+    "messages_received": 4186, "messages_sent": 3900,
+    "messages_by_ai": 3198, "messages_by_humans": 410,
+    "tokens_total": 5400000, "tokens_input": 5000000, "tokens_output": 400000
+  },
+  "funnel": [ { "column": "Novo Contato", "contacts": 30 } ],
+  "by_day": [ { "date": "2026-09-01", "new_contacts": 3, "messages_received": 140, "messages_sent": 130, "messages_by_ai": 110, "messages_by_humans": 12, "tokens_total": 180000 } ],
+  "ads": [ { "headline": "…", "media_type": "video", "contacts": 12 } ],
+  "conversions": { "events": { "Purchase": 3 }, "purchase_value": 1200 },
+  "notes": ["…"]
+}
+```
+
+- Os números são atualizados **uma vez por dia**: o dia de hoje pode estar
+  incompleto, e um dia sem movimento não aparece em `by_day`.
+- O custo de IA não vem aqui: no LangChain Agent a tela não o calcula. Para
+  estimar, [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia).
+- `funnel` é a foto de agora (quantos contatos em cada coluna), não do mês.
+</Visibility>
+
+## list_members
+
+Os membros da conta: nome, e-mail, papel, se recebem leads e a quais projetos têm
+acesso. Para diagnosticar acesso ("por que a Ana não vê o projeto da clínica?").
+
+**Só leitura.** Dar ou tirar acesso é com a pessoa, no painel
+([Usuários e permissões](/comecar/equipe-e-permissoes)).
+
+<Visibility for="agents">
+Resposta:
+
+```json
+{
+  "members": [
+    {
+      "name": "Ana Lima",
+      "email": "ana@agencia.com",
+      "role": "gestor",
+      "status": "active",
+      "receives_leads": true,
+      "projects": [ { "id": "uuid", "name": "Clínica Sorriso" } ]
+    },
+    {
+      "name": "João",
+      "email": "joao@agencia.com",
+      "role": "admin",
+      "status": "active",
+      "receives_leads": false,
+      "projects": "todos os projetos da conta"
+    }
+  ],
+  "notes": ["Para dar ou tirar acesso, a pessoa usa o painel (Configurações → Gerenciar Acessos). Por aqui é só leitura."]
+}
+```
+
+Admin vê todos os projetos. Os outros papéis veem os liberados no acesso do
+membro. Numa conexão restrita a alguns projetos, as listas mostram só esses.
+</Visibility>
+
+## get_white_label
+
+A configuração de white label **da conta** (não de um projeto): nome da marca,
+subdomínio e endereço do painel, domínio próprio, logo, favicon, cores e contato.
+Veja [White label](/comecar/white-label).
+
+**Só leitura.** Mudar marca ou domínio é com a pessoa, em **Configurações →
+Minha Empresa** e **Configurações → Domínios Customizados**. Se o domínio próprio
+está verificado, é a segunda tela que diz.
+
+<Visibility for="agents">
+Resposta:
+
+```json
+{
+  "name": "Agência Exemplo",
+  "description": "Atendimento com IA",
+  "subdomain": "agenciaexemplo",
+  "panel_url": "https://agenciaexemplo.<domínio da Zatten>",
+  "custom_domain": "app.agenciaexemplo.com.br",
+  "custom_domain_url": "https://app.agenciaexemplo.com.br",
+  "logo": "https://…/logo.png",
+  "favicon": "https://…/favicon.png",
+  "primary_color": "#2563eb",
+  "secondary_color": "#0f172a",
+  "contact_email": "contato@agenciaexemplo.com.br",
+  "contact_phone": "5511999990000",
+  "meta_login_enabled": true,
+  "notes": ["É a configuração da CONTA, igual para todos os projetos."]
+}
+```
+</Visibility>
+
+## send_feedback
+
+Conta à Zatten como terminou a tarefa que a pessoa pediu: feita, feita em parte ou
+travada, e onde travou. Não muda nada no projeto e não aparece para a pessoa: é o
+que a Zatten usa para melhorar a skill, esta doc e as ferramentas.
+
+O assistente chama uma vez no fim de cada tarefa que usou o MCP.
+
+<Visibility for="agents">
+Entrada:
+
+```json
+{
+  "outcome": "blocked",
+  "summary": "Montar o follow-up de 24h da clínica.",
+  "blockers": "O update_template recusou o follow-up e a nota não dizia qual template da Meta faltava.",
+  "doc_gaps": "Procurei como escolher o template do follow-up e a página não tinha exemplo.",
+  "project_id": "uuid (opcional)"
+}
+```
+
+`outcome`: `done`, `partial` ou `blocked`. Seja concreto em `blockers` e
+`doc_gaps`. **Nunca** inclua nome de lead, telefone, conteúdo de conversa ou
+chave.
+</Visibility>
+
+## O que a Zatten registra
+
+Cada chamada ao MCP deixa um registro de uso do lado da Zatten, para melhorar a
+skill, a doc e as ferramentas:
+
+- a ferramenta, o projeto, se deu certo e quanto tempo levou;
+- o assistente que chamou (Claude Code, Codex…), pelo nome que ele informa;
+- um resumo **sem dado do cliente**: quais blocos foram enviados, quantas mudanças
+  e órfãos, quais tools o agente chamou num teste;
+- o `intent` e o `send_feedback`, quando o assistente os manda.
+
+**Nunca** entram o template, chaves, endereços ou o conteúdo de mensagens. Os
+registros ficam 3 meses e não aparecem no painel.
+
+<Visibility for="agents">
+Em toda ferramenta, mande `intent`: uma frase com o que a pessoa pediu e por que
+você chama a ferramenta ("montar o follow-up de 24h da clínica", "testar a tool de
+agendamento"). Sem nome de lead, telefone ou dado do cliente final. Mande também
+`skill_version` com a versão da skill que você segue.
+</Visibility>
+
 ## Erros
 
 Quando a operação é recusada, nada é alterado. As mensagens dizem o que fazer:
@@ -226,6 +737,16 @@ Quando a operação é recusada, nada é alterado. As mensagens dizem o que faze
 | Projeto inexistente ou de outra conta | "Projeto não encontrado." | Confira o id em `list_projects` |
 | Template vazio | "O template veio vazio: nenhum bloco para alterar." | Envie ao menos um bloco |
 | Campo inválido | "Argumentos inválidos: tags.0.color: …" (caminho de cada campo) | Corrija os campos indicados |
+| Conta com várias organizações (`create_project`) | "A conta tem mais de uma organização; diga em qual criar com `team_id`…" | Pergunte à pessoa e mande o `team_id` |
+| Conexão restrita cria projeto | "Esta conexão só alcança alguns projetos, e por isso não cria projetos novos." | A agência gera uma conexão com todos os projetos |
+| Projeto fora do LangChain Agent (`test_agent`) | "Este projeto não está no LangChain Agent…" | Recomende [migrar](/engenharia-de-ia/migrar) |
+| Conversa de teste de outro projeto | "Esta conversa de teste não é deste projeto…" | Comece uma nova, sem `thread_id` |
+| Busca sem filtro (`find_contacts`) | "Diga o que procurar…" | Mande um filtro; para a base inteira, o CSV do painel |
+| Limite de buscas | "Limite de 30 buscas por minuto atingido." | Espere um minuto ou refine a busca |
+| Organização com nome repetido | "Já existe a organização …" | Use a que existe ou escolha outro nome |
+| Conexão restrita mexendo em organização | "Esta conexão só alcança alguns projetos, e por isso não mexe nas organizações da conta." | A agência gera uma conexão com todos os projetos |
+| Organização de outra conta | "Organização não encontrada nesta conta." | Confira o id em `organizations` do `list_projects` |
+| Mês fora do formato (`get_metrics`) | "month: Use AAAA-MM…" | Mande `2026-09`, por exemplo |
 
 ## Armadilhas
 
@@ -237,6 +758,10 @@ Quando a operação é recusada, nada é alterado. As mensagens dizem o que faze
 - **`""` numa chave do `langchain.config` apaga a chave.** A chave do modelo e a
   do LangSmith só são mantidas quando o campo não vem. Devolva o valor lido ou
   omita o campo; nunca troque a chave por `""` ou por um texto de exemplo.
+- **`project` não é configuração.** Não devolva o bloco `project` do
+  `get_template` no `update_template`: ele é só leitura e fica fora do template.
+- **Testar executa.** O `test_agent` roda as tools do agente de verdade. Uma
+  tool que mexe em sistema externo age nele.
 - **Renomear o projeto muda o par.** Se o bloco `meta` trocar o nome do projeto, a
   próxima chamada precisa do nome novo.
 - **A nota sobre templates da Meta cita uma opção que o MCP não tem.** Quando faltam

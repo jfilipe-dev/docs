@@ -1,0 +1,65 @@
+---
+title: "Diagnóstico do cliente"
+description: "As perguntas e a leitura do site que mostram como o cliente atende hoje, onde perde venda e o que o agente precisa resolver."
+keywords: ["diagnóstico", "descoberta", "perguntas", "cliente final", "reunião de vendas", "CLIENTE.md"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** antes de montar uma demo ou uma proposta para um cliente final: as perguntas a fazer à agência (ou ao cliente), o que ler no site dele, e como registrar o resultado em CLIENTE.md e comercial/diagnostico.md.
+</Visibility>
+
+O diagnóstico responde a uma pergunta: **o que o agente precisa resolver para este
+cliente ganhar dinheiro?** Sem ele, a demo sai genérica e a proposta fala de
+recursos em vez de resultado.
+
+Leva de 10 a 20 minutos de conversa. Parte das respostas vem do site do cliente.
+
+## As perguntas
+
+| Tema | Pergunta | Por quê |
+|---|---|---|
+| **Negócio** | O que vende, para quem, e quanto vale uma venda (ticket médio)? | Dá o tamanho do ganho e o nicho (o playbook que serve de base). |
+| **Canal hoje** | Por onde os clientes chegam e falam com a empresa? WhatsApp é o principal? | Se não for WhatsApp, a proposta muda. |
+| **Volume** | Quantas conversas novas por dia ou por mês? | Dimensiona o custo da IA e da Meta ([Viabilidade](/vender/viabilidade)). |
+| **Quem atende** | Quem responde hoje, em que horário, e quanto tempo leva? | Mostra o que fica sem resposta (noite, fim de semana, horário de pico). |
+| **Dores** | Onde perde venda? Demora para responder, lead que some, agenda furada? | É o problema que a proposta resolve. |
+| **Ferramentas** | Usa agenda, CRM ou sistema com API? Qual? | Define as tools do agente ([Integrações](/engenharia-de-ia/tools/integracoes), [Tool HTTP](/engenharia-de-ia/tools/http)). |
+| **Anúncios** | Investe em anúncio que leva ao WhatsApp? | Abre a oportunidade de [conversões no Meta Ads](/playbooks/anuncios-ctwa). |
+| **Objetivo** | Em 3 meses, o que precisa ter acontecido para valer a pena? | Vira a meta da proposta e do relatório mensal. |
+| **Regras** | O que o atendimento nunca pode fazer (preço, promessa, assunto)? | Vai para o prompt. |
+
+## O que ler no site
+
+- Serviços ou produtos, e preços quando estão públicos.
+- Endereço, unidades e horário de funcionamento.
+- Tom da marca (formal, próximo, técnico).
+- Perguntas frequentes: viram conteúdo do agente (skills).
+- Logo, se a agência quiser usar na proposta.
+
+O que o site não diz, o assistente pergunta. Nada é inventado: um preço que não
+está no site nem foi informado fica fora da demo.
+
+## Onde registrar
+
+- **`CLIENTE.md`** — o essencial que vale para sempre: nicho, site, objetivo,
+  público e tom, regras, estágio.
+- **`comercial/diagnostico.md`** — as respostas completas, com a data, as dores e
+  as oportunidades encontradas.
+
+Os modelos estão na skill `zatten-ops` (`references/modelos.md`).
+
+## Do diagnóstico para o próximo passo
+
+| O diagnóstico mostra | Próximo passo |
+|---|---|
+| Atendimento lento, lead que some | [Demo](/vender/demo) com qualificação e follow-up |
+| Agenda furada, falta de lembrete | Demo com [agendamento](/playbooks/agendamento) |
+| Anúncio sem medir resultado | Demo com [conversões](/playbooks/anuncios-ctwa) |
+| Volume muito baixo ou sem WhatsApp | Talvez não seja cliente para IA agora. A agência decide |
+
+## Para saber mais
+
+- [Montar a demo](/vender/demo)
+- [Como os playbooks funcionam](/playbooks/como-usar)
+- [Arquitetura de um bom projeto](/playbooks/arquitetura-de-um-bom-projeto)
+- [Diagnóstico de um projeto](/trabalhar-com-ia/diagnostico) (o diagnóstico técnico, de um projeto que já existe)

@@ -17,8 +17,8 @@ para uma pessoa fazer no painel.
 
 | Peça | Para que serve | Como chega ao assistente |
 |---|---|---|
-| **Skill `zatten`** | As regras que protegem o cliente final, o fluxo de trabalho e o mapa desta doc | [Instalar a skill e o MCP](/trabalhar-com-ia/instalar) |
-| **MCP da Zatten** | Ler e alterar a configuração dos projetos: funil, tags, propriedades, automações, fluxos e agente | Prompt do painel, em **Configurações → Conectar ferramentas de IA** |
+| **Skills do Zatten-OS** | `zatten-ops` (operar), `zatten-comercial` ([vender](/vender/visao-geral)), `zatten-agencia` (o negócio da agência) e `zatten-grill` (decisões grandes): as regras, o [loop de trabalho](/trabalhar-com-ia/loop-de-trabalho) e o mapa desta doc | [Instalar a skill e o MCP](/trabalhar-com-ia/instalar) |
+| **MCP da Zatten** | Criar projetos, ler e alterar a configuração (funil, tags, propriedades, automações, fluxos e agente), testar o agente, achar contatos, ver acessos e white label | Prompt do painel, em **Configurações → Conectar ferramentas de IA** |
 | **MCP da doc** | Buscar e ler esta documentação | `https://docs.zatten.com/mcp` |
 | **Navegador** | Fazer no painel o que o MCP não faz, com um "sim" por ação | Claude in Chrome ou similar ([Usar o painel pelo navegador](/trabalhar-com-ia/navegador)) |
 | **API do dia a dia** | Ler leads e conversas, ligar ou desligar a IA de um lead, disparar automação | Chave de API do projeto ([A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia)) |
@@ -30,23 +30,30 @@ playbooks e API mora nesta doc, que o assistente consulta quando precisa.
 
 | Tarefa | MCP | Navegador | API | Só uma pessoa |
 |---|---|---|---|---|
+| Criar um projeto (em branco, com blocos ou duplicando) | Sim, com "sim" | — | — | Conectar o WhatsApp e assinar |
 | Criar e ajustar colunas, tags, propriedades, departamentos | Sim | — | — | — |
 | Montar follow-ups, webhooks, transbordo por inatividade, conversões, ações personalizadas, mensagens rápidas | Sim | — | — | — |
 | Criar fluxos do Trigger Flow | Sim (só criar e ligar ou desligar) | — | — | Redesenhar um fluxo existente: no editor |
 | Alterar o agente (prompt, modelo, tools, skills) | Sim, cria uma versão não publicada | — | — | — |
+| Testar o agente (mensagem, resposta e tools) | Sim, com "sim" uma vez | — | — | — |
 | Publicar a versão do agente | Não | Sim, com "sim" | — | Decide |
 | Migrar para o LangChain Agent | Não | Sim, com "sim" | — | Decide |
 | Criar e enviar template à Meta | Não | Sim, com "sim" | — | Decide |
 | Membros de departamento, campanhas | Não | Sim, com "sim" | — | — |
 | Conexão do WhatsApp | Não | Só guia | — | Faz |
 | Apagar qualquer coisa | Não | Só guia | — | Faz |
+| Achar um contato (nome, número, coluna, tag) | Sim (até 20) | — | — | Exportar a base: CSV no painel |
 | Ler leads, histórico, kanban; analisar conversas | — | — | Sim | — |
+| Ver acessos e white label | Sim, só leitura | — | — | Mudar: no painel |
 | Ligar ou desligar a IA de um lead, disparar automação | — | — | Sim, com "sim" | — |
 | Mandar mensagem para vários leads | — | — | Nunca | Campanha, no painel |
 
 Detalhes e rotas do painel em [O que só se faz pelo painel](/trabalhar-com-ia/so-pelo-painel).
 
 ## Como o assistente trabalha
+
+O detalhe está em [O loop de trabalho do Zatten-OS](/trabalhar-com-ia/loop-de-trabalho).
+Em resumo:
 
 <Steps>
   <Step title="Abre um cliente">
@@ -90,6 +97,10 @@ Estas travas não dependem do assistente seguir regras. O servidor recusa:
   mexeu no projeto no meio, a escrita é recusada.
 - **Apagar, publicar o agente, enviar template à Meta.** O MCP não faz nenhum dos
   três.
+- **Conversa real no teste.** O `test_agent` só continua conversas de teste; a
+  conversa de um lead nunca é lida nem continuada por ele.
+- **Exportar a base pelo MCP.** O `find_contacts` exige filtro, devolve até 20 e
+  aceita até 30 buscas por minuto.
 
 ## Armadilhas
 
