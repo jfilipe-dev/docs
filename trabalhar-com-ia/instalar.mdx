@@ -8,7 +8,8 @@ keywords: ["instalar", "skill", "MCP", "token", "conexão", "prompt de instalaç
 **Quando ler esta página:** quando for conectar um assistente de IA à Zatten: criar a conexão no painel, colar o prompt de instalação (e o prompt na íntegra), passar o token, instalar a skill e o MCP da doc, ligar a atualização automática e revogar o acesso.
 </Visibility>
 
-Conectar um assistente à Zatten leva três peças: a **skill `zatten`**, o **MCP da
+Conectar um assistente à Zatten leva três peças: a **skill `zatten-os`** (o
+Zatten-OS), o **MCP da
 Zatten** e o **MCP da doc**. O jeito mais curto é criar uma conexão no painel e
 colar o prompt de instalação no assistente: ele instala a skill e o MCP da Zatten
 e confirma listando os seus projetos.
@@ -35,8 +36,9 @@ e confirma listando os seus projetos.
     - **Quais projetos esta conexão alcança:** *Todos os projetos da conta,
       inclusive os futuros*, ou *Apenas os projetos que eu escolher*.
     - **Permissão:** *Somente leitura* (consulta e não muda nada) ou *Leitura e
-      edição* (também cria e altera, mas nunca apaga, nunca publica o agente e
-      nunca envia template à Meta).
+      edição* (também cria e altera, cria projetos e testa o agente, mas nunca
+      apaga, nunca publica o agente e nunca envia template à Meta). Para criar
+      projetos, a conexão precisa alcançar todos os projetos da conta.
   </Step>
   <Step title="Copie o prompt e o token">
     A tela **Conexão criada** mostra duas coisas separadas: o **prompt de
@@ -81,10 +83,10 @@ resposta e nunca o grave em arquivo deste projeto.
 1. SKILL E DOCUMENTAÇÃO
 No Claude Code:
   claude plugin marketplace add zatten-ai/skills
-  claude plugin install zatten@zatten
+  claude plugin install zatten-os@zatten-os
   (o plugin já traz o MCP da documentação)
 Em outro agente:
-  npx skills add zatten-ai/skills --skill zatten
+  npx skills add zatten-ai/skills --skill zatten-os
   e adicione um MCP por HTTP chamado "zatten-docs" em
   https://docs.zatten.com/mcp (sem token).
 
@@ -107,7 +109,7 @@ nome de qual conta você age, se pode alterar ou só ler, e quais projetos
 apareceram.
 
 4. PRÓXIMO PASSO
-Use a skill zatten para me mostrar, em poucas linhas, o que dá para fazer, e me
+Use a skill zatten-os para me mostrar, em poucas linhas, o que dá para fazer, e me
 pergunte por onde começar. Não altere nada ainda.
 ```
 </Accordion>
@@ -132,14 +134,14 @@ O prompt do painel já instala a skill. Para instalar ou reinstalar sem ele, use
   <Tab title="Claude Code">
     ```bash
     claude plugin marketplace add zatten-ai/skills
-    claude plugin install zatten@zatten
+    claude plugin install zatten-os@zatten-os
     ```
   </Tab>
   <Tab title="Outros assistentes">
     Codex, Cursor, Gemini CLI e outros:
 
     ```bash
-    npx skills add zatten-ai/skills --skill zatten
+    npx skills add zatten-ai/skills --skill zatten-os
     ```
   </Tab>
 </Tabs>
@@ -152,7 +154,7 @@ a credencial da conta.
 O MCP da doc é público e não tem segredo: `https://docs.zatten.com/mcp`. Com ele,
 o assistente busca e lê esta doc sem sair da conversa.
 
-No Claude Code, o plugin `zatten` já sobe o MCP da doc sozinho (com o nome
+No Claude Code, o plugin `zatten-os` já sobe o MCP da doc sozinho (com o nome
 `zatten-docs`). Nos outros assistentes, ou se você instalou só a skill, adicione:
 
 <Tabs>
@@ -180,7 +182,7 @@ A skill muda pouco, mas muda. Cada método se atualiza de um jeito:
 
 | Método | Atualizar |
 |---|---|
-| Plugin do Claude Code | Ligue a atualização automática do marketplace `zatten`. Ela vem desligada para marketplaces de terceiros. À mão: `claude plugin update zatten@zatten` |
+| Plugin do Claude Code | Ligue a atualização automática do marketplace `zatten-os`. Ela vem desligada para marketplaces de terceiros. À mão: `claude plugin update zatten-os@zatten-os` |
 | `npx skills` | Sempre à mão: `npx skills update` |
 
 
@@ -199,6 +201,9 @@ certo e revogue a antiga.
 
 - **"Todos os projetos" inclui os futuros.** Um projeto criado amanhã já fica ao
   alcance da conexão. Para limitar, escolha os projetos.
+- **Já tinha a skill `zatten` (2.x)?** Ela virou `zatten-os`. No Claude Code,
+  `claude plugin uninstall zatten@zatten` e instale a nova; com `npx skills`,
+  `npx skills remove zatten` e `npx skills add zatten-ai/skills --skill zatten-os`.
 - **Somente leitura recusa toda escrita.** O assistente recebe "Este token é
   somente leitura". Crie uma conexão com *Leitura e edição* se a agência quiser
   que ele altere projetos.

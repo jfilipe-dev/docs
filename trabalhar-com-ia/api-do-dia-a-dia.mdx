@@ -21,7 +21,9 @@ A referência completa dos endpoints está na seção [API e webhooks](/api/visa
 | Quero… | Use | Por quê |
 |---|---|---|
 | Criar ou mudar colunas, tags, propriedades, automações, o agente | MCP (`update_template`) | É configuração do projeto. |
+| Testar o agente com uma mensagem | MCP (`test_agent`) | Roda a versão nova sem publicar. |
 | Ler a configuração inteira | MCP (`get_template`) | Vem com a `revision`. |
+| Achar o número de um contato (pelo nome, coluna, tag, data) | MCP (`find_contacts`) | A API é toda por número; a busca devolve até 20 contatos. |
 | Ler um lead, suas conversas e o histórico | API | É dado do dia a dia, não viaja no template. |
 | Relatório ou análise de conversas | API (leitura) | Histórico por lead e por conversa. |
 | Ligar, pausar ou desligar a IA de um lead | API | Ação num lead. |

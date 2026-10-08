@@ -1,0 +1,118 @@
+---
+title: "Construir o agente iterando"
+description: "Como o assistente monta e ajusta o agente de IA de um projeto em ciclos: muda numa versão nova, testa com test_agent, lê a resposta e as tools, ajusta e testa de novo, sem tocar no que o WhatsApp roda."
+keywords: ["construir agente", "iterar", "test_agent", "testar agente pelo MCP", "versão não publicada", "integração com API", "agendamento"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for criar ou mudar o comportamento do agente de IA de um projeto pelo MCP (prompt, tools, integração com a API do cliente): o ciclo update_template → test_agent → ajustar, o "sim" para entrar em modo de teste, o que conferir em cada rodada e quando parar e passar para a pessoa.
+</Visibility>
+
+O assistente constrói o agente de IA como um desenvolvedor constrói software:
+muda, testa, lê o resultado, ajusta, testa de novo. Tudo numa **versão não
+publicada**: o WhatsApp continua rodando a versão publicada até a pessoa publicar
+no painel.
+
+<Note>
+Só para projetos no **LangChain Agent**. No motor antigo, recomende
+[migrar](/engenharia-de-ia/migrar) antes.
+</Note>
+
+## O ciclo
+
+<Steps>
+  <Step title="Objetivo e casos de teste">
+    Antes de mexer, o assistente escreve com a pessoa o que o agente precisa
+    fazer e as mensagens que vão provar isso: o caminho feliz, o caso que motivou
+    a mudança, um pedido de humano, algo fora do escopo
+    ([o roteiro do que testar](/engenharia-de-ia/testar#o-que-testar-antes-de-publicar)).
+  </Step>
+  <Step title="O “sim” para o modo de teste">
+    Um "sim" só, para a sessão inteira. O assistente diz que vai criar versões
+    novas do agente (sem publicar) e que **as tools vão executar de verdade** no
+    contato de teste: uma tool HTTP chama o sistema do cliente, uma ação da Zatten
+    move o contato de teste no funil. Se uma tool mexe em sistema externo, combine
+    antes um ambiente ou dado de teste com o cliente final.
+  </Step>
+  <Step title="Mudar">
+    `get_template` → edita o bloco `langchain` (prompt, tools, skills) →
+    `update_template`. Cada escrita cria uma **versão nova**, não publicada.
+  </Step>
+  <Step title="Testar">
+    `test_agent` com cada mensagem de teste. Sem `version`, roda a versão que
+    acabou de ser criada. Para uma conversa de vários turnos, devolva o
+    `thread_id` da rodada anterior.
+  </Step>
+  <Step title="Ler e ajustar">
+    A resposta diz o que o agente respondeu (`reply`), quais tools chamou com quais
+    argumentos e o que voltou (`tool_calls`) e o que falhou (`errors`). Se não
+    passou, o assistente decide o ajuste (descrição da tool, parâmetro, trecho do
+    prompt), volta a **Mudar** e testa de novo.
+  </Step>
+  <Step title="Entregar">
+    Quando todos os casos passam, ele avisa: "a versão N está pronta; teste você
+    também no chat de teste e publique no painel quando quiser". Publicar é sempre
+    da pessoa.
+  </Step>
+</Steps>
+
+## Exemplo: integrar o agente com o sistema de agendamento do cliente
+
+A agência passa a documentação da API de agendamento da clínica e pede: "o agente
+tem que consultar horários e marcar consultas".
+
+1. **Estado.** O assistente lê [Tools HTTP](/engenharia-de-ia/tools/http) e
+   [Como montar a sua API](/engenharia-de-ia/tools/montar-sua-api) nesta doc, e a
+   documentação da API da clínica. Pede à pessoa a chave da API da clínica para o
+   ambiente de teste (ela cola no painel ou no `.env` da pasta do cliente, nunca
+   na conversa).
+2. **Casos.** "Tem horário amanhã de manhã?", "Marca às 10h", "Quero cancelar".
+3. **Versão 1.** Duas tools HTTP (`consultar_horarios`, `agendar`) e um trecho de
+   prompt dizendo quando usar cada uma.
+4. **Teste.** `test_agent` com "Tem horário amanhã de manhã?". Volta um
+   `errors`: `consultar_horarios` com HTTP 400 — a API espera a data em
+   `AAAA-MM-DD` e o agente mandou "amanhã".
+5. **Versão 2.** A descrição do parâmetro passa a dizer o formato e que "hoje" e
+   "amanhã" vêm do bloco "Agora" do [contexto injetado](/engenharia-de-ia/contexto-injetado).
+6. **Teste.** Passa: a tool devolve os horários e o agente os oferece. Segue para
+   "Marca às 10h", com o `thread_id` da rodada anterior.
+7. **Entrega.** Os três casos passam na versão 3. O assistente reporta o que
+   testou, o que a tool `agendar` criou no sistema da clínica durante os testes
+   (para a pessoa desfazer, se preciso) e que a versão 3 espera publicação.
+
+## O que o test_agent não testa
+
+Ele roda o agente como o chat de teste do painel. O que acontece **fora** do
+agente, no caminho do WhatsApp, não passa por ele: buffer, pausa humana, mídia,
+segmentação e voz, colunas que desligam a IA, automações e a janela de 24h. Para
+esses, teste num número de WhatsApp real ([Testar o agente](/engenharia-de-ia/testar)).
+
+## Quando parar e passar para a pessoa
+
+- **Três tentativas no mesmo erro.** Volte à doc e reveja o diagnóstico; se ainda
+  não fecha, mostre à pessoa o que tentou e o que viu.
+- **O caso depende de decisão de negócio.** O que o agente pode prometer, preço,
+  tom: é da pessoa.
+- **A tool mexe em dado real do cliente final** e não há ambiente de teste.
+
+## Armadilhas
+
+- **Cada escrita cria uma versão.** Muitas iterações geram muitas versões; tudo
+  bem, só a publicada vale. Diga à pessoa qual número publicar.
+- **O contato de teste acumula estado.** Tags e etapa deixadas por um teste mudam
+  o contexto do seguinte. Peça para resetar no painel quando o caso depender do
+  estado do lead.
+- **Teste passou, produção falhou.** Veja a seção acima: o caminho do WhatsApp
+  tem etapas que o teste não percorre.
+- **Aprovação humana trava o atendimento.** Se a rodada parar esperando
+  aprovação, a nota avisa: desligue a aprovação da tool
+  ([Limites e segurança](/engenharia-de-ia/limites-e-seguranca)).
+
+## Para saber mais
+
+- [O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas)
+- [Testar o agente](/engenharia-de-ia/testar)
+- [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)
+- [Observabilidade com LangSmith](/engenharia-de-ia/langsmith)
+- [O loop de trabalho do Zatten-OS](/trabalhar-com-ia/loop-de-trabalho)
+- Termos para buscar: "agent evaluation", "regression testing LLM", "tool calling debugging".

@@ -26,7 +26,7 @@ minha-agencia/
       CLIENTE.md       project_id, nome exato do projeto, nicho, objetivos, regras
       MEMORIA.md       ## Vigente e ## Histórico
       snapshots/       AAAA-MM-DD_HHMM_<assunto>.json
-      .env             chave de API do projeto (nunca versionada)
+      .env             chaves do cliente: API do dia a dia, LangSmith (nunca versionado)
     imobiliaria-norte/
       ...
 ```
@@ -110,9 +110,20 @@ Um snapshot por escrita basta: o "antes" de uma escrita é o "depois" da anterio
 
 ### .env
 
-A chave de API do projeto, para a [API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia).
-Uma por cliente. O `.env` precisa estar no `.gitignore` **antes** da primeira
-chave.
+As chaves do cliente, uma por linha:
+
+```bash
+ZATTEN_API_KEY=...      # a chave de API do projeto, para a API do dia a dia
+LANGSMITH_API_KEY=...   # se o LangSmith estiver ligado, para ler os traces
+```
+
+O `.env` precisa estar no `.gitignore` **antes** da primeira chave. A pessoa cola
+as chaves direto no arquivo, ou o assistente copia a do LangSmith que veio no
+`get_template` — e só para cá, sem mostrar na conversa
+([regra 11](/trabalhar-com-ia/regras)).
+
+- [API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia)
+- [Extrair dados do LangSmith pela API](/engenharia-de-ia/langsmith)
 
 ## Um cliente ativo por vez
 

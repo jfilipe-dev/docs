@@ -142,8 +142,13 @@ Um projeto pendente (nunca assinado) pode ser excluído direto.
 
 ## Pelo MCP
 
-O MCP não cria, duplica, move nem exclui projetos. Ele lista os projetos que a
-conexão de IA alcança (`list_projects`) e lê e escreve o template de um projeto.
+O MCP **cria e duplica** projetos (`create_project`, com o "sim" da pessoa), mas
+não move nem exclui. Ele lista os projetos que a conexão de IA alcança, com a
+organização de cada um (`list_projects`), e lê e escreve o template de um projeto.
+
+Um projeto criado pelo MCP nasce com a assinatura pendente, numa organização
+escolhida pelo `team_id` (obrigatório quando a conta tem mais de uma). Veja
+[O MCP da Zatten: ferramentas](/trabalhar-com-ia/mcp-ferramentas).
 
 O bloco `meta` do template guarda o nome e a descrição do projeto. Trocar
 `meta.name` numa escrita **renomeia o projeto**; a partir daí, o MCP exige o nome novo

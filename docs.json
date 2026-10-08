@@ -59,6 +59,7 @@
               "trabalhar-com-ia/visao-geral",
               "trabalhar-com-ia/instalar",
               "trabalhar-com-ia/versao-da-skill",
+              "trabalhar-com-ia/loop-de-trabalho",
               "trabalhar-com-ia/organizar-a-agencia",
               "trabalhar-com-ia/regras"
             ]
@@ -75,6 +76,7 @@
           {
             "group": "No dia a dia",
             "pages": [
+              "trabalhar-com-ia/construir-o-agente-iterando",
               "trabalhar-com-ia/navegador",
               "trabalhar-com-ia/api-do-dia-a-dia",
               "trabalhar-com-ia/diagnostico",

@@ -1,7 +1,7 @@
 ---
 title: "Testar o agente"
 description: "Teste o agente antes de publicar, no chat de teste do painel e com o teste de tools HTTP, sem afetar leads reais."
-keywords: ["testar agente", "chat de teste", "contato de teste", "testar tool", "rascunho", "antes de publicar"]
+keywords: ["testar agente", "chat de teste", "contato de teste", "testar tool", "rascunho", "antes de publicar", "test_agent"]
 ---
 
 <Visibility for="agents">
@@ -151,15 +151,22 @@ LangSmith.
 
 ## Pelo MCP
 
-O MCP da Zatten não conversa com o agente nem roda tools. Depois de uma escrita no
-bloco `langchain` (que cria uma versão não publicada), o teste é feito no painel:
+O assistente testa o agente pela ferramenta `test_agent`: manda uma mensagem como o
+contato de teste e recebe a resposta, cada tool chamada (argumentos e retorno) e os
+erros. É o chat de teste, sem a tela.
 
-- pela própria pessoa, no chat de teste, com a versão nova aberta no seletor; ou
-- pelo assistente, com [navegador](/trabalhar-com-ia/navegador), confirmando o nome do
-  projeto na tela antes.
+- Roda a **versão mais nova**, publicada ou não — a que o `update_template` acabou
+  de criar. Também aceita uma versão específica.
+- Continua uma conversa de teste com o `thread_id` da rodada anterior.
+- **As tools executam de verdade**, como aqui. Antes da primeira rodada, o
+  assistente avisa e espera o "sim".
+- Não testa o que o chat de teste também não testa (buffer, pausa, mídia,
+  automações).
 
-Em **Para você fazer no painel**, inclua "testar no chat de teste" antes de
-"publicar".
+O ciclo completo (mudar, testar, ajustar) está em
+[Construir o agente iterando](/trabalhar-com-ia/construir-o-agente-iterando). Em
+**Para você fazer no painel**, o assistente inclui "publicar a versão N" — e,
+se a pessoa quiser conferir, "testar no chat de teste" antes.
 
 ## Armadilhas
 

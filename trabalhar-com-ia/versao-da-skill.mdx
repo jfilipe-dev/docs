@@ -1,14 +1,14 @@
 ---
 title: "Versão da skill"
-description: "A versão atual da skill zatten e como atualizar a que está instalada no seu assistente."
-keywords: ["versão da skill", "skill zatten", "atualizar", "changelog", "atualização"]
+description: "A versão atual da skill zatten-os (Zatten-OS) e como atualizar a que está instalada no seu assistente."
+keywords: ["versão da skill", "skill zatten-os", "Zatten-OS", "atualizar", "changelog", "atualização"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** no começo de cada sessão, para comparar a versão atual da skill zatten com a instalada, avisar a agência se a instalada estiver velha e explicar como atualizar.
+**Quando ler esta página:** no começo de cada sessão, para comparar a versão atual da skill zatten-os com a instalada, avisar a agência se a instalada estiver velha e explicar como atualizar.
 </Visibility>
 
-**Versão atual da skill `zatten`: 2.0.0**
+**Versão atual da skill `zatten-os`: 3.0.0**
 
 O assistente compara este número com a versão da skill instalada (campo
 `metadata.version` do `SKILL.md`). Se a instalada for menor, ele avisa a pessoa e
@@ -18,15 +18,34 @@ mostra o comando de atualização.
 
 | Onde a skill foi instalada | Comando |
 |---|---|
-| Plugin do Claude Code | `claude plugin update zatten@zatten` e depois `/reload-plugins` (ou abra uma sessão nova) |
-| `npx skills` (Codex, Cursor e outros) | `npx skills update zatten` |
+| Plugin do Claude Code | `claude plugin update zatten-os@zatten-os` e depois `/reload-plugins` (ou abra uma sessão nova) |
+| `npx skills` (Codex, Cursor e outros) | `npx skills update zatten-os` |
+
+**Vindo da 2.x (`zatten`)**, o nome mudou e a atualização não acontece sozinha:
+desinstale a antiga (`claude plugin uninstall zatten@zatten` ou
+`npx skills remove zatten`) e instale a `zatten-os`
+([Instalar a skill e o MCP](/trabalhar-com-ia/instalar)).
 
 <Tip>
-No Claude Code, ligue a atualização automática do marketplace `zatten` em
+No Claude Code, ligue a atualização automática do marketplace `zatten-os` em
 `/plugin` → Marketplaces. Ela vem desligada para marketplaces de terceiros.
 </Tip>
 
 ## O que mudou
+
+### 3.0.0
+
+- A skill passa a se chamar **`zatten-os`** (Zatten-OS).
+- O [loop de trabalho](/trabalhar-com-ia/loop-de-trabalho): buscar nesta doc em
+  toda tarefa nova, separar o que o assistente confere sozinho do que é decisão da
+  pessoa, conferir cada entrega.
+- As ferramentas novas do MCP: `create_project`, `test_agent`, `find_contacts`,
+  `list_members`, `get_white_label` e `send_feedback`, e o bloco `project` do
+  `get_template` ([ferramentas](/trabalhar-com-ia/mcp-ferramentas)).
+- [Construir o agente iterando](/trabalhar-com-ia/construir-o-agente-iterando):
+  mudar, testar e ajustar sem publicar.
+- Regras novas: criar projeto com "sim", "sim" antes de entrar em modo de teste,
+  `intent` e feedback sem dado do cliente final, chave do LangSmith só no `.env`.
 
 ### 2.0.0
 
