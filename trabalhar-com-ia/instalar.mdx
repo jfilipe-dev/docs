@@ -82,11 +82,11 @@ resposta e nunca o grave em arquivo deste projeto.
 
 1. SKILL E DOCUMENTAÇÃO
 No Claude Code:
-  claude plugin marketplace add zatten-ai/skills
+  claude plugin marketplace add zatten-ai/zatten-os
   claude plugin install zatten-os@zatten-os
   (o plugin já traz o MCP da documentação)
 Em outro agente:
-  npx skills add zatten-ai/skills --skill zatten-os
+  npx skills add zatten-ai/zatten-os --skill zatten-os
   e adicione um MCP por HTTP chamado "zatten-docs" em
   https://docs.zatten.com/mcp (sem token).
 
@@ -133,7 +133,7 @@ O prompt do painel já instala a skill. Para instalar ou reinstalar sem ele, use
 <Tabs>
   <Tab title="Claude Code">
     ```bash
-    claude plugin marketplace add zatten-ai/skills
+    claude plugin marketplace add zatten-ai/zatten-os
     claude plugin install zatten-os@zatten-os
     ```
   </Tab>
@@ -141,7 +141,7 @@ O prompt do painel já instala a skill. Para instalar ou reinstalar sem ele, use
     Codex, Cursor, Gemini CLI e outros:
 
     ```bash
-    npx skills add zatten-ai/skills --skill zatten-os
+    npx skills add zatten-ai/zatten-os --skill zatten-os
     ```
   </Tab>
 </Tabs>
@@ -203,7 +203,7 @@ certo e revogue a antiga.
   alcance da conexão. Para limitar, escolha os projetos.
 - **Já tinha a skill `zatten` (2.x)?** Ela virou `zatten-os`. No Claude Code,
   `claude plugin uninstall zatten@zatten` e instale a nova; com `npx skills`,
-  `npx skills remove zatten` e `npx skills add zatten-ai/skills --skill zatten-os`.
+  `npx skills remove zatten` e `npx skills add zatten-ai/zatten-os --skill zatten-os`.
 - **Somente leitura recusa toda escrita.** O assistente recebe "Este token é
   somente leitura". Crie uma conexão com *Leitura e edição* se a agência quiser
   que ele altere projetos.
