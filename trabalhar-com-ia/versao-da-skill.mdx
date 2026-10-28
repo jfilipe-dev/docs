@@ -8,7 +8,7 @@ keywords: ["versão da skill", "zatten-ops", "Zatten-OS", "atualizar", "changelo
 **Quando ler esta página:** no começo de cada sessão, para comparar a versão atual do Zatten-OS com a instalada (o `metadata.version` de qualquer uma das skills), avisar a agência se a instalada estiver velha e explicar como atualizar.
 </Visibility>
 
-**Versão atual do Zatten-OS: 4.0.0**
+**Versão atual do Zatten-OS: 4.1.0**
 
 As quatro skills (`zatten-ops`, `zatten-comercial`, `zatten-agencia` e `zatten-grill`)
 saem juntas e têm sempre a mesma versão.
@@ -36,6 +36,16 @@ No Claude Code, ligue a atualização automática do marketplace `zatten-os` em
 </Tip>
 
 ## O que mudou
+
+### 4.1.0
+
+- Membros pelo MCP: `create_member` cria o login (com a senha que a pessoa escolher)
+  e `update_member_access` muda papel, senha, projetos e departamentos, com quem
+  recebe leads em cada um ([ferramentas](/trabalhar-com-ia/mcp-ferramentas#create_member-e-update_member_access)).
+- `list_members` passa a mostrar os departamentos de cada membro e se ele recebe os
+  leads de cada um.
+- Regra nova: membros com "sim", e a senha nunca é repetida. Admin e remover membro
+  continuam só no painel.
 
 ### 4.0.0
 

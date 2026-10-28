@@ -27,14 +27,13 @@ As regras do navegador estão em [Usar o painel pelo navegador](/trabalhar-com-i
 | Publicar a versão do agente | `/project` (botão **Publicar** no editor do agente) | Navegador, com "sim" | Põe a mudança no ar para todos os leads. É decisão de uma pessoa. |
 | Migrar para o LangChain Agent | `/project` (botão **Migrar**) | Navegador, com "sim" | Troca o motor do atendimento; a volta não é feita pela tela. |
 | Enviar template à Meta | `/meta`, aba **Templates** | Navegador, com "sim" | Passa por revisão da Meta e conta para a qualidade do número. |
-| Gerenciar membros de departamento | `/crm/departments` | Navegador, com "sim" | Membros são pessoas com acesso; o template não leva membros. |
 | Criar e disparar campanha | `/crm/campaigns` | Navegador, com "sim" | Mensagem para muitos leads de uma vez. Ver [Campanhas](/produto/campanhas). |
 | Editar o desenho de um fluxo (Trigger Flow) | `/automations/flows/<id>` | Navegador, com "sim" | O MCP não reescreve o grafo do fluxo. |
 | Conectar, trocar ou remover a conexão do WhatsApp | `/meta`, aba **WhatsApp** | **Só guiar** | Pode derrubar o atendimento do cliente final. |
 | Apagar qualquer coisa | Na tela de cada item | **Só guiar** | Irreversível. O MCP nunca apaga. |
 | Reverter a migração de motor | Suporte da Zatten | **Só guiar** | Não existe botão; o suporte faz. Peça pelo [WhatsApp do suporte](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0). |
 | Assinatura e plano | `/project/billing` | **Só guiar** | Envolve pagamento. O projeto criado pelo MCP nasce com a assinatura pendente. |
-| Dar ou tirar acesso de usuários | **Configurações → Gerenciar Acessos** | **Só guiar** | É da conta inteira. Pelo MCP, só leitura (`list_members`). |
+| Criar ou promover Admin, mudar papel ou senha de um Admin, remover um membro | **Configurações → Gerenciar Acessos** | **Só guiar** | Entrega ou tira a conta inteira. Os outros membros (criar, papel, senha, projetos, departamentos) são pelo MCP: `create_member` e `update_member_access`. |
 | Marca e domínio (white label) | **Configurações → Minha Empresa** e **Domínios Customizados** | **Só guiar** | Errar o domínio derruba o painel do cliente final. Pelo MCP, só leitura (`get_white_label`). |
 
 
@@ -86,17 +85,6 @@ O MCP pode deixar o template descrito no projeto, mas não o envia para aprovaç
 
 Um follow-up só envia com template **aprovado**. Ver
 [Templates do WhatsApp](/produto/templates-whatsapp).
-
-### Gerenciar membros de departamento
-
-O template cria departamentos, mas não diz quem está em cada um.
-
-1. Abra `/crm/departments`. Confira o nome do projeto.
-2. Adicione ou tire membros e defina quem recebe leads no rodízio.
-
-Remover um membro é tirar o acesso de uma pessoa àqueles leads: mostre quem sai antes
-do "sim". Excluir o departamento inteiro é **apagar**: só guiar. Ver
-[Departamentos e distribuição](/produto/departamentos).
 
 ### Campanhas
 
