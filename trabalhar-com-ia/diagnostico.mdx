@@ -29,9 +29,10 @@ um pedido normal, com plano e "sim".
     O bloco `project` do `get_template` já diz se o WhatsApp está conectado e se
     é oficial ou não oficial, o plano e o uso, e se há versão do agente esperando
     publicação. Pergunte o resto: se é coexistência, se há anúncios
-    Click-to-WhatsApp, quem atende quando a IA transfere. Se houver
-    navegador, dá para ler em `/meta` e `/crm/departments` (só leitura, com o
-    projeto conferido na tela).
+    Click-to-WhatsApp, quem atende quando a IA transfere. Quem está em
+    cada departamento e se recebe leads vem no `list_members`. Se houver
+    navegador, dá para ler em `/meta` (só leitura, com o projeto conferido na
+    tela).
   </Step>
   <Step title="Rodar as checagens">
     As da tabela abaixo, na ordem. Anotar a evidência de cada achado: o campo e o
@@ -80,7 +81,7 @@ config do agente no LangChain Agent; `llm_attendant` são os campos do projeto.
 | A3 | `langchain.config.model.fallback.enabled` falso ou `models` vazio; `model.retry` desligado; `settings.error_handling` desligado ou sem `handoff_tool` | Se o modelo cair, o lead fica sem resposta (ou recebe erro em inglês). | Ligar retry (2 a 3 tentativas), 1 modelo de reserva de outro fornecedor e a mensagem de erro com transferência para humano. | [Resiliência](/engenharia-de-ia/resiliencia) |
 | A4 | `langchain.config.model.name` e `provider` | Modelo caro demais para o caso, ou que não entende áudio ou imagem que os leads mandam. | Comparar 2 ou 3 modelos em custo e modalidades. | [Escolher o modelo](/engenharia-de-ia/escolher-o-modelo), [Estimar o custo de IA](/trabalhar-com-ia/estimar-custo-de-ia) |
 | A5 | `llm_attendant.pause_in_human_interaction` igual a `0` | Com 0 minutos, a IA volta a responder logo depois de um humano falar, por cima dele. | Uma pausa que cubra o atendimento humano (o padrão é 5 minutos; 30 a 60 é comum). | [Pausa humana](/engenharia-de-ia/pausa-humana) |
-| A6 | Nenhuma coluna com `transhipment: true`; nenhum `attendant_teams[]` com `default: true` | Sem coluna de transbordo, não há etapa no funil para "com humano", e a transferência automática quando o modelo falha não tem para onde mover o lead. Sem departamento padrão, lead novo não entra no rodízio, e o transbordo notifica só o responsável do lead: sem responsável, ninguém é avisado. | Criar a coluna de transbordo e marcar um departamento padrão. Conferir em `/crm/departments` se ele tem membros que recebem leads. | [Funil](/produto/funil-kanban), [Departamentos](/produto/departamentos), [Transbordo bem feito](/playbooks/transbordo) |
+| A6 | Nenhuma coluna com `transhipment: true`; nenhum `attendant_teams[]` com `default: true` | Sem coluna de transbordo, não há etapa no funil para "com humano", e a transferência automática quando o modelo falha não tem para onde mover o lead. Sem departamento padrão, lead novo não entra no rodízio, e o transbordo notifica só o responsável do lead: sem responsável, ninguém é avisado. | Criar a coluna de transbordo e marcar um departamento padrão. Conferir no `list_members` se ele tem membros que recebem leads. | [Funil](/produto/funil-kanban), [Departamentos](/produto/departamentos), [Transbordo bem feito](/playbooks/transbordo) |
 | A7 | `properties[]` que o prompt ou as tools usam, com `send_to_ai` falso; ou `langchain.config.instructions.inject_context` falso | O agente não enxerga o valor da propriedade (nem nome, tags e etapa, sem `inject_context`). | Religar `send_to_ai` nas propriedades que o agente precisa (o padrão é `true`; falso quer dizer que alguém desligou) e ligar `inject_context`. `send_to_ai` só se muda pelo template. | [O que a Zatten injeta no contexto](/engenharia-de-ia/contexto-injetado), [Propriedades](/produto/propriedades) |
 | A8 | `langchain.config.settings.transcription.model` igual a `openai/whisper-1` com o provider resolvendo para `openai` | Na OpenAI direta, o nome certo é `whisper-1`. Com o prefixo, o áudio do lead não é transcrito. | Ajustar o nome do modelo de transcrição ao provider. | [Mídia](/engenharia-de-ia/midia) |
 

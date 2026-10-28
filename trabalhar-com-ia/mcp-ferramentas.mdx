@@ -1,14 +1,14 @@
 ---
 title: "O MCP da Zatten: ferramentas"
-description: "As ferramentas do MCP da Zatten (projetos, template, criar projeto, organizações, testar o agente, contatos, métricas, acessos, white label e feedback): o que pedem, o que devolvem e os erros possíveis."
-keywords: ["MCP", "ferramentas", "list_projects", "get_template", "update_template", "create_project", "test_agent", "find_contacts", "get_metrics", "create_organization", "rename_organization", "move_project", "list_members", "get_white_label", "send_feedback", "whoami", "erros"]
+description: "As ferramentas do MCP da Zatten (projetos, template, criar projeto, organizações, testar o agente, contatos, métricas, membros e acessos, white label e feedback): o que pedem, o que devolvem e os erros possíveis."
+keywords: ["MCP", "ferramentas", "list_projects", "get_template", "update_template", "create_project", "test_agent", "find_contacts", "get_metrics", "create_organization", "rename_organization", "move_project", "list_members", "create_member", "update_member_access", "get_white_label", "send_feedback", "whoami", "erros"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando precisar saber o que faz cada ferramenta do MCP da Zatten (list_projects, get_template, update_template, create_project, create_organization, rename_organization, move_project, test_agent, find_contacts, get_metrics, list_members, get_white_label, whoami e send_feedback), o que cada uma pede e devolve, e os erros que cada uma pode dar.
+**Quando ler esta página:** quando precisar saber o que faz cada ferramenta do MCP da Zatten (list_projects, get_template, update_template, create_project, create_organization, rename_organization, move_project, test_agent, find_contacts, get_metrics, list_members, create_member, update_member_access, get_white_label, whoami e send_feedback), o que cada uma pede e devolve, e os erros que cada uma pode dar.
 </Visibility>
 
-O MCP da Zatten tem catorze ferramentas. Todas agem em nome da conta da agência,
+O MCP da Zatten tem dezesseis ferramentas. Todas agem em nome da conta da agência,
 dentro do alcance da conexão criada no painel.
 
 | Ferramenta | Faz | Escreve? |
@@ -24,7 +24,9 @@ dentro do alcance da conexão criada no painel.
 | `test_agent` | Manda uma mensagem ao agente de IA e devolve a resposta e as tools chamadas | Sim (as tools do agente executam) |
 | `find_contacts` | Procura contatos por nome, número, coluna, tag ou data | Não |
 | `get_metrics` | Os números do projeto num mês, os mesmos da tela de Métricas | Não |
-| `list_members` | Mostra quem tem acesso a quê na conta | Não |
+| `list_members` | Mostra os membros: papel, projetos e departamentos, e quem recebe leads | Não |
+| `create_member` | Cria um membro (login com senha e papel) | Sim |
+| `update_member_access` | Muda papel, senha, projetos e departamentos de um membro | Sim |
 | `get_white_label` | Mostra a marca, o endereço do painel e o domínio da conta | Não |
 | `send_feedback` | Conta à Zatten como terminou a tarefa | Só o registro |
 
@@ -607,11 +609,10 @@ Resposta:
 
 ## list_members
 
-Os membros da conta: nome, e-mail, papel, se recebem leads e a quais projetos têm
-acesso. Para diagnosticar acesso ("por que a Ana não vê o projeto da clínica?").
-
-**Só leitura.** Dar ou tirar acesso é com a pessoa, no painel
-([Usuários e permissões](/comecar/equipe-e-permissoes)).
+Os membros da conta: nome, e-mail, papel, os projetos que cada um vê e os
+**departamentos** em que está, com se **recebe os leads** de cada um. Para
+diagnosticar acesso ("por que a Ana não vê o projeto da clínica?", "quem recebe os
+leads do Comercial?") e para ler antes de mudar.
 
 <Visibility for="agents">
 Resposta:
@@ -620,28 +621,118 @@ Resposta:
 {
   "members": [
     {
+      "user_id": "uuid",
       "name": "Ana Lima",
       "email": "ana@agencia.com",
       "role": "gestor",
       "status": "active",
-      "receives_leads": true,
-      "projects": [ { "id": "uuid", "name": "Clínica Sorriso" } ]
+      "projects": [ { "id": "uuid", "name": "Clínica Sorriso" } ],
+      "departments": [
+        { "project_id": "uuid", "project_name": "Clínica Sorriso", "name": "Comercial", "receives_leads": true }
+      ]
     },
     {
+      "user_id": "uuid",
       "name": "João",
       "email": "joao@agencia.com",
       "role": "admin",
       "status": "active",
-      "receives_leads": false,
-      "projects": "todos os projetos da conta"
+      "projects": "todos os projetos da conta",
+      "departments": []
     }
   ],
-  "notes": ["Para dar ou tirar acesso, a pessoa usa o painel (Configurações → Gerenciar Acessos). Por aqui é só leitura."]
+  "notes": ["`departments` diz em quais departamentos o membro está e se recebe os leads de cada um. …"]
 }
 ```
 
 Admin vê todos os projetos. Os outros papéis veem os liberados no acesso do
 membro. Numa conexão restrita a alguns projetos, as listas mostram só esses.
+</Visibility>
+
+## create_member e update_member_access
+
+Criam membros e mudam o acesso deles, com as mesmas regras de **Configurações →
+Gerenciar Acessos** ([Usuários e permissões](/comecar/equipe-e-permissoes)).
+
+- `create_member` cria o login com **nome, e-mail, senha e papel** (Gestor, Editor
+  ou Visualizador). O membro **nasce sem projetos**.
+- `update_member_access` muda, pelo e-mail, o **papel**, o **nome**, a **senha**,
+  os **projetos** e os **departamentos** de um membro. **Só muda o que vier**:
+  projeto ou departamento que não está no pedido fica como está.
+- **"Recebe leads" é por departamento**, não do membro: a mesma pessoa pode receber
+  no Comercial e não no Suporte.
+- **Entrar num departamento libera o projeto.** Tirar o projeto
+  (`access: false`) tira o membro dos departamentos dele.
+- **A senha** é a que a pessoa escolher: o assistente pergunta. O white label não
+  tem "esqueci a senha", então trocar a senha também é por aqui (ou no painel). A
+  senha **nunca volta na resposta** e não entra no registro de uso.
+
+**Tudo ou nada.** O pedido é recusado inteiro, sem mudar nada, quando:
+
+- o departamento não existe no projeto (a recusa lista os que existem);
+- o membro tem **leads atribuídos** num departamento de onde sairia;
+- o departamento **ficaria sem ninguém recebendo leads**;
+- o projeto chegou ao **limite de usuários do plano**.
+
+**Só no painel:** criar ou promover **Admin**, trocar papel ou senha de um Admin, e
+**remover** um membro da conta. Departamento novo se cria pelo `update_template`
+(bloco `attendant_teams`).
+
+**Quem pode:** conexão de **Leitura e edição**, com acesso a **todos os
+projetos**, gerada por um **Admin** da conta.
+
+<Visibility for="agents">
+`create_member`:
+
+```json
+{ "name": "Ana Lima", "email": "ana@cliente.com", "password": "<a senha que a pessoa escolheu>", "role": "gestor" }
+```
+
+Resposta: `{ "created": true, "member": { …formato do list_members… }, "notes": [...] }`.
+E-mail que já é membro, ou que tem login em outra conta, é recusado.
+
+`update_member_access`:
+
+```json
+{
+  "email": "ana@cliente.com",
+  "role": "editor",
+  "projects": [
+    {
+      "project_id": "uuid",
+      "project_name": "Clínica Sorriso",
+      "departments": [
+        { "name": "Comercial", "receives_leads": true },
+        { "name": "Suporte", "member": false }
+      ]
+    },
+    { "project_id": "uuid", "project_name": "Loja Centro", "access": false }
+  ]
+}
+```
+
+- Por projeto: `access` ausente = liberar; `false` = tirar.
+- Por departamento: `member` ausente = colocar; `false` = tirar.
+  `receives_leads` ausente não mexe; ao entrar, o padrão é `true`.
+- O nome do departamento é o de `attendant_teams` no `get_template` (sem diferença
+  de maiúsculas).
+
+Resposta:
+
+```json
+{
+  "member": { "…": "formato do list_members, já com o acesso novo" },
+  "changes": {
+    "role_changed": true, "name_changed": false, "password_changed": false,
+    "projects_added": 0, "projects_removed": 1,
+    "departments_joined": 0, "departments_left": 1, "receives_leads_changed": 1
+  },
+  "notes": []
+}
+```
+
+Nunca repita a senha: nem no plano, nem no chat, nem em arquivo, memória ou
+`intent`. No plano, diga só "com a senha que você passou".
 </Visibility>
 
 ## get_white_label
@@ -747,6 +838,12 @@ Quando a operação é recusada, nada é alterado. As mensagens dizem o que faze
 | Conexão restrita mexendo em organização | "Esta conexão só alcança alguns projetos, e por isso não mexe nas organizações da conta." | A agência gera uma conexão com todos os projetos |
 | Organização de outra conta | "Organização não encontrada nesta conta." | Confira o id em `organizations` do `list_projects` |
 | Mês fora do formato (`get_metrics`) | "month: Use AAAA-MM…" | Mande `2026-09`, por exemplo |
+| Conexão restrita ou não gerada por Admin (membros) | "…não mexe nos membros da conta." / "Só uma conexão gerada por um admin…" | Um Admin gera uma conexão de escrita com todos os projetos |
+| E-mail já usado (`create_member`) | "Este e-mail já é membro da conta…" ou "…já tem login na Zatten, em outra conta." | Use `update_member_access`, ou outro e-mail |
+| Departamento inexistente | "…o departamento \"X\" não existe. Os que existem: …" | Use um dos listados, ou crie pelo `update_template` |
+| Membro com leads no departamento | "…o membro tem leads atribuídos em …" | A pessoa passa os leads para outro atendente no painel |
+| Departamento ficaria sem ninguém recebendo | "…ficaria sem ninguém recebendo leads." | Ligue o recebimento de outra pessoa primeiro |
+| Mudar Admin | "Este membro é admin: papel e senha de admin só mudam no painel." | Guie a pessoa no painel |
 
 ## Armadilhas
 
@@ -764,6 +861,10 @@ Quando a operação é recusada, nada é alterado. As mensagens dizem o que faze
   tool que mexe em sistema externo age nele.
 - **Renomear o projeto muda o par.** Se o bloco `meta` trocar o nome do projeto, a
   próxima chamada precisa do nome novo.
+- **A senha do membro é segredo.** Pergunte qual é, nunca invente e nunca a
+  repita (plano, chat, arquivo, memória, `intent`). Ela não volta na resposta.
+- **Membro novo não vê nada.** O `create_member` cria sem projetos; o acesso vem no
+  `update_member_access`.
 - **A nota sobre templates da Meta cita uma opção que o MCP não tem.** Quando faltam
   templates, a nota sugere `submit_meta_templates: true`. Pelo MCP essa opção não
   existe: o envio à Meta é feito por uma pessoa, no painel (**WhatsApp →
