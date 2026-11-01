@@ -38,9 +38,9 @@ A regra é uma só: **cria o que falta, atualiza o que existe e nunca apaga**.
 - Cada item é reconhecido pela chave do bloco (`slug` em colunas, tags,
   departamentos, propriedades e skills; nome nos demais). Com o `slug`, dá para
   renomear sem perder o vínculo com os leads.
-- Endereço ou credencial vazio não grava por cima. **Exceção:** dentro de
-  `langchain.config`, a chave do modelo e a do LangSmith só são preservadas quando o
-  campo está ausente; `""` grava vazio e o agente para de responder.
+- Endereço ou credencial vazio não grava por cima, inclusive as chaves de IA do
+  `langchain.config`. Um texto de exemplo no lugar da chave grava por cima e o agente
+  para de responder.
 - Automação nova nasce desligada.
 - O agente (bloco `langchain`) vira uma **versão não publicada**. Uma pessoa publica no
   painel.

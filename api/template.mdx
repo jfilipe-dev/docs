@@ -173,11 +173,11 @@ Não há modo de sobrescrever em nenhum dos dois. Ver
   cliente final. Template rejeitado pesa na qualidade do número.
 - **Credenciais no `GET`.** O JSON lido tem chaves e URLs preenchidas. Trate como segredo.
 - **Endereço preenchido grava por cima.** Uma `url` de webhook no `POST` troca o endereço
-  do cliente sem pedir confirmação. Campo vazio não grava, **com uma exceção**: no bloco
-  `langchain`, a chave do modelo (`model.api_key`) e a do LangSmith
-  (`settings.tracing.api_key`) só são preservadas quando o campo está **ausente**. Mandar
-  `""` grava vazio e o agente para de responder. Devolva o valor lido no `GET` ou tire o
-  campo; nunca mande `""` nem um texto de exemplo.
+  do cliente sem pedir confirmação. Campo vazio não grava, e isso
+  vale também para as chaves de IA do bloco `langchain` (`model.api_key`,
+  `settings.tracing.api_key`, transcrição e modelos reserva). Já um texto de exemplo no
+  lugar da chave (`"<removido>"`) grava por cima e o agente para de responder. Devolva o
+  valor lido no `GET` ou tire o campo.
 
 ## Para saber mais
 

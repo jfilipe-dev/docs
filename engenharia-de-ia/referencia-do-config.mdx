@@ -77,7 +77,7 @@ estes campos e devolve uma nota quando muda algo:
 
 | Campo | O que acontece |
 |---|---|
-| `model.api_key` e `settings.tracing.api_key` | **Preservadas só quando o campo está ausente.** Sem o campo, a chave já gravada no projeto continua. Com `""` (texto vazio), o vazio é **gravado por cima** e o agente para de responder. Omita o campo ou devolva intacto o valor que o `get_template` trouxe. Nunca mande `""` nem um texto de exemplo no lugar da chave. |
+| `model.api_key` e `settings.tracing.api_key` | **Preservadas quando o campo está ausente ou vazio.** Sem o campo, ou com `""`, a chave já gravada no projeto continua. Vale também para a chave da transcrição e a dos modelos reserva (casados pelo nome). Um texto qualquer (`"<removido>"`, `"sk-..."`) é **gravado por cima** e o agente para de responder: omita o campo ou devolva intacto o valor que o `get_template` trouxe. |
 | `tools[].headers` | **Preservados** quando a tool chega sem cabeçalhos (campo ausente ou `{}`) e tem o mesmo `_id` de uma tool já gravada. Um cabeçalho com valor vazio é gravado vazio. |
 | `settings.human_approval.enabled` e `tools[].require_approval` | **Sempre gravados `false`.** A aprovação pausa a conversa esperando alguém aprovar, e o painel não tem tela para isso: o lead ficaria sem resposta. |
 | `settings.tracing.metadata.attendant_id` | Reescrito com o projeto de destino, para os traces no LangSmith ficarem no projeto certo. |
@@ -148,7 +148,7 @@ hoje** (aceito e ignorado), **sempre `false`** (o template força desligado).
 |---|---|---|---|
 | `model.provider` | `"openai"` \| `"openrouter"` | obrigatório | ativo. `"custom"` invalida |
 | `model.name` | string | obrigatório | ativo. OpenRouter: `fabricante/modelo` |
-| `model.api_key` | string | `""` | ativo. Preservada pelo template só quando ausente; `""` grava vazio. Nunca mostre |
+| `model.api_key` | string | `""` | ativo. Preservada pelo template quando ausente ou vazia. Nunca mostre |
 | `model.temperature` | número | `0` | ativo |
 | `model.max_tokens` | inteiro | `4096` | ativo |
 | `model.provider_options` | objeto | `{}` | ativo. Chave desconhecida é descartada sem erro |
@@ -315,7 +315,7 @@ internos (`thread_limit`, `run_limit`, `exit_behavior`, `pii_type`, `strategy`).
 | `settings.transcription.base_url` | string ou null | `null` | ativo. Exigido com `provider: "custom"` |
 | `settings.transcription.language` | string ou null | `null` | ativo. Ex.: `"pt"` |
 | `settings.tracing.enabled` | boolean | `false` | ativo. Sem `api_key` não liga |
-| `settings.tracing.api_key` | string | `""` | ativo. Preservada pelo template só quando ausente; `""` grava vazio. Nunca mostre |
+| `settings.tracing.api_key` | string | `""` | ativo. Preservada pelo template quando ausente ou vazia. Nunca mostre |
 | `settings.tracing.project` | string | `"default"` | ativo |
 | `settings.tracing.endpoint` | string | `"https://api.smith.langchain.com"` | ativo |
 | `settings.tracing.tags` | lista de strings | `[]` | ativo |
@@ -428,9 +428,10 @@ Para uma tool de verdade nesse config, veja os exemplos em
   silêncio e o recurso fica desligado. Confira os nomes nesta página.
 - **Gravar `settings` inteiro "por garantia"** congela os padrões no JSON. Grave só o
   que mudou.
-- **Mandar a chave vazia.** `"api_key": ""` apaga a chave gravada e o agente para
-  de responder. Para manter a chave atual, omita `model.api_key` (e
-  `settings.tracing.api_key`) ou devolva o valor que o `get_template` trouxe.
+- **Mandar um texto de exemplo no lugar da chave.** `"api_key": "<removido>"` grava
+  esse texto e o agente para de responder. Para manter a chave atual, omita
+  `model.api_key` (e `settings.tracing.api_key`), mande vazio ou devolva o valor que
+  o `get_template` trouxe.
 - **`allowed_tools` e `blocked_tools` no MCP** parecem um controle de segurança, mas
   não filtram nada.
 - **`openai/whisper-1` com provider OpenAI direto** faz toda transcrição falhar. Use

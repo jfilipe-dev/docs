@@ -94,20 +94,19 @@ Não tente resolver sozinho. Com o slug de cada um (veio no `get_template`), a
 escrita consegue mexer em um deles. Sem slug, peça à pessoa para renomear um
 deles no painel.
 
-## Campo omitido não mexe; endereço vazio não grava (com uma exceção)
+## Campo omitido não mexe; endereço e chave vazios não gravam
 
 - **Campo omitido** (a chave não veio): o valor atual fica como está.
 - **Endereço vazio** não grava por cima. Vale para `url` de webhook, webhook de
   integração e MCP; `webhook_url`, `headers`, `query_params` e `body_params` de
   ação personalizada; `headers` de MCP; e os headers das tools no
   `langchain.config`. Vazio quer dizer "não trouxe", nunca "apague".
-- **Exceção: as chaves de IA.** A chave do modelo e a do LangSmith dentro de
-  `langchain.config` (`model.api_key`, `settings.tracing.api_key`) e as chaves
-  `api_key` e `eleven_labs_api_key` do bloco `llm_attendant` só são mantidas
-  quando o campo **não vem** (no `llm_attendant`, `null` também mantém). `""`
-  (string vazia) grava vazio por cima, e o agente para de responder. Omita o
-  campo ou devolva o valor que veio no `get_template`; nunca mande `""` nem um
-  texto de exemplo no lugar da chave.
+- **Chaves de IA vazias também não gravam.** A chave do modelo, a do LangSmith,
+  a da transcrição e as dos modelos reserva dentro de `langchain.config`, e as
+  chaves `api_key` e `eleven_labs_api_key` do bloco `llm_attendant`, ficam como
+  estão quando o campo não vem, vem `null` ou vem `""`. Já um texto qualquer
+  (`"<removido>"`, `"sua-chave-aqui"`) **grava por cima** e o agente para de
+  responder: devolva o valor que veio no `get_template` ou omita o campo.
 - **Endereço preenchido manda**, inclusive por cima do que o cliente configurou no
   painel, sem pedir confirmação.
 
@@ -159,10 +158,12 @@ Uma coluna criada no mesmo envio já vale como referência: mande `columns` e
   continuam com a versão no ar até alguém publicar no painel. Diga isso a quem
   pediu.
 - Se o config enviado é igual ao atual, nenhuma versão é criada.
-- A chave do modelo e a do LangSmith que já estão no agente são mantidas só
-  quando o campo não vem. `""` apaga a chave (veja a exceção acima). Como o
-  `get_template` já devolve as chaves preenchidas, devolver o bloco como veio é
-  seguro.
+- As chaves que já estão no agente (modelo, LangSmith, transcrição, modelos
+  reserva pelo nome) são mantidas quando o campo não vem ou vem vazio. Um texto
+  de exemplo no lugar da chave grava por cima. Como o `get_template` já devolve
+  as chaves preenchidas, devolver o bloco como veio é seguro.
+- Tool `native` vinda de um template antigo é convertida para o formato `http`
+  que o agente executa, com o mesmo alvo.
 - A aprovação humana fica sempre desligada, com nota se o bloco tentar ligar.
 - Se havia uma versão por publicar e o bloco foi gravado por cima dela, uma nota
   avisa. Confira antes de publicar.
@@ -230,8 +231,8 @@ e é a releitura que vira o snapshot.
 - **Renomear sem o bloco `langchain`** deixa as tools do agente com o nome
   antigo.
 - **Preencher `url` "para completar"** troca o endereço do cliente.
-- **Mandar `"api_key": ""` no `langchain.config`** apaga a chave do modelo ou do
-  LangSmith e derruba o agente. Omita o campo ou devolva o valor lido.
+- **Trocar a chave por um texto de exemplo** (`"<removido>"`, `"sk-..."`) grava
+  esse texto por cima e derruba o agente. Omita o campo ou devolva o valor lido.
 - **Ligar junto com a criação, sem perguntar.** Omita o estado e a automação nasce
   desligada.
 - **Propriedade:** `values` só valem com `is_enum: true`. Propriedade de texto

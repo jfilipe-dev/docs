@@ -275,9 +275,9 @@ uma versão não publicada.
 - O `config` enviado **substitui o config inteiro**. Se `settings.tracing` não vier,
   o monitoramento volta ao padrão (desligado). Mande sempre o config completo, como
   veio do `get_template`.
-- Dentro de `tracing`, a chave já gravada é **mantida** só quando `api_key` não vem.
-  `"api_key": ""` grava vazio por cima e o monitoramento para. Omita o campo ou
-  devolva intacto o valor do `get_template`.
+- Dentro de `tracing`, a chave já gravada é **mantida** quando `api_key` não vem ou
+  vem `""`. Um texto de exemplo grava por cima e o monitoramento para. Omita o campo
+  ou devolva intacto o valor do `get_template`.
 - `get_template` devolve a chave preenchida. Nunca mostre na conversa.
 
 <Visibility for="agents">
