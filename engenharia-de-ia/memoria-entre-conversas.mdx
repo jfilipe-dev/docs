@@ -1,0 +1,92 @@
+---
+title: "Memória entre conversas"
+description: "Faça o agente lembrar dos atendimentos anteriores de cada contato: resumo ao encerrar, consulta quando o cliente fala de algo de antes."
+keywords: ["memória", "memória entre conversas", "histórico", "atendimentos anteriores", "historico_conversas", "resumo da conversa"]
+---
+
+<Visibility for="agents">
+**Quando ler esta página:** quando for decidir se o agente deve lembrar dos atendimentos anteriores do contato, como ligar a memória (no painel ou pelo MCP), o que entra no resumo e o que ela custa.
+</Visibility>
+
+A **memória entre conversas** faz o agente lembrar dos atendimentos anteriores de
+cada contato. Quando um atendimento é encerrado, a IA gera um resumo curto da
+conversa. Na conversa seguinte, o agente sabe quantos atendimentos anteriores
+existem e, quando o cliente fala de algo de antes ("aquele orçamento", "o exame da
+semana passada"), consulta os resumos e, se precisar de um detalhe, abre a conversa
+completa.
+
+Serve para negócios em que o mesmo cliente volta: pedidos recorrentes, exames e
+consultas, orçamentos que se arrastam por semanas.
+
+## Quando usar
+
+| Use | Não use |
+|---|---|
+| Cliente que volta e cita pedidos, exames ou orçamentos antigos | Atendimento de uma vez só (FAQ, lead que não volta) |
+| Pós-venda e suporte, em que o histórico muda a resposta | Operação em que o atendimento nunca é encerrado |
+
+## Onde fica no painel
+
+Menu **Agente** (`/project`), seção **Tools** → **Adicionar** → grupo
+**Utilidades** → **Memória entre conversas**. Só pode existir uma por agente e não
+há nada a configurar: adicionar é o que liga. Para desligar, remova. Como toda
+mudança no agente, vale depois de **Publicar**.
+
+Não é preciso mudar o prompt: o agente já sabe quando e como consultar. Para
+reforçar um caso do seu negócio (pedidos, exames, orçamentos), escreva no
+[prompt](/engenharia-de-ia/prompt).
+
+## Como funciona por trás
+
+- **Resumo ao encerrar.** Quando um atendimento é encerrado, a IA resume a conversa
+  em segundo plano. Na primeira vez, as conversas antigas daquele contato também
+  são resumidas. Atendimento que nunca é encerrado não gera resumo.
+- **O que entra no resumo:** as mensagens entre cliente, agente e atendentes, a
+  etapa do funil ao encerrar, as tags, as propriedades que o agente já enxerga
+  (`send_to_ai`) e as anotações do contato. Chamadas de tool ficam de fora.
+- **Na conversa nova**, o prompt só diz quantos atendimentos anteriores existem. Os
+  resumos não entram a cada mensagem: o agente os lê pela tool
+  `historico_conversas` quando precisa. Isso mantém o custo baixo.
+- **Consulta:** a tool lista os resumos (até 50) e abre a transcrição de até 5
+  conversas por vez, sempre do mesmo contato.
+- **Custo:** o resumo usa o mesmo modelo e a mesma chave do agente, com raciocínio
+  no mínimo. Cada consulta é uma chamada de tool, que conta no
+  [limite de chamadas](/engenharia-de-ia/limites-e-seguranca).
+
+## Pelo MCP
+
+A memória é uma tool `type: "builtin"` no bloco `langchain`. Escrever o bloco cria
+uma versão não publicada do agente.
+
+<Visibility for="agents">
+```json
+{ "type": "builtin", "name": "historico_conversas", "config": {} }
+```
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | `"historico_conversas"` | Declarar a entrada liga a memória inteira. Não há `enabled`: para desligar, tire a entrada |
+| `config` | objeto | Não é lido. A descrição da tool é fixa no agente |
+
+- No máximo uma entrada por config. Ela convive com a [lista de tarefas](/engenharia-de-ia/lista-de-tarefas) (`todo_list`).
+- Configs antigas com `settings.memory` continuam válidas; o campo é ignorado.
+- Para acrescentar a memória, devolva `tools` inteiro (como veio no `get_template`)
+  mais esta entrada. Uma lista parcial deixa as outras tools como órfãs.
+- Pergunte antes de ligar: muda o agente de um cliente real e passa a gerar resumos.
+</Visibility>
+
+## Armadilhas
+
+- **Atendimentos que nunca são encerrados** não geram resumo, e a memória fica vazia.
+- **Esperar que o agente cite o passado sozinho.** Ele consulta quando o cliente
+  fala de algo de antes. Se o seu caso pede outra coisa (ex.: sempre conferir o
+  último pedido), escreva no prompt.
+- **Filtro de tools esconde a memória.** Com **Filtrar tools** ligado, inclua
+  `historico_conversas` em `always_include`.
+
+## Para saber mais
+
+- [Tools: visão geral](/engenharia-de-ia/tools/visao-geral)
+- [Conversas longas](/engenharia-de-ia/conversas-longas)
+- [Referência do config](/engenharia-de-ia/referencia-do-config)
+- Termos para buscar: "conversation summary memory", "long-term memory agent".

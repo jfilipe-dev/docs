@@ -100,7 +100,7 @@ deles.
 | `agents` | Reservado para vários agentes. Sem contrato definido. |
 | `tools[].allowed_tools` e `tools[].blocked_tools` (MCP) | **O filtro não existe.** Toda tool do servidor MCP chega ao modelo, diga a lista o que disser ([Servidores MCP](/engenharia-de-ia/tools/mcp)). |
 | `settings.human_approval.mode: "all_responses"` (o padrão) e `"custom"` | Não implementados. E a aprovação fica sempre desligada de qualquer forma. |
-| `tools[].name` de `builtin` diferente de `todo_list` | Aceito e ignorado. |
+| `tools[].name` de `builtin` diferente de `todo_list` e `historico_conversas` | Aceito e ignorado. |
 | `settings.tracing.enabled: true` sem `api_key` | Valida e não liga. |
 
 ## Combinações que o agente recusa
@@ -186,6 +186,7 @@ descartada sem erro.
 |---|---|---|---|
 | `instructions.system_prompt` | string | `"You are a helpful assistant."` | ativo |
 | `instructions.inject_context` | boolean | `false` | ativo. Anexa o bloco "Contexto do lead atual" ao prompt |
+| `instructions.variables` | objeto (chave → texto) | `{}` | ativo. `{{chave}}` no `system_prompt` vira o valor. Chave `^[a-z][a-z0-9_]{0,49}$`. Pelo template: ausente mantém as atuais, `{}` apaga. `{{x}}` sem chave fica literal ([Variáveis do prompt](/engenharia-de-ia/prompt)) |
 
 ### tools: campos por tipo
 
@@ -248,12 +249,12 @@ uma tool só, `load_skill`.
 | `tools[].description` | string | obrigatório | ativo. Vai no catálogo que o modelo lê |
 | `tools[].content` | string | obrigatório | ativo. Só entra no contexto quando o modelo pede |
 
-**`type: "builtin"`** ([Lista de tarefas](/engenharia-de-ia/lista-de-tarefas))
+**`type: "builtin"`** ([Lista de tarefas](/engenharia-de-ia/lista-de-tarefas), [Memória entre conversas](/engenharia-de-ia/memoria-entre-conversas))
 
 | Caminho | Tipo | Padrão | Status |
 |---|---|---|---|
 | `tools[].type` | `"builtin"` | `"builtin"` | ativo |
-| `tools[].name` | `"todo_list"` | obrigatório | ativo. Outro nome é ignorado |
+| `tools[].name` | `"todo_list"` ou `"historico_conversas"` | obrigatório | ativo. Outro nome é ignorado. `historico_conversas` liga a memória e não lê `config` |
 | `tools[].config.enabled` | boolean | `true` | ativo. Declarar a entrada já liga |
 | `tools[].config.system_prompt` | string ou null | `null` | ativo. `null` usa o texto padrão |
 | `tools[].config.tool_description` | string ou null | `null` | ativo. `null` usa o texto padrão |

@@ -140,6 +140,25 @@ nome muda e a citação no prompt fica apontando para uma tool que não existe.
 Revise o prompt sempre que mexer nas tools.
 </Warning>
 
+## Variáveis do prompt
+
+Variáveis guardam o que muda de um cliente para outro (nome da empresa, cidade,
+horário, endereço) fora do texto do prompt. Assim o mesmo prompt serve a vários
+clientes: para adaptar, você troca os valores, não reescreve o texto.
+
+No painel, abaixo do prompt, em **Variáveis**: dê um nome (minúsculas, números e
+`_`, como `nome_empresa`) e um valor. No prompt, digite `@` e escolha a variável
+no grupo **Variáveis**: ela aparece como um chip âmbar, e pode ser usada quantas
+vezes quiser. O botão no canto do editor alterna entre ver o nome das variáveis e
+ver o valor delas no texto.
+
+- O agente troca a variável pelo valor ao montar o prompt. O cliente final só vê
+  o valor.
+- O valor é fixo por agente. Dados do lead (nome, tags, propriedades) não entram
+  aqui: eles vêm pelo [contexto do lead](/engenharia-de-ia/contexto-injetado).
+- Uma variável em uso no prompt não pode ser apagada. Renomear atualiza o prompt.
+- Mudar um valor, como qualquer mudança no agente, vale depois de **Publicar**.
+
 ## Exemplos curtos por nicho
 
 São trechos para adaptar, não prompts completos. Os modelos de nicho do painel
@@ -219,8 +238,9 @@ painel. Veja [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-func
   "langchain": {
     "config": {
       "instructions": {
-        "system_prompt": "# Identidade\n...",
-        "inject_context": true
+        "system_prompt": "# Identidade\nVocê atende pela {{nome_empresa}}...",
+        "inject_context": true,
+        "variables": { "nome_empresa": "Clínica Exemplo" }
       }
     }
   }
@@ -237,6 +257,11 @@ painel. Veja [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-func
 - Ações de apps integrados (`type: "composio"`): o modelo vê o nome `TOOLKIT_ACTION` em maiúsculas. Ao citar
   à mão, use esse nome.
 - Não grave dados de lead, data ou hora no `system_prompt`.
+- Variáveis ficam em `instructions.variables` (chave → texto) e aparecem no
+  `system_prompt` como `{{chave}}`. Chave: `^[a-z][a-z0-9_]{0,49}$`. Campo ausente
+  mantém as variáveis atuais; `{}` apaga todas. Um `{{x}}` sem chave declarada fica
+  literal no prompt e a escrita devolve uma nota. Para adaptar um agente a outro
+  cliente, troque os valores em `variables`, não o texto do prompt.
 - Antes de propor um prompt novo, leia o atual inteiro e as descrições das tools:
   a regra pode já estar numa descrição ou numa skill.
 </Visibility>
@@ -252,8 +277,8 @@ painel. Veja [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-func
 - **Prompt de motor antigo migrado.** Depois de migrar, o prompt continua o mesmo,
   mas referências a "função", busca na web ou base de arquivos não valem no
   LangChain Agent. Revise. Veja [Migrar](/engenharia-de-ia/migrar).
-- **Variáveis `{{...}}` dos modelos de nicho.** Elas são preenchidas na criação do
-  projeto. Se sobrar alguma no prompt, o modelo lê o texto literal.
+- **`{{...}}` sem variável declarada.** O modelo lê o texto literal. Declare a
+  variável em **Variáveis** ou troque o trecho pelo valor.
 - **Repetir informação do contexto.** Pedir o nome de um lead que já está no
   "Contexto do lead atual" irrita o lead. Diga no prompt para usar o que já está lá.
 

@@ -481,6 +481,13 @@ ajustes (retry, fallback, resumo, LangSmith e outros).
 - Tool `native` (formato antigo) é convertida para `http`, o formato que o
   agente executa, mantendo o alvo.
 - Headers de tools vazios ou ausentes mantêm os atuais.
+- `instructions.variables` ausente mantém as variáveis atuais do prompt; `{}`
+  apaga todas. Um `{{x}}` no prompt sem variável declarada gera nota. Para adaptar
+  um agente a outro cliente, troque os valores das variáveis, não o prompt
+  ([Variáveis do prompt](/engenharia-de-ia/prompt)).
+- A memória entre conversas liga com a tool
+  `{ "type": "builtin", "name": "historico_conversas" }`
+  ([Memória entre conversas](/engenharia-de-ia/memoria-entre-conversas)).
 - Aprovação humana é sempre desligada, com nota.
 - Tools cujo alvo não existe no projeto não entram, com nota.
 - Gravar por cima de uma versão ainda não publicada gera nota.
@@ -498,7 +505,7 @@ ajustes (retry, fallback, resumo, LangSmith e outros).
     "config": {
       "name": "…",
       "model": { "provider": "openai", "name": "…" },
-      "instructions": { "system_prompt": "…" },
+      "instructions": { "system_prompt": "…", "variables": { "nome_empresa": "…" } },
       "tools": [],
       "settings": {}
     }
