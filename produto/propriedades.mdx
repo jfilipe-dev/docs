@@ -1,15 +1,17 @@
 ---
 title: "Propriedades personalizadas"
-description: "Crie campos personalizados no lead, como cidade ou plano de interesse, e decida se o valor vai para a IA."
-keywords: ["propriedades", "campos personalizados", "custom fields", "slug", "vínculo", "lista de valores"]
+description: "Crie campos personalizados no lead (texto, número, lista ou lista com valor numérico), exiba em reais e decida se o valor vai para a IA."
+keywords: ["propriedades", "campos personalizados", "custom fields", "slug", "vínculo", "lista de valores", "número", "moeda", "valor numérico"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando for criar campos personalizados do lead (texto livre ou lista de valores), entender o slug, o vínculo, a opção de enviar o valor para a IA e o que não dá para mudar depois que a propriedade está em uso.
+**Quando ler esta página:** quando for criar campos personalizados do lead (texto livre, número, lista de valores ou lista com valor numérico), entender o slug, o vínculo, a opção de enviar o valor para a IA e o que não dá para mudar depois que a propriedade está em uso.
 </Visibility>
 
 A **propriedade** é um campo personalizado do lead: "Cidade", "Plano de interesse",
-"Data da consulta". Pode ser **texto livre** ou uma **lista fechada de valores**. Quem
+"Data da consulta", "Valor do orçamento". Pode ser **texto livre**, **número**, uma
+**lista fechada de valores** ou uma **lista com valor numérico** (cada opção tem um
+preço, por exemplo). Quem
 preenche pode ser a equipe, o agente (com uma ação da Zatten), a API, um fluxo ou a
 importação de contatos. Cada propriedade tem um **slug**, o identificador fixo usado
 pelo agente, pela API e pelo CSV.
@@ -29,8 +31,9 @@ pelo agente, pela API e pelo CSV.
 | **Nome da Propriedade** | O nome que aparece no painel. Também gera o slug | Obrigatório |
 | **Descrição** | O que o campo guarda e em que formato | **Obrigatória** |
 | **Vínculo** | **Contato** (permanece após encerrar a conversa) ou **Conversa** (removida ao encerrar) | Contato |
-| **Valores pré-definidos** | Liga a lista fechada. O valor só pode ser uma das opções, no CRM e nas APIs | Desligado |
-| Cada valor | **Valor** e **Descrição (opcional)** | — |
+| **Tipo de valor** | **Texto livre**, **Número**, **Valores pré-definidos** ou **Valores pré-definidos com valor numérico** (ver abaixo) | Texto livre |
+| **Valor monetário (R$)** | Só em Número e na lista com valor numérico. Exibe e digita o valor como moeda (ex.: R$ 199,00) | Desligado |
+| Cada opção da lista | **Valor** e **Descrição (opcional)**. Na lista com valor numérico: **nome** (ex.: Plano Anual) e **valor** (ex.: 99.90) | — |
 
 ### O slug
 
@@ -41,12 +44,18 @@ pelo agente, pela API e pelo CSV.
 - Não pode repetir no projeto: "Já existe uma propriedade com o slug … neste projeto".
 - É o nome do campo nas tools do agente, na API e no cabeçalho do CSV de importação.
 
-### Texto livre ou lista?
+### Qual tipo usar?
 
 | Tipo | Use quando | Exemplo |
 |---|---|---|
 | **Texto livre** | O valor é aberto | Nome da empresa, e-mail, observação |
-| **Lista** | As respostas possíveis são conhecidas | Plano (mensal, anual), Origem (Instagram, Google, indicação) |
+| **Número** | O valor é uma quantidade que você quer somar ou comparar | Valor do orçamento, quantidade de itens |
+| **Lista** (valores pré-definidos) | As respostas possíveis são conhecidas | Plano (mensal, anual), Origem (Instagram, Google, indicação) |
+| **Lista com valor numérico** | As respostas são conhecidas **e** cada uma vale um número | Produto vendido, com o preço de cada um |
+
+Número e lista com valor numérico alimentam as [métricas do funil](/produto/funil-kanban)
+(soma por coluna, contagem acima de um valor). No tipo **Número**, o valor é só dígitos
+com ponto decimal (`199.9`); texto, vírgula ou `R$` são recusados no CRM e na API.
 
 Prefira **lista** sempre que der: o agente recebe as opções e não inventa variações, e
 campanhas e filtros por valor ficam confiáveis. Na lista, cada valor precisa ser único
@@ -72,6 +81,7 @@ campanhas e filtros por valor ficam confiáveis. Na lista, cada valor precisa se
 | Mudança | No painel | Pelo template (MCP) |
 |---|---|---|
 | Renomear | Pode. O slug não muda | Pelo `slug` |
+| Trocar o tipo de uma propriedade já preenchida | Só texto livre → lista é bloqueado (linha abaixo) | Recusado, com nota, salvo entre lista e lista com valor numérico. Para virar lista com valor numérico, reenvie todas as opções com `numeric_value` |
 | Texto livre já preenchido → lista | **Bloqueado**: "Esta propriedade já está preenchida em N contato(s) como texto livre, por isso não pode ser convertida para valores pré-definidos." | Recusado, com nota e a contagem |
 | Tirar um valor da lista | Pede confirmação e **apaga esse valor dos contatos** que o tinham | O valor sai da lista, mas **continua nos leads** que o tinham |
 | Trocar o vínculo | Pode | Pode |
@@ -82,8 +92,14 @@ campanhas e filtros por valor ficam confiáveis. Na lista, cada valor precisa se
 As propriedades viajam no bloco `properties` do template, com os valores da lista.
 
 - **Renomeie pelo `slug`.** Sem `slug`, um nome novo cria outra propriedade.
-- `is_enum: true` e `values` andam juntos. `values` sem `is_enum: true` é ignorado, com
-  nota.
+- O tipo vai em `property_type`: `TEXT`, `NUMBER`, `ENUM` (lista) ou `FLOAT_ENUM` (lista
+  com valor numérico). Ausente não mexe. `ENUM` e `FLOAT_ENUM` exigem ao menos uma opção
+  em `values`; em `FLOAT_ENUM`, cada opção leva `numeric_value` e o `value` é o slug da
+  opção.
+- `display_format: "CURRENCY_BRL"` exibe em reais (só `NUMBER` e `FLOAT_ENUM`); `"NONE"`
+  tira. Ausente não mexe.
+- `is_enum` é o jeito antigo de ligar a lista: sem `property_type`, `is_enum: true` com
+  `values` vira `ENUM`.
 - `send_to_ai` só se altera por aqui. O padrão é `true` (vai para a IA).
 - Valor retirado de `values` continua existindo nos leads.
 
@@ -94,9 +110,11 @@ As propriedades viajam no bloco `properties` do template, com os valores da list
 | `slug` | string ou null | Chave de identidade. É o nome do parâmetro nas tools do agente |
 | `description` | string ou null | Obrigatória no painel |
 | `scope` | `lead` ou `conversation` | Vínculo Contato ou Conversa |
-| `is_enum` | boolean | Liga a lista fechada |
+| `property_type` | `TEXT`, `NUMBER`, `ENUM`, `FLOAT_ENUM` | Tipo. Ausente = não mexe |
+| `display_format` | `NONE` ou `CURRENCY_BRL` | Moeda, só em `NUMBER` e `FLOAT_ENUM`. Ausente = não mexe |
+| `is_enum` | boolean | Legado: liga a lista quando `property_type` não vem |
 | `send_to_ai` | boolean | Injeta o valor no contexto do agente |
-| `values` | lista de `{ value, description? }` | Chave de cada valor: `value` |
+| `values` | lista de `{ value, description?, numeric_value? }` | Chave de cada valor: `value`. `numeric_value` obrigatório em `FLOAT_ENUM` |
 
 ```json
 {
@@ -106,11 +124,12 @@ As propriedades viajam no bloco `properties` do template, com os valores da list
       "name": "Plano de interesse",
       "description": "Plano que o lead quer contratar",
       "scope": "lead",
-      "is_enum": true,
+      "property_type": "FLOAT_ENUM",
+      "display_format": "CURRENCY_BRL",
       "send_to_ai": true,
       "values": [
-        { "value": "Mensal" },
-        { "value": "Anual", "description": "Pagamento à vista com desconto" }
+        { "value": "mensal", "description": "Plano Mensal", "numeric_value": 99.9 },
+        { "value": "anual", "description": "Plano Anual", "numeric_value": 999 }
       ]
     }
   ]

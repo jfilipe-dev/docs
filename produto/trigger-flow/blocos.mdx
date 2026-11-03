@@ -5,10 +5,10 @@ keywords: ["Trigger Flow", "blocos", "gatilhos", "condição", "ações", "opera
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando precisar saber o que cada bloco do Trigger Flow faz e quais campos tem: os 11 gatilhos (7 disponíveis e 4 em breve), a condição com todos os campos e operadores, e as 16 ações.
+**Quando ler esta página:** quando precisar saber o que cada bloco do Trigger Flow faz e quais campos tem: os 11 gatilhos (8 disponíveis e 3 em breve), a condição com todos os campos e operadores, e as 16 ações.
 </Visibility>
 
-O Trigger Flow tem **11 gatilhos** (7 disponíveis hoje e 4 em breve), **1 bloco
+O Trigger Flow tem **11 gatilhos** (8 disponíveis hoje e 3 em breve), **1 bloco
 de condição** e **16 ações**. Esta
 página lista cada um, com os campos e o que faz de verdade. Os conceitos (editor,
 variáveis, ligar e desligar) estão em
@@ -16,19 +16,19 @@ variáveis, ligar e desligar) estão em
 
 ## De onde vem cada gatilho?
 
-Comece por aqui. Um gatilho só roda se algo o disparar. **Quatro gatilhos estão
+Comece por aqui. Um gatilho só roda se algo o disparar. **Três gatilhos estão
 indisponíveis hoje (em breve):** aparecem no editor, mas não dá para usá-los num
 fluxo, nem pela API.
 
 | Gatilho | Disponível? | De onde vem |
 |---|---|---|
+| Novo lead criado | **Sim** | Uma vez por contato novo: primeira mensagem de um número que não estava na base, template enviado a um número novo e `PUT /leads/{numero}` que cria o lead. **Não** dispara para contato criado pelo humano respondendo do celular, nem para o lead de teste do chat de teste ou do MCP |
 | Primeira mensagem do lead | **Sim** | Toda vez que uma mensagem do lead abre uma conversa nova (inclusive depois de um encerramento) |
 | Movido no Kanban | **Sim** | Mover o lead pelo CRM (arrastar ou trocar a coluna), pelas ações da Zatten do agente e pelo transbordo por inatividade |
 | Tag adicionada / Tag removida | **Sim** | Pôr ou tirar tag pelo CRM e pelas ações da Zatten do agente |
 | Responsável alterado | **Sim** | Rodízio, escolha manual no painel, API, agente e a ação "Definir responsável" de outro fluxo. **Não** dispara ao "assumir" o lead respondendo no chat |
 | Conversa encerrada | **Sim** | Encerrar atendimento pelo painel, pela API ou pela ação "Encerrar atendimento" de outro fluxo |
 | Webhook recebido | **Sim** | Chamada externa na URL do fluxo (`/hooks/<caminho>`) |
-| **Novo lead criado** | **Não, em breve** | — |
 | **Mensagem recebida** | **Não, em breve** | — |
 | **Propriedade alterada** | **Não, em breve** | — |
 | **Lead inativo por…** | **Não, em breve** | — |
@@ -51,7 +51,7 @@ desenhados, mas não podem ser usados hoje.
 
 | Gatilho | Campos (filtros) | O que faz |
 |---|---|---|
-| **Novo lead criado** | — | **Em breve.** Pensado para rodar quando um contato entra na base. |
+| **Novo lead criado** | — | Roda uma vez quando um contato entra na base (ver [de onde vem cada gatilho](#de-onde-vem-cada-gatilho)). Num contato novo que manda mensagem, roda junto com **Primeira mensagem do lead**. |
 | **Primeira mensagem do lead** | — | Roda na primeira mensagem de cada conversa nova, depois que a mensagem é processada. Publica `{{trigger.message.text}}`. |
 | **Mensagem recebida** | **Contém o texto** (opcional) | **Em breve.** Pensado para rodar a cada mensagem do lead que contém o texto (sem diferenciar maiúsculas e acentos). |
 | **Movido no Kanban** | **Da coluna**, **Para a coluna** (qualquer, se vazio) | Roda quando o lead muda de coluna. Publica a coluna de destino. |
@@ -66,7 +66,7 @@ desenhados, mas não podem ser usados hoje.
 <Visibility for="agents">
 | `type` | Campos do `config` | Variáveis publicadas |
 |---|---|---|
-| `lead.created` (em breve) | — | — |
+| `lead.created` | — | — |
 | `lead.first_message` | — | `trigger.message.text` |
 | `lead.message_received` (em breve) | `contains` (string, `""` = qualquer) | `trigger.message.text` |
 | `lead.column_changed` | `from_column_id`, `to_column_id` (`""` = qualquer) | `trigger.column.id`, `trigger.column.name` |
@@ -245,9 +245,12 @@ criação, nomes viram ids. Propriedade vai por slug e template por nome. O usu�
 - **Mensagem enviada por um fluxo de "Conversa encerrada" não reabre a conversa:**
   fica gravada na conversa encerrada. Se o lead já respondeu e abriu outra, vai
   para a nova.
-- **Gatilho "em breve" não roda.** Novo lead criado, Mensagem recebida, Propriedade
-  alterada e Lead inativo não podem ser usados hoje, nem pela API. Monte o fluxo com
-  um dos 7 gatilhos disponíveis.
+- **Gatilho "em breve" não roda.** Mensagem recebida, Propriedade alterada e Lead
+  inativo não podem ser usados hoje, nem pela API. Monte o fluxo com um dos 8
+  gatilhos disponíveis.
+- **Novo lead criado e Primeira mensagem no mesmo fluxo de boas-vindas.** Um contato
+  novo que manda mensagem dispara os dois. Escolha um só para não mandar duas
+  mensagens.
 - **"Notificar responsável" com `{{trigger.message.text}}`** envia um push por
   mensagem do lead, sem limite. Filtre com uma condição antes.
 - **`{{trigger.message.text}}` é texto do lead.** Na URL de uma Requisição HTTP ele

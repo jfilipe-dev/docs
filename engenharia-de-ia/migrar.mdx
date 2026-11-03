@@ -212,7 +212,7 @@ Roteiro para o assistente guiar uma migração:
 4. `get_template` de novo → `llm_attendant.llm == "LANGCHAIN_AGENT"`.
 5. Conferir no bloco `langchain.config`:
    - `model.api_key` presente (o `get_template` devolve a chave preenchida; nunca
-     mostrar). Na escrita, omita ou devolva intacta; `""` apaga a chave;
+     mostrar). Na escrita, omita ou devolva intacta; um texto de exemplo grava por cima;
    - `settings.transcription.model`: `whisper-1` se `model.provider == "openai"`,
      `openai/whisper-1` se `openrouter`;
    - nenhuma tool com `require_approval: true`;

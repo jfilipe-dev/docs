@@ -46,7 +46,7 @@ existe fluxo ligado com ele, e a resposta vem com `matched: 0`.
 
 | `trigger_type` | `trigger_event` | Variáveis no fluxo |
 |---|---|---|
-| `lead.created` (em breve) | — | — |
+| `lead.created` | — (já dispara sozinho quando o lead é criado; use só para reprocessar) | — |
 | `lead.first_message` | — (já dispara sozinho; use só para reprocessar) | `trigger.message.text`, `trigger.message.type` |
 | `lead.message_received` (em breve) | `message_text` | `trigger.message.text`, `trigger.message.type` |
 | `lead.column_changed` | `to_column_id`; `from_column_id` se o fluxo filtra a origem | `trigger.column.id`, `trigger.column.name` |
@@ -179,9 +179,9 @@ curl -X POST "https://api.zatten.com/api/v1/hooks/erp-pedido-fechado?lead_number
 - Idempotência: chave = gatilho + lead + `idempotency_key`, por 24 h. Sem a chave, cada chamada roda de novo.
 - `/hooks`: o corpo só é lido com `Content-Type: application/json`; sem isso, `trigger.body` chega vazio e o fluxo roda assim mesmo.
 - `/hooks`: um fluxo antigo sem Path responde a qualquer `/hooks/…` do projeto.
-- Gatilhos em breve (`lead.created`, `lead.message_received`, `lead.property_changed`, `lead.inactive`): aceitos pela rota, mas sem fluxo ativo; `matched` = 0.
+- Gatilhos em breve (`lead.message_received`, `lead.property_changed`, `lead.inactive`): aceitos pela rota, mas sem fluxo ativo; `matched` = 0.
 - Todo disparo é por um lead; não há disparo em lote.
-- O que a API de leads já dispara sozinha: `PATCH /leads/{numero}/kanban` → `lead.column_changed`; `POST`/`DELETE /leads/{numero}/tag` → `lead.tag_added`/`lead.tag_removed`; `PATCH /leads/{numero}/assignee` → `lead.assignee_changed` quando o responsável muda de fato; `PATCH /leads/{numero}/thread` → `lead.conversation_closed`. Não disparam: `PATCH /leads/{numero}/properties` (`lead.property_changed`) e `toggle-attendant-response` (`lead.ai_toggled`). Não repita com `/flows/trigger` o que já disparou.
+- O que a API de leads já dispara sozinha: `PUT /leads/{numero}` que cria o lead → `lead.created`; `PATCH /leads/{numero}/kanban` → `lead.column_changed`; `POST`/`DELETE /leads/{numero}/tag` → `lead.tag_added`/`lead.tag_removed`; `PATCH /leads/{numero}/assignee` → `lead.assignee_changed` quando o responsável muda de fato; `PATCH /leads/{numero}/thread` → `lead.conversation_closed`. Não disparam: `PATCH /leads/{numero}/properties` (`lead.property_changed`) e `toggle-attendant-response` (`lead.ai_toggled`). Não repita com `/flows/trigger` o que já disparou.
 </Visibility>
 
 ## Armadilhas
@@ -196,8 +196,8 @@ curl -X POST "https://api.zatten.com/api/v1/hooks/erp-pedido-fechado?lead_number
   breve: hoje não há fluxo para rodar depois de `PATCH /leads/{numero}/properties`.
 - **Mover e pôr tag pela API já rodam os fluxos.** Repetir com `/flows/trigger` roda o fluxo
   duas vezes.
-- **Gatilho em breve não roda.** `lead.created`, `lead.message_received`,
-  `lead.property_changed` e `lead.inactive` dão `matched: 0`.
+- **Gatilho em breve não roda.** `lead.message_received`, `lead.property_changed` e
+  `lead.inactive` dão `matched: 0`.
 - **A chave vai no header, não na URL.** Se o sistema de origem não deixa pôr header,
   ele não consegue chamar o `/hooks`.
 

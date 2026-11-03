@@ -1,11 +1,11 @@
 ---
 title: "Funil (Kanban)"
-description: "Monte as colunas do funil e defina o que acontece quando o lead entra em cada uma: desligar a IA, transbordo e automações."
-keywords: ["funil", "kanban", "colunas", "pipeline", "etapas", "desativar IA", "transbordo"]
+description: "Monte as colunas do funil, defina o que acontece quando o lead entra em cada uma (desligar a IA, transbordo, automações) e mostre métricas por coluna."
+keywords: ["funil", "kanban", "colunas", "pipeline", "etapas", "desativar IA", "transbordo", "métricas", "soma por coluna"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando for montar as colunas do funil e entender as três chaves de cada coluna (Desativar IA, Transbordo e Disparar automações), a coluna de entrada e o que acontece quando um lead muda de coluna por cada caminho.
+**Quando ler esta página:** quando for montar as colunas do funil e entender as três chaves de cada coluna (Desativar IA, Transbordo e Disparar automações), a coluna de entrada, o que acontece quando um lead muda de coluna por cada caminho e as métricas por coluna (soma e contagens).
 </Visibility>
 
 O **funil** é o Kanban do projeto: uma sequência de **colunas** por onde o lead passa.
@@ -90,6 +90,24 @@ transbordo, não reagenda automações e não envia conversões.
 Ao reordenar, a primeira coluna vira a de ordem 0 (entrada) e as outras são numeradas
 em sequência.
 
+## Métricas por coluna
+
+No topo do Kanban, o botão **Métricas** abre **Métricas do Kanban**. Cada métrica fica
+presa a uma coluna e aparece como um número no topo dela. Uma coluna pode ter várias.
+
+| Métrica | O que mostra | Precisa de |
+|---|---|---|
+| **Somatório** | A soma da propriedade nos leads da coluna (ex.: total em orçamentos) | Propriedade **Número** ou **lista com valor numérico** |
+| **Contagem (maior que)** / **Contagem (menor que)** | Quantos leads têm a propriedade acima ou abaixo de um valor | Propriedade Número ou lista com valor numérico, e o valor de corte |
+| **Contagem (igual a)** | Quantos leads têm uma opção da lista | Propriedade de lista e a opção |
+| **Contagem por tag** | Quantos leads da coluna têm a tag | Uma tag |
+
+- As métricas seguem os **filtros ativos** do Kanban (busca, tags, propriedades,
+  responsável, departamento, período). Filtrou, o número muda junto.
+- Na lista com valor numérico, a soma usa o valor numérico de cada opção (o preço do
+  produto, por exemplo). Ver [Propriedades](/produto/propriedades).
+- Só admin, editor e gestor criam e mudam métricas.
+
 ## Pelo MCP
 
 As colunas viajam no bloco `columns` do template, na ordem, com as três chaves.
@@ -122,6 +140,31 @@ As colunas viajam no bloco `columns` do template, na ordem, com as três chaves.
       "should_trigger_automations": true },
     { "slug": "atendimento_humano", "name": "Atendimento Humano", "order": 2,
       "color": "#F59E0B", "transhipment": true, "shutdown_ai": true }
+  ]
+}
+```
+
+As métricas viajam no bloco `kanban_column_metrics`, apontando para coluna, propriedade
+e tag **pelo nome** (propriedade pelo slug). Uma métrica é identificada pela combinação
+inteira: mudar a coluna, o tipo, a propriedade, a tag ou o valor de corte cria outra, e a
+antiga fica como órfã.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `column_name` | string | Coluna onde a métrica aparece |
+| `metric_type` | `SUM`, `COUNT_THRESHOLD`, `COUNT_EQ`, `COUNT_TAG` | Somatório, contagem maior/menor que, igual a, por tag |
+| `property_slug` | string ou null | Obrigatório em `SUM`, `COUNT_THRESHOLD` e `COUNT_EQ`. `SUM` e `COUNT_THRESHOLD` só em `NUMBER` ou `FLOAT_ENUM`; `COUNT_EQ` em `ENUM` |
+| `tag_name` | string ou null | Obrigatório em `COUNT_TAG` |
+| `threshold_operator` | `gt` ou `lt` | Só em `COUNT_THRESHOLD`. Ausente = `gt` |
+| `threshold_value` | número | Obrigatório em `COUNT_THRESHOLD`, proibido nos demais |
+| `eq_value` | string | Slug da opção. Obrigatório em `COUNT_EQ`, proibido nos demais |
+| `display_order` | número | Ordem do chip na coluna. Ausente = não mexe |
+
+```json
+{
+  "kanban_column_metrics": [
+    { "column_name": "Proposta enviada", "metric_type": "SUM", "property_slug": "valor_orcamento" },
+    { "column_name": "Proposta enviada", "metric_type": "COUNT_TAG", "tag_name": "urgente" }
   ]
 }
 ```

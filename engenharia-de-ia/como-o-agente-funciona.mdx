@@ -178,8 +178,8 @@ inatividade. A próxima mensagem do lead cancela o que estava pendente. Ver
 | Peça | Quem aplica | Onde se configura | No template |
 |---|---|---|---|
 | Buffer, pausa humana, segmentação | Servidor | **Agente → Configurações avançadas** | bloco `llm_attendant` |
-| Voz (ElevenLabs) | Servidor | Sem tela no builder do LangChain Agent: só pelo template | bloco `llm_attendant` |
-| Ativo/Inativo, Horário de funcionamento | Servidor | Topo da tela **Agente** | não viaja |
+| Voz (ElevenLabs) | Servidor | **Agente → Configurações avançadas** | bloco `llm_attendant` |
+| Ativo/Inativo, Horário de funcionamento | Servidor | Topo da tela **Agente** | Horário: `meta.active_schedule`. Ativo/Inativo não viaja |
 | Filtro de mídia | Servidor | Não aparece no builder do LangChain Agent | `llm_attendant`: `audio_interpretation`, `image_interpretation`, `pdf_interpretation` |
 | Modelo, prompt, tools, skills | Agente | **Agente** (builder) | bloco `langchain` |
 | Retry, fallback, mensagem de erro | Agente | **Configurações do modelo** e **Falha do agente** | bloco `langchain` |

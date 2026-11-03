@@ -54,10 +54,15 @@ parcial pelo MCP, não precisa vir.
 
 ### meta
 
-O nome e a descrição do projeto. `icon` viaja, mas não é gravado.
+O nome e a descrição do projeto, e o horário em que o agente atende. `icon`
+viaja, mas não é gravado.
 
 **Na escrita:** trocar `meta.name` renomeia o projeto. A partir daí, o MCP exige o
 nome novo no par `project_id` + `project_name`.
+
+`active_schedule` é o horário de funcionamento do agente: fora das janelas, a IA
+não responde. `null` deixa o agente sempre ligado; campo ausente não mexe.
+Pergunte antes de mudar: muda quando clientes reais são atendidos.
 
 <Visibility for="agents">
 | Campo | Tipo | Notas |
@@ -65,6 +70,7 @@ nome novo no par `project_id` + `project_name`.
 | `name` | string | Obrigatório |
 | `description` | string ou null | |
 | `icon` | string ou null | Ignorado na escrita |
+| `active_schedule` | objeto ou null | `{ "timezone": "America/Sao_Paulo", "days": { "monday": [{ "start": "08:00", "end": "18:00" }], … } }`. Dias em inglês e minúsculas, horas `HH:mm`, `start` antes de `end`, várias janelas por dia. Dia ausente = não atende. `null` = sempre ligado |
 </Visibility>
 
 ### llm_attendant
@@ -79,9 +85,9 @@ na web) são do motor antigo; no LangChain Agent, isso fica no bloco `langchain`
 - `functions` viaja na leitura e é **ignorada** na escrita: carrega endereços e
   alvos do motor antigo. Se a lista enviada for diferente da atual, uma nota avisa.
 - O motor (`llm`) não muda por aqui. Migrar é pelo painel.
-- Campo `null` ou omitido não grava. Atenção às chaves: `api_key` e
-  `eleven_labs_api_key` com `""` (string vazia) **gravam vazio** por cima da
-  chave atual. Omita o campo ou devolva o valor lido.
+- Campo `null`, omitido ou vazio não grava, inclusive `api_key` e
+  `eleven_labs_api_key`. Um texto de exemplo no lugar da chave grava por cima:
+  omita o campo ou devolva o valor lido.
 
 <Visibility for="agents">
 | Campo | Tipo | Motor | Notas |
@@ -138,14 +144,17 @@ encerrar o atendimento.
 
 ### properties
 
-As propriedades personalizadas: texto livre ou lista fechada de valores.
+As propriedades personalizadas: texto livre, número, lista fechada de valores ou
+lista com valor numérico.
 
 **Na escrita:**
 
-- `is_enum: true` e `values` andam juntos. `values` sem `is_enum: true` é
-  ignorado, com nota.
-- Propriedade de texto livre já preenchida em algum contato não vira lista. A nota
-  traz a contagem de contatos.
+- O tipo vai em `property_type` (ausente = não mexe). `ENUM` e `FLOAT_ENUM` exigem
+  ao menos uma opção; em `FLOAT_ENUM`, cada opção leva `numeric_value`.
+- Sem `property_type`, vale o jeito antigo: `is_enum: true` com `values` vira lista.
+- Propriedade já preenchida em algum contato não troca de tipo (nota com a
+  contagem), salvo entre `ENUM` e `FLOAT_ENUM`. Para virar `FLOAT_ENUM`, reenvie
+  todas as opções que existem, cada uma com `numeric_value`.
 - Valor retirado de `values` continua existindo: pode haver lead preenchido com ele.
 - `send_to_ai` decide se o valor entra no contexto do agente. Padrão: `true`
   (propriedade criada pelo painel vai para a IA). Não aparece no formulário do
@@ -158,9 +167,33 @@ As propriedades personalizadas: texto livre ou lista fechada de valores.
 | `slug` | string ou null | Chave de identidade; é o nome do parâmetro nas tools do agente |
 | `description` | string ou null | |
 | `scope` | `lead` ou `conversation` | |
-| `is_enum` | boolean | Liga a lista fechada |
+| `property_type` | `TEXT`, `NUMBER`, `ENUM`, `FLOAT_ENUM` | Ausente = não mexe |
+| `display_format` | `NONE` ou `CURRENCY_BRL` | Moeda, só em `NUMBER` e `FLOAT_ENUM`. Ausente = não mexe |
+| `is_enum` | boolean | Legado: liga a lista quando `property_type` não vem |
 | `send_to_ai` | boolean | Injeta o valor no contexto do agente |
-| `values` | lista de `{ value, description? }` | Chave de cada valor: `value` |
+| `values` | lista de `{ value, description?, numeric_value? }` | Chave de cada valor: `value` (slug em `FLOAT_ENUM`). `numeric_value` obrigatório em `FLOAT_ENUM` |
+</Visibility>
+
+### kanban_column_metrics
+
+As métricas por coluna do funil: soma e contagens que aparecem no topo de cada
+coluna ([Funil](/produto/funil-kanban)).
+
+**Na escrita:** aponta para coluna e tag pelo nome e para a propriedade pelo slug.
+A métrica é identificada pela combinação inteira (coluna, tipo, propriedade ou tag,
+operador e valor): mudar uma parte cria outra, e a antiga vira órfã.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `column_name` | string | Obrigatório |
+| `metric_type` | `SUM`, `COUNT_THRESHOLD`, `COUNT_EQ`, `COUNT_TAG` | `SUM` e `COUNT_THRESHOLD` em `NUMBER`/`FLOAT_ENUM`; `COUNT_EQ` em `ENUM` |
+| `property_slug` | string ou null | Obrigatório em `SUM`, `COUNT_THRESHOLD` e `COUNT_EQ` |
+| `tag_name` | string ou null | Obrigatório em `COUNT_TAG` |
+| `threshold_operator` | `gt` ou `lt` | Só em `COUNT_THRESHOLD`; ausente = `gt` |
+| `threshold_value` | número | Obrigatório em `COUNT_THRESHOLD` |
+| `eq_value` | string | Slug da opção; obrigatório em `COUNT_EQ` |
+| `display_order` | número | Ausente = não mexe |
 </Visibility>
 
 ### skills
@@ -318,6 +351,7 @@ criado nasce vazio, e alguém adiciona as pessoas no painel.
 | `icon` | string ou null | |
 | `default` | boolean | Departamento padrão, que recebe leads novos |
 | `should_send_name` | boolean | A mensagem do humano leva o nome de quem atende |
+| `allow_self_service_toggle` | boolean | Quem atende pode entrar e sair do departamento sozinho |
 </Visibility>
 
 ### meta_templates
@@ -337,6 +371,26 @@ tem. O envio é feito por uma pessoa, no painel.
 | `category` | string ou null | `MARKETING`, `UTILITY`, `AUTHENTICATION` |
 | `components` | lista | Formato da Meta |
 | `parameter_format` | string ou null | Ex.: `NAMED` |
+</Visibility>
+
+### zapster_templates
+
+Os modelos de mensagem da API não oficial do WhatsApp (Zapster): o texto que o
+agente ou uma automação envia, com variáveis.
+
+**Na escrita:** cria o que falta e atualiza o que existe, casando pelo `name`
+(único no projeto). Entra antes do bloco `langchain`, então um agente que
+aponta para o modelo pelo nome já o encontra na mesma escrita.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `name` | string | Chave de identidade |
+| `body` | string | Texto da mensagem, com as variáveis no formato do painel |
+| `language` | string | Opcional |
+| `variables` | lista | Opcional |
+| `components` | objeto ou null | Opcional |
+| `status` | `ACTIVE` ou `ARCHIVED` | Opcional |
 </Visibility>
 
 ### inactivity_handovers
@@ -390,7 +444,9 @@ Mensagens rápidas: blocos de texto e mídia que o humano envia com `/comando`.
 
 **Na escrita:** nasce desligada se `is_active` não vier. O comando é gravado sem
 barra, em minúsculas e com hífens no lugar de espaços. O filtro por departamento
-não viaja: a mensagem nova vale para todos.
+viaja pelo **nome** do departamento, em `department_names`: lista vazia vale para
+todos, campo ausente não mexe. Departamento que não existe no projeto fica de
+fora, com nota.
 
 <Visibility for="agents">
 | Campo | Tipo | Notas |
@@ -401,6 +457,7 @@ não viaja: a mensagem nova vale para todos.
 | `blocks` | lista | `{ "type": "TEXT", "text": "…" }` ou `{ "type": "IMAGE", "media_url", "mime_type", "filename", "caption"? }` (também `VIDEO`, `AUDIO`, `DOCUMENT`) |
 | `is_active` | boolean | |
 | `order` | número | |
+| `department_names` | lista de string | Nomes de `attendant_teams`. `[]` = todos; ausente = mantém |
 </Visibility>
 
 ### flows
@@ -418,8 +475,8 @@ Os fluxos do Trigger Flow: gatilho, condições e ações, desenhados no editor.
 - Não mande `execution_plan`; ele é refeito a partir dos nós.
 - Fluxo sem nó de gatilho não é criado. Dois fluxos com o mesmo caminho de webhook
   de entrada também não.
-- Gatilhos **em breve** (`lead.created`, `lead.message_received`,
-  `lead.property_changed`, `lead.inactive`) não rodam hoje, nem pela API. Não monte
+- Gatilhos **em breve** (`lead.message_received`, `lead.property_changed`,
+  `lead.inactive`) não rodam hoje, nem pela API. Não monte
   fluxos com eles.
 
 <Visibility for="agents">
@@ -443,12 +500,21 @@ ajustes (retry, fallback, resumo, LangSmith e outros).
 
 - Cria uma **versão nova, não publicada**. Quem publica é uma pessoa, no painel.
 - Config igual ao atual não cria versão.
-- A chave do modelo (`model.api_key`) e a do LangSmith
-  (`settings.tracing.api_key`) já gravadas são mantidas **só quando o campo não
-  vem**. `""` grava vazio por cima e o agente para de responder. O
+- As chaves já gravadas (modelo, LangSmith, transcrição e modelos reserva,
+  casados pelo nome) são mantidas quando o campo não vem ou vem vazio. Um texto
+  de exemplo (`"<removido>"`) grava por cima e o agente para de responder. O
   `get_template` devolve as chaves preenchidas: devolva o valor lido ou omita o
-  campo, nunca `""` nem um texto de exemplo.
+  campo.
+- Tool `native` (formato antigo) é convertida para `http`, o formato que o
+  agente executa, mantendo o alvo.
 - Headers de tools vazios ou ausentes mantêm os atuais.
+- `instructions.variables` ausente mantém as variáveis atuais do prompt; `{}`
+  apaga todas. Um `{{x}}` no prompt sem variável declarada gera nota. Para adaptar
+  um agente a outro cliente, troque os valores das variáveis, não o prompt
+  ([Variáveis do prompt](/engenharia-de-ia/prompt)).
+- A memória entre conversas liga com a tool
+  `{ "type": "builtin", "name": "historico_conversas" }`
+  ([Memória entre conversas](/engenharia-de-ia/memoria-entre-conversas)).
 - Aprovação humana é sempre desligada, com nota.
 - Tools cujo alvo não existe no projeto não entram, com nota.
 - Gravar por cima de uma versão ainda não publicada gera nota.
@@ -466,7 +532,7 @@ ajustes (retry, fallback, resumo, LangSmith e outros).
     "config": {
       "name": "…",
       "model": { "provider": "openai", "name": "…" },
-      "instructions": { "system_prompt": "…" },
+      "instructions": { "system_prompt": "…", "variables": { "nome_empresa": "…" } },
       "tools": [],
       "settings": {}
     }

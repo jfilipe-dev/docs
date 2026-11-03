@@ -38,6 +38,7 @@ Toda mudança cria um rascunho. A tool só vale para os leads depois de
 | **Servidor MCP** | Um servidor que entrega várias tools de uma vez. | [Servidores MCP no agente](/engenharia-de-ia/tools/mcp) |
 | **Skill** (em Utilidades) | Conhecimento que o agente carrega só quando precisa. Para o modelo, é uma tool `load_skill`. | [Skills do agente](/engenharia-de-ia/skills) |
 | **Lista de tarefas** (em Utilidades) | Deixa o agente planejar um atendimento longo em etapas. | [Lista de tarefas](/engenharia-de-ia/lista-de-tarefas) |
+| **Memória entre conversas** (em Utilidades) | O agente lembra dos atendimentos anteriores do contato. | [Memória entre conversas](/engenharia-de-ia/memoria-entre-conversas) |
 
 ## Como o modelo decide chamar uma tool
 
@@ -121,7 +122,8 @@ metadata `_zatten` (ignorada pelo agente, lida pelo painel).
     { "type": "composio", "toolkit": "googlecalendar", "action": "find_free_slots", "require_approval": false },
     { "type": "mcp", "name": "context7", "transport": "http", "url": "https://mcp.context7.com/mcp", "headers": {} },
     { "type": "skill", "name": "politica_de_troca", "description": "…", "content": "…" },
-    { "type": "builtin", "name": "todo_list", "config": { "enabled": true, "system_prompt": null, "tool_description": null } }
+    { "type": "builtin", "name": "todo_list", "config": { "enabled": true, "system_prompt": null, "tool_description": null } },
+    { "type": "builtin", "name": "historico_conversas", "config": {} }
   ]
 }
 ```

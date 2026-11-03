@@ -108,9 +108,10 @@ encontrada), a Zatten grava o erro no chat e **envia a resposta em texto**.
 
 ### Onde configurar
 
-O builder do LangChain Agent não tem tela para a voz. Configure pelo template do
-projeto, no bloco `llm_attendant` (veja "Pelo MCP"). Projetos migrados do motor
-antigo mantêm o que estava configurado lá.
+Em **Agente**, abra **Configurações avançadas** e ligue **Responder áudio com
+áudio**. Aparecem os campos **Chave ElevenLabs** e **Voz** (o ID da voz). Vale na
+hora, sem publicar. Pelo template, é o bloco `llm_attendant` (veja "Pelo MCP").
+Projetos migrados do motor antigo mantêm o que estava configurado lá.
 
 Para obter os dados:
 
@@ -158,8 +159,8 @@ agente).
 - `message_segmentation`: booleano.
 - `eleven_labs`: booleano. Só tem efeito com `eleven_labs_api_key` e
   `eleven_labs_voice_id` preenchidos.
-- `eleven_labs_api_key` ausente ou `null` mantém a chave atual. `""` (texto vazio)
-  **grava vazio por cima** e a voz para de funcionar sem aviso. Omita o campo ou
+- `eleven_labs_api_key` ausente, `null` ou `""` mantém a chave atual. Um texto de
+  exemplo **grava por cima** e a voz para de funcionar sem aviso. Omita o campo ou
   devolva o valor lido do `get_template`. Nunca mostre a chave ao usuário nem a
   grave em arquivo versionado.
 - Divisão: regex por fim de frase em `.` ou `!` seguido de espaço; `?` não divide;

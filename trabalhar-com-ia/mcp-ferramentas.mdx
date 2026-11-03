@@ -852,9 +852,9 @@ Quando a operação é recusada, nada é alterado. As mensagens dizem o que faze
   da Meta não enviado) aparecem só nas `notes`.
 - **A revision não vem na resposta da escrita.** Duas escritas seguidas com a
   mesma revision: a segunda é recusada, porque a primeira já mudou o projeto.
-- **`""` numa chave do `langchain.config` apaga a chave.** A chave do modelo e a
-  do LangSmith só são mantidas quando o campo não vem. Devolva o valor lido ou
-  omita o campo; nunca troque a chave por `""` ou por um texto de exemplo.
+- **Texto de exemplo numa chave do `langchain.config` grava por cima.** Chave
+  ausente, `null` ou `""` mantém a atual; `"<removido>"` ou `"sk-..."` substitui e
+  derruba o agente. Devolva o valor lido ou omita o campo.
 - **`project` não é configuração.** Não devolva o bloco `project` do
   `get_template` no `update_template`: ele é só leitura e fica fora do template.
 - **Testar executa.** O `test_agent` roda as tools do agente de verdade. Uma

@@ -40,7 +40,7 @@ webhook por inatividade (`body.name`).
 
 | Evento | Chave no painel | Quando sai |
 |---|---|---|
-| `LEAD_CREATED` | Leads Criados | Lead novo: primeira mensagem de um número desconhecido, ou template enviado para um número novo. |
+| `LEAD_CREATED` | Leads Criados | Lead novo: primeira mensagem de um número desconhecido, template enviado para um número novo, ou `PUT /leads/{numero}` que cria o lead. |
 | `LEAD_INTERACTION` | Conversas | O lead mandou uma mensagem. Um evento por mensagem. |
 | `AI_RESPONSE` | Conversas | O agente respondeu. |
 | `HUMAN_INTERACTION` | Conversas | Um humano respondeu pelo app WhatsApp Business (coexistência). |
