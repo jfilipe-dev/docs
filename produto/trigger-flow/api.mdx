@@ -44,8 +44,8 @@ tag: não chame `/flows/trigger` de novo para o mesmo evento, ou o fluxo roda du
 vezes.
 
 <Warning>
-Os gatilhos **em breve** (Novo lead criado, Mensagem recebida, Propriedade
-alterada, Lead inativo) estão indisponíveis hoje, **também pela API**. A rota
+Os gatilhos **em breve** (Mensagem recebida, Propriedade alterada, Lead inativo)
+estão indisponíveis hoje, **também pela API**. A rota
 aceita esses tipos, mas não existe fluxo ligado com eles para rodar: a resposta
 vem com `matched: 0`. Para receber eventos de outro sistema, prefira o
 webhook de entrada (`/hooks/<path>`, abaixo).
@@ -75,7 +75,7 @@ O que mandar em `trigger_event`:
 
 | `trigger_type` | `trigger_event` |
 |---|---|
-| `lead.created` | — (em breve: nenhum fluxo roda) |
+| `lead.created` | — (já dispara sozinho quando o lead é criado; use só para reprocessar) |
 | `lead.first_message` | — (já dispara sozinho; use só para reprocessar) |
 | `lead.message_received` | `message_text` (em breve: nenhum fluxo roda) |
 | `lead.column_changed` | `to_column_id`, e `from_column_id` se o fluxo filtra a origem |
@@ -193,7 +193,7 @@ do projeto. Ver [A API do dia a dia](/trabalhar-com-ia/api-do-dia-a-dia).
   nem foi importado em [Contatos](/produto/contatos) dá 404. Nada roda.
 - **Um fluxo antigo sem Path** responde a qualquer `/hooks/…` do projeto. Hoje o
   editor exige o Path; revise fluxos antigos.
-- **Gatilho em breve não roda pela API.** `lead.created`, `lead.message_received`,
+- **Gatilho em breve não roda pela API.** `lead.message_received`,
   `lead.property_changed` e `lead.inactive` são aceitos, mas não há fluxo ligado
   com eles: `matched` vem `0`.
 - **A API aceita `lead.ai_toggled`**, mas o editor não tem esse gatilho, então

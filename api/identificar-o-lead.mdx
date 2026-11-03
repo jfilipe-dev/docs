@@ -47,7 +47,8 @@ mesma conta não é achado.
 
 | Rota | Lead inexistente |
 |---|---|
-| `/leads/{numero}/…` (todas) | **404** `Lead with number … not found` |
+| `/leads/{numero}/…` (as demais) | **404** `Lead with number … not found` |
+| `PUT /leads/{numero}` | **Cria o lead** (sem enviar mensagem) |
 | `GET /messages/history` | **404** |
 | `POST /messages/text`, `/image`, `/audio`, `/video`, `/file` | **400** `Lead with number … not found` |
 | `POST /messages/template` | **Cria o lead** e envia |
@@ -58,6 +59,8 @@ mesma conta não é achado.
 - O número manda mensagem para o WhatsApp do projeto.
 - Alguém envia um **template** para o número (pelo CRM, por [campanha](/produto/campanhas)
   ou por `POST /messages/template`).
+- Um sistema cria o lead com [`PUT /leads/{numero}`](/api/leads), sem
+  enviar mensagem.
 - O contato é importado em **Contatos → Importar** (CSV). Ver [Contatos](/produto/contatos).
 
 Texto e mídia pela API **não** criam lead. Para falar pela primeira vez com um número,

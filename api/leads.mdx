@@ -11,11 +11,12 @@ keywords: ["/leads/{numero}", "propriedades", "tags", "coluna do funil", "respon
 As rotas de lead ficam em `/leads/{numero}`, em que `{numero}` é o número do WhatsApp
 do lead, só dígitos, com DDI (ver [Identificar o lead](/api/identificar-o-lead)). Se o
 lead não existe no projeto da chave, toda rota daqui responde **404**
-`Lead with number … not found`.
+`Lead with number … not found`, menos o `PUT /leads/{numero}`, que cria o lead.
 
 | Método e caminho | O que faz |
 |---|---|
 | `GET /leads/{numero}` | Dados do lead |
+| `PUT /leads/{numero}` | Cria o lead se não existir, ou atualiza nome, propriedades e tags |
 | `GET /leads/{numero}/threads` | Conversas do lead |
 | `PATCH /leads/{numero}/notes` | Escreve a anotação |
 | `PATCH /leads/{numero}/properties` | Preenche uma propriedade |
@@ -85,6 +86,54 @@ curl "https://api.zatten.com/api/v1/leads/5511999998888" \
 
 Campos sem valor **não aparecem** no JSON. Trate ausência como vazio.
 
+## `PUT /leads/{numero}`
+
+Cria o lead se o número ainda não existe no projeto; se existe, atualiza. Numa chamada
+só: nome, várias propriedades e tags. Serve para trazer contatos de outro sistema (um
+CRM, um formulário) sem enviar mensagem.
+
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `name` | string ou null | Não | Até 255 caracteres. Ausente não mexe no nome. |
+| `properties` | objeto `{ slug: valor }` | Não | Várias propriedades de uma vez, pelo **slug**. Número e booleano viram texto. `null` ou `""` **apaga** o valor. As regras de cada tipo valem (lista fechada, número). |
+| `tags` | `{ "mode": "add" \| "replace", "ids": [...] }` | Não | Pelo **id**. `add` (padrão) acrescenta; `replace` deixa o lead só com essas tags. |
+
+Campo fora desses três dá 400. O número segue as mesmas regras das outras rotas: só
+dígitos, com DDI, de 10 a 15 dígitos.
+
+```bash
+curl -X PUT "https://api.zatten.com/api/v1/leads/5511999998888" \
+  -H "x-api-key: $ZATTEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Maria", "properties": { "convenio": "Unimed", "valor_orcamento": 1500 }, "tags": { "mode": "add", "ids": ["b2c1d0e9-0000-4000-8000-000000000001"] } }'
+```
+
+**201** quando criou, **200** quando atualizou. O corpo diz o que mudou:
+
+```json
+{
+  "created": true,
+  "lead": { "id": "…", "number": "5511999998888", "name": "Maria" },
+  "properties": { "updated": ["convenio", "valor_orcamento"], "removed": [], "unchanged": [] },
+  "tags": { "added": ["b2c1…"], "removed": [], "current": ["b2c1…"] }
+}
+```
+
+| Código | `error` | Causa |
+|---|---|---|
+| 400 | `Invalid lead number …` | Número fora do formato. |
+| 404 | `Properties not found: …` | Slug que não existe no projeto. |
+| 404 | `One or more tags not found: …` | Id de tag que não existe no projeto. |
+| 400 | `Value "…" is not allowed for property "…"` / `… is not a valid number …` | Valor fora da lista ou não numérico. |
+
+Tudo é validado **antes** de gravar: um erro de propriedade ou de tag não deixa o lead
+criado pela metade. Se uma falha acontecer depois de o lead ser gravado, a resposta de
+erro traz `result` com o que já foi aplicado, e repetir o `PUT` é seguro.
+
+Lead criado assim dispara o webhook `LEAD_CREATED` e os fluxos **Novo lead criado**. Ele
+nasce **sem conversa**: não aparece no funil até a primeira conversa, e **Primeira
+mensagem do lead** roda quando o cliente escrever pela primeira vez.
+
 ## `GET /leads/{numero}/threads`
 
 Lista as conversas (threads) do lead, da mais nova para a mais antiga.
@@ -136,7 +185,7 @@ Preenche **uma** [propriedade](/produto/propriedades) do lead.
 | Campo | Tipo | Obrigatório | Regra |
 |---|---|---|---|
 | `property` | string | Sim | O **slug** da propriedade (não o nome). Ver `GET /properties` em [Catálogos](/api/catalogos). |
-| `value` | string | Sim | O valor, como texto (mesmo número ou data). Não pode ser vazio. Em propriedade com valores pré-definidos, precisa ser exatamente um deles. |
+| `value` | string | Sim | O valor, como texto (mesmo número ou data). Não pode ser vazio. Em propriedade com valores pré-definidos (com ou sem valor numérico), precisa ser exatamente uma das opções. Em propriedade **Número**, só dígitos com ponto decimal (`199.9`, `-3`); vírgula e `R$` dão 400. |
 
 ```bash
 curl -X PATCH "https://api.zatten.com/api/v1/leads/5511999998888/properties" \
@@ -152,11 +201,12 @@ curl -X PATCH "https://api.zatten.com/api/v1/leads/5511999998888/properties" \
 | 404 | `Property not found` | Não há propriedade com esse slug no projeto. |
 | 400 | `Value "…" is not allowed for property "…". Allowed values: …` | Valor fora da lista. A mensagem traz os valores aceitos. |
 | 400 | `Property "…" is an enum property but has no configured values` | Lista fechada sem nenhum valor cadastrado. |
+| 400 | `Value "…" is not a valid number for property "…"` | Propriedade **Número** com valor que não é número. |
 | 400 | `Value must be at least 1 character long` | `value` vazio. |
 | **200** | `Property … already has value "…"` (no campo `error`) | O lead já tinha esse valor. Nada mudou. Trate como sucesso. |
 
-Para mudar várias propriedades, faça uma chamada por propriedade. Não dá para apagar o
-valor de uma propriedade pela API.
+Para mudar várias propriedades numa chamada só, ou apagar um valor, use o
+`PUT /leads/{numero}` (acima).
 
 ## `POST` e `DELETE /leads/{numero}/tag`
 
@@ -249,6 +299,7 @@ departamento: nada foi gravado e ninguém perdeu a vez no rodízio.
 
 | Mudança pela API | Efeitos no projeto | Não faz |
 |---|---|---|
+| Criar pelo `PUT` | Webhook `LEAD_CREATED`; roda os fluxos **Novo lead criado**. | Não abre conversa (o lead só entra no funil na primeira conversa). |
 | Mover no funil | Aplica **Desativar IA** e **Transbordo** da coluna; envia conversões, o webhook `LEAD_KANBAN_UPDATED` e roda os fluxos **Movido no Kanban**. | Não aciona **Disparar automações** da coluna. |
 | Pôr ou tirar tag | Webhooks `LEAD_TAG_ADDED` / `LEAD_TAG_REMOVED`; roda os fluxos **Tag adicionada** / **Tag removida**. | — |
 | Propriedade | Grava o valor. | Não roda fluxos (o gatilho **Propriedade alterada** está em breve). |
@@ -262,6 +313,7 @@ mesmo evento, ou o fluxo roda duas vezes. Para agendar automações, chame
 [`/automations/trigger`](/api/automacoes) (só na conexão oficial).
 
 <Visibility for="agents">
+- PUT lead → 201 (criou) / 200 (atualizou) `{created, lead: {id, number, name}, properties: {updated, removed, unchanged}, tags: {added, removed, current}}`. Corpo estrito (só `name`, `properties`, `tags`). Erro depois da escrita vem com `result` parcial.
 - GET lead → `{lead: {id, name?, phone, ai_status: "active"|"inactive", kanban_column?: {id,name}, current_tags?: [{id,name}], metadata?: {slug: value}, annotation?, assigned_to_user?: {id,name}, assigned_to_team?: {id,name}, created_at}}`. Campos `undefined` são omitidos.
 - `ai_status: "inactive"` = `ai_response_block_until` no futuro (pausada ou desligada).
 - threads → `{threads: [{thread_id, created_at, closed_at|null}]}`, ordem `created_at` desc.
@@ -270,7 +322,7 @@ mesmo evento, ou o fluxo roda duas vezes. Para agendar automações, chame
 - tag POST → 201 / 404 / 409; DELETE → 200 / 409.
 - kanban → 200 / 204 (sem corpo) / 404.
 - assignee → 200 `{message, changed, team_id, user_id}`. O campo `source` não é aceito com chave de projeto (400).
-- Fluxos: kanban → `lead.column_changed` (com `to_column_id` e `from_column_id`); tag → `lead.tag_added` / `lead.tag_removed`; assignee → `lead.assignee_changed` quando muda de fato; properties e notes → nenhum.
+- Fluxos: PUT que cria → `lead.created`; kanban → `lead.column_changed` (com `to_column_id` e `from_column_id`); tag → `lead.tag_added` / `lead.tag_removed`; assignee → `lead.assignee_changed` quando muda de fato; properties e notes → nenhum.
 </Visibility>
 
 ## Armadilhas

@@ -144,14 +144,17 @@ encerrar o atendimento.
 
 ### properties
 
-As propriedades personalizadas: texto livre ou lista fechada de valores.
+As propriedades personalizadas: texto livre, número, lista fechada de valores ou
+lista com valor numérico.
 
 **Na escrita:**
 
-- `is_enum: true` e `values` andam juntos. `values` sem `is_enum: true` é
-  ignorado, com nota.
-- Propriedade de texto livre já preenchida em algum contato não vira lista. A nota
-  traz a contagem de contatos.
+- O tipo vai em `property_type` (ausente = não mexe). `ENUM` e `FLOAT_ENUM` exigem
+  ao menos uma opção; em `FLOAT_ENUM`, cada opção leva `numeric_value`.
+- Sem `property_type`, vale o jeito antigo: `is_enum: true` com `values` vira lista.
+- Propriedade já preenchida em algum contato não troca de tipo (nota com a
+  contagem), salvo entre `ENUM` e `FLOAT_ENUM`. Para virar `FLOAT_ENUM`, reenvie
+  todas as opções que existem, cada uma com `numeric_value`.
 - Valor retirado de `values` continua existindo: pode haver lead preenchido com ele.
 - `send_to_ai` decide se o valor entra no contexto do agente. Padrão: `true`
   (propriedade criada pelo painel vai para a IA). Não aparece no formulário do
@@ -164,9 +167,33 @@ As propriedades personalizadas: texto livre ou lista fechada de valores.
 | `slug` | string ou null | Chave de identidade; é o nome do parâmetro nas tools do agente |
 | `description` | string ou null | |
 | `scope` | `lead` ou `conversation` | |
-| `is_enum` | boolean | Liga a lista fechada |
+| `property_type` | `TEXT`, `NUMBER`, `ENUM`, `FLOAT_ENUM` | Ausente = não mexe |
+| `display_format` | `NONE` ou `CURRENCY_BRL` | Moeda, só em `NUMBER` e `FLOAT_ENUM`. Ausente = não mexe |
+| `is_enum` | boolean | Legado: liga a lista quando `property_type` não vem |
 | `send_to_ai` | boolean | Injeta o valor no contexto do agente |
-| `values` | lista de `{ value, description? }` | Chave de cada valor: `value` |
+| `values` | lista de `{ value, description?, numeric_value? }` | Chave de cada valor: `value` (slug em `FLOAT_ENUM`). `numeric_value` obrigatório em `FLOAT_ENUM` |
+</Visibility>
+
+### kanban_column_metrics
+
+As métricas por coluna do funil: soma e contagens que aparecem no topo de cada
+coluna ([Funil](/produto/funil-kanban)).
+
+**Na escrita:** aponta para coluna e tag pelo nome e para a propriedade pelo slug.
+A métrica é identificada pela combinação inteira (coluna, tipo, propriedade ou tag,
+operador e valor): mudar uma parte cria outra, e a antiga vira órfã.
+
+<Visibility for="agents">
+| Campo | Tipo | Notas |
+|---|---|---|
+| `column_name` | string | Obrigatório |
+| `metric_type` | `SUM`, `COUNT_THRESHOLD`, `COUNT_EQ`, `COUNT_TAG` | `SUM` e `COUNT_THRESHOLD` em `NUMBER`/`FLOAT_ENUM`; `COUNT_EQ` em `ENUM` |
+| `property_slug` | string ou null | Obrigatório em `SUM`, `COUNT_THRESHOLD` e `COUNT_EQ` |
+| `tag_name` | string ou null | Obrigatório em `COUNT_TAG` |
+| `threshold_operator` | `gt` ou `lt` | Só em `COUNT_THRESHOLD`; ausente = `gt` |
+| `threshold_value` | número | Obrigatório em `COUNT_THRESHOLD` |
+| `eq_value` | string | Slug da opção; obrigatório em `COUNT_EQ` |
+| `display_order` | número | Ausente = não mexe |
 </Visibility>
 
 ### skills
@@ -448,8 +475,8 @@ Os fluxos do Trigger Flow: gatilho, condições e ações, desenhados no editor.
 - Não mande `execution_plan`; ele é refeito a partir dos nós.
 - Fluxo sem nó de gatilho não é criado. Dois fluxos com o mesmo caminho de webhook
   de entrada também não.
-- Gatilhos **em breve** (`lead.created`, `lead.message_received`,
-  `lead.property_changed`, `lead.inactive`) não rodam hoje, nem pela API. Não monte
+- Gatilhos **em breve** (`lead.message_received`, `lead.property_changed`,
+  `lead.inactive`) não rodam hoje, nem pela API. Não monte
   fluxos com eles.
 
 <Visibility for="agents">
