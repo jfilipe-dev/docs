@@ -181,7 +181,7 @@ curl -X POST "https://api.zatten.com/api/v1/hooks/erp-pedido-fechado?lead_number
 - `/hooks`: um fluxo antigo sem Path responde a qualquer `/hooks/…` do projeto.
 - Gatilhos em breve (`lead.message_received`, `lead.property_changed`, `lead.inactive`): aceitos pela rota, mas sem fluxo ativo; `matched` = 0.
 - Todo disparo é por um lead; não há disparo em lote.
-- O que a API de leads já dispara sozinha: `PUT /leads/{numero}` que cria o lead → `lead.created`; `PATCH /leads/{numero}/kanban` → `lead.column_changed`; `POST`/`DELETE /leads/{numero}/tag` → `lead.tag_added`/`lead.tag_removed`; `PATCH /leads/{numero}/assignee` → `lead.assignee_changed` quando o responsável muda de fato; `PATCH /leads/{numero}/thread` → `lead.conversation_closed`. Não disparam: `PATCH /leads/{numero}/properties` (`lead.property_changed`) e `toggle-attendant-response` (`lead.ai_toggled`). Não repita com `/flows/trigger` o que já disparou.
+- O que a API de leads já dispara sozinha: `PUT /leads/{numero}` que cria o lead → `lead.created` (`trigger.source = "upsert"`); `POST /messages/template` para número novo → `lead.created` (`"template"`); `PATCH /leads/{numero}/kanban` → `lead.column_changed`; `POST`/`DELETE /leads/{numero}/tag` → `lead.tag_added`/`lead.tag_removed`; `PATCH /leads/{numero}/assignee` → `lead.assignee_changed` quando o responsável muda de fato; `PATCH /leads/{numero}/thread` → `lead.conversation_closed`. Não disparam: `PATCH /leads/{numero}/properties` (`lead.property_changed`) e `toggle-attendant-response` (`lead.ai_toggled`). Não repita com `/flows/trigger` o que já disparou.
 </Visibility>
 
 ## Armadilhas
@@ -190,6 +190,7 @@ curl -X POST "https://api.zatten.com/api/v1/hooks/erp-pedido-fechado?lead_number
   roda com `{{trigger.body}}` vazio. Formulário (`form-urlencoded`) não funciona direto.
 - **202 não quer dizer que rodou.** No `/hooks`, um path errado também dá 202.
 - **O lead precisa existir.** Número que nunca falou com o projeto nem foi importado dá 404.
+  Crie antes com [`PUT /leads/{numero}`](/api/leads).
 - **Sem `idempotency_key`, reenvio roda de novo.** Sistemas de webhook reenviam em falha;
   use um id do evento de origem como chave.
 - **Propriedade pela API não roda fluxos.** E o gatilho **Propriedade alterada** está em
@@ -198,6 +199,9 @@ curl -X POST "https://api.zatten.com/api/v1/hooks/erp-pedido-fechado?lead_number
   duas vezes.
 - **Gatilho em breve não roda.** `lead.message_received`, `lead.property_changed` e
   `lead.inactive` dão `matched: 0`.
+- **Lead novo já dispara "Novo lead criado" sozinho.** Não chame `/flows/trigger` com
+  `lead.created` depois de criar o lead pelo `PUT` ou por template: o fluxo roda duas
+  vezes.
 - **A chave vai no header, não na URL.** Se o sistema de origem não deixa pôr header,
   ele não consegue chamar o `/hooks`.
 

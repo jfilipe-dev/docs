@@ -5,7 +5,7 @@ keywords: ["Trigger Flow", "blocos", "gatilhos", "condição", "ações", "opera
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando precisar saber o que cada bloco do Trigger Flow faz e quais campos tem: os 11 gatilhos (8 disponíveis e 3 em breve), a condição com todos os campos e operadores, e as 16 ações.
+**Quando ler esta página:** quando precisar saber o que cada bloco do Trigger Flow faz e quais campos tem: os 11 gatilhos (8 disponíveis e 3 em breve), de onde vem cada um (inclusive quando o Novo lead criado dispara e quando não dispara), a condição com todos os campos e operadores, e as 16 ações.
 </Visibility>
 
 O Trigger Flow tem **11 gatilhos** (8 disponíveis hoje e 3 em breve), **1 bloco
@@ -22,7 +22,7 @@ fluxo, nem pela API.
 
 | Gatilho | Disponível? | De onde vem |
 |---|---|---|
-| Novo lead criado | **Sim** | Uma vez por contato novo: primeira mensagem de um número que não estava na base, template enviado a um número novo e `PUT /leads/{numero}` que cria o lead. **Não** dispara para contato criado pelo humano respondendo do celular, nem para o lead de teste do chat de teste ou do MCP |
+| Novo lead criado | **Sim** | Uma vez por contato novo: primeira mensagem de um número que não estava na base, template enviado a um número novo (pela API ou pelo CRM) e [`PUT /leads/{numero}`](/api/leads) que cria o lead. **Não** dispara na importação de CSV, para contato criado pelo humano respondendo do celular, nem para o lead de teste do chat de teste ou do MCP. Ver [quando dispara](#novo-lead-criado-quando-dispara) |
 | Primeira mensagem do lead | **Sim** | Toda vez que uma mensagem do lead abre uma conversa nova (inclusive depois de um encerramento) |
 | Movido no Kanban | **Sim** | Mover o lead pelo CRM (arrastar ou trocar a coluna), pelas ações da Zatten do agente e pelo transbordo por inatividade |
 | Tag adicionada / Tag removida | **Sim** | Pôr ou tirar tag pelo CRM e pelas ações da Zatten do agente |
@@ -43,6 +43,33 @@ ligar/desligar a IA pela API não disparam fluxos. Ver
 [Disparar pela API](/produto/trigger-flow/api).
 </Warning>
 
+### Novo lead criado: quando dispara
+
+Roda **uma vez por lead**, na hora em que o lead é criado. Os fluxos ligados com esse
+gatilho rodam quando o lead nasce por um destes caminhos:
+
+| Como o lead nasceu | Dispara? |
+|---|---|
+| O cliente mandou mensagem de WhatsApp de um número que o projeto não conhecia (conexão oficial ou não oficial) | **Sim** |
+| Template enviado para um número novo, pela [API](/api/mensagens) ou pelo CRM | **Sim** |
+| [`PUT /leads/{numero}`](/api/leads) com um número novo | **Sim**, já com as propriedades e tags da chamada |
+| Importação de CSV em [Contatos](/produto/contatos) | **Não** |
+| Mensagem enviada **pelo celular** (app WhatsApp Business na coexistência, ou o aparelho da conexão não oficial) para um número novo | **Não** |
+| Lead de teste do painel e do MCP (`5511999999999`) | **Não** |
+| Lead que já existia (inclusive importado) mandou mensagem ou recebeu template | **Não**: ele não é novo |
+
+O lead chega ao fluxo já com coluna e responsável definidos. No caso do WhatsApp, o
+fluxo de **Primeira mensagem do lead** também roda para a mesma mensagem: os dois são
+independentes, e não há garantia de qual termina primeiro. O lead criado pelo `PUT`
+não tem conversa: o **Primeira mensagem do lead** só roda quando o cliente escrever.
+
+<Visibility for="agents">
+- `trigger.source`: `whatsapp` (mensagem do cliente), `template` (`POST /messages/template`, inclusive o do CRM), `upsert` (`PUT /leads/{numero}`), `api` (disparo manual por `/flows/trigger`). Existe na execução e em `flow_run.trigger_event`, mas o seletor de variáveis do editor não a oferece.
+- Deduplicado por lead por 24 h: duas criações concorrentes do mesmo número geram uma execução só.
+- Não dispara: importação CSV, eco (mensagem do humano pelo celular, `from = USER`), wa_id `5511999999999`. Um lead que nasceu por eco nunca recebe `lead.created`, nem quando o cliente responder.
+- Lead criado dentro de uma execução de fluxo herda a profundidade; no limite de profundidade o disparo é recusado, como qualquer gatilho.
+</Visibility>
+
 ## Gatilhos
 
 Filtro vazio vale para qualquer valor. Quando há mais de um filtro, todos precisam
@@ -51,7 +78,7 @@ desenhados, mas não podem ser usados hoje.
 
 | Gatilho | Campos (filtros) | O que faz |
 |---|---|---|
-| **Novo lead criado** | — | Roda uma vez quando um contato entra na base (ver [de onde vem cada gatilho](#de-onde-vem-cada-gatilho)). Num contato novo que manda mensagem, roda junto com **Primeira mensagem do lead**. |
+| **Novo lead criado** | — | Roda uma vez quando um contato entra na base (ver [quando dispara](#novo-lead-criado-quando-dispara)). Num contato novo que manda mensagem, roda junto com **Primeira mensagem do lead**. |
 | **Primeira mensagem do lead** | — | Roda na primeira mensagem de cada conversa nova, depois que a mensagem é processada. Publica `{{trigger.message.text}}`. |
 | **Mensagem recebida** | **Contém o texto** (opcional) | **Em breve.** Pensado para rodar a cada mensagem do lead que contém o texto (sem diferenciar maiúsculas e acentos). |
 | **Movido no Kanban** | **Da coluna**, **Para a coluna** (qualquer, se vazio) | Roda quando o lead muda de coluna. Publica a coluna de destino. |
@@ -66,7 +93,7 @@ desenhados, mas não podem ser usados hoje.
 <Visibility for="agents">
 | `type` | Campos do `config` | Variáveis publicadas |
 |---|---|---|
-| `lead.created` | — | — |
+| `lead.created` | — | `trigger.source` (`whatsapp`, `template`, `upsert`; `api` no disparo manual). O editor não lista essa variável. |
 | `lead.first_message` | — | `trigger.message.text` |
 | `lead.message_received` (em breve) | `contains` (string, `""` = qualquer) | `trigger.message.text` |
 | `lead.column_changed` | `from_column_id`, `to_column_id` (`""` = qualquer) | `trigger.column.id`, `trigger.column.name` |
@@ -249,8 +276,11 @@ criação, nomes viram ids. Propriedade vai por slug e template por nome. O usu�
   inativo não podem ser usados hoje, nem pela API. Monte o fluxo com um dos 8
   gatilhos disponíveis.
 - **Novo lead criado e Primeira mensagem no mesmo fluxo de boas-vindas.** Um contato
-  novo que manda mensagem dispara os dois. Escolha um só para não mandar duas
-  mensagens.
+  novo que manda mensagem dispara os dois, sem ordem garantida entre as execuções.
+  Escolha um só para não mandar duas mensagens.
+- **Lead importado nunca recebe "Novo lead criado".** Nem depois, quando ele mandar
+  mensagem: ele já existe. Ações em massa no CRM também não disparam fluxos; para
+  reagir a leads importados, use **Primeira mensagem do lead**.
 - **"Notificar responsável" com `{{trigger.message.text}}`** envia um push por
   mensagem do lead, sem limite. Filtre com uma condição antes.
 - **`{{trigger.message.text}}` é texto do lead.** Na URL de uma Requisição HTTP ele
@@ -259,6 +289,12 @@ criação, nomes viram ids. Propriedade vai por slug e template por nome. O usu�
 ## Perguntas frequentes
 
 <AccordionGroup>
+<Accordion title="Por que o 'Novo lead criado' não rodou para um lead?">
+Confira como o lead nasceu. Importação de CSV, mensagem enviada pelo celular para um
+número novo e o lead de teste não disparam. Um lead que já existia também não: o
+gatilho roda só quando o lead é criado. Confira também se o fluxo estava ligado na
+hora em que o lead nasceu.
+</Accordion>
 <Accordion title="Por que meu fluxo de 'Mensagem recebida' nunca roda?">
 Porque esse gatilho está indisponível hoje (em breve). Para reagir à mensagem do
 lead, use **Primeira mensagem do lead** com uma condição **Texto da mensagem**. Ela

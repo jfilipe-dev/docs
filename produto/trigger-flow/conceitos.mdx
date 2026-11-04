@@ -113,7 +113,8 @@ Variáveis `trigger.*` por gatilho:
 | `lead.assignee_changed` | `trigger.assignee.{user_id,user_email,user_name,department_id,department_name}`, `trigger.previous_assignee.{user_id,user_email,department_id,department_name}`, `trigger.actor.{user_id,origin}` |
 | `lead.conversation_closed` | `trigger.thread.id` |
 | `webhook.inbound` | `trigger.body`, `trigger.body.<campo>`, `trigger.path` |
-| `lead.created`; `lead.inactive` (em breve) | nenhuma além de `lead.*` |
+| `lead.created` | `trigger.source` (`whatsapp`, `template`, `upsert`; `api` no disparo manual). Não aparece no seletor do editor. |
+| `lead.inactive` (em breve) | nenhuma além de `lead.*` |
 
 Saídas de um bloco `http.request` com id `n4`: `node.n4.response.status`,
 `node.n4.response.body` e `node.n4.response.body.<caminho>` (qualquer

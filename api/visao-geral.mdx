@@ -42,6 +42,7 @@ curl "https://api.zatten.com/api/v1/leads/5511999998888" \
 |---|---|
 | Mandar uma mensagem para **um** lead | API: [Mensagens](/api/mensagens), [Mídia](/api/midia) |
 | Ler um lead, as conversas e o histórico | API: [Leads](/api/leads), [Histórico](/api/historico) |
+| Criar um lead, ou atualizar nome, propriedades e tags de uma vez | API: [Leads](/api/leads) (`PUT`) |
 | Mover, pôr tag, preencher propriedade, trocar responsável | API: [Leads](/api/leads) |
 | Ligar, pausar ou desligar a IA de um lead | API: [Controle da IA](/api/controle-da-ia) |
 | Disparar automações ou fluxos para um lead | API: [Automações](/api/automacoes), [Fluxos](/api/fluxos-e-webhook-de-entrada) |
@@ -62,6 +63,7 @@ livre, escrever pede um "sim". Ver [A API do dia a dia para agentes](/trabalhar-
 | `GET /messages/history` | Histórico de uma conversa | [Histórico](/api/historico) |
 | `GET /leads/{numero}` | Dados do lead | [Leads](/api/leads) |
 | `GET /leads/{numero}/threads` | Conversas do lead | [Leads](/api/leads) |
+| `PUT /leads/{numero}` | Cria ou atualiza o lead (nome, propriedades, tags) | [Leads](/api/leads) |
 | `PATCH /leads/{numero}/notes` | Anotação | [Leads](/api/leads) |
 | `PATCH /leads/{numero}/properties` | Propriedade | [Leads](/api/leads) |
 | `POST` · `DELETE /leads/{numero}/tag` | Põe ou tira tag | [Leads](/api/leads) |
@@ -86,7 +88,8 @@ a exportação em **Contatos → Exportar**, que traz nome, telefone, coluna e t
 - **A chave escolhe o projeto.** Não há parâmetro de projeto: uma chave trocada age no
   cliente errado sem erro nenhum.
 - **A API não lista leads.** Planeje a integração a partir do número do lead (vindo do
-  seu sistema, de um [webhook](/api/webhooks-de-saida) ou da exportação).
+  seu sistema, de um [webhook](/api/webhooks-de-saida) ou da exportação). Para trazer
+  um contato do seu sistema, use o `PUT /leads/{numero}`, que cria se não existe.
 - **Ações pela API não são iguais às do CRM.** Mover pela API não aciona
   "Disparar automações" da coluna, e texto pela API não pausa a IA. Cada página diz o
   que muda.

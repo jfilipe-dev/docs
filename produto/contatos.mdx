@@ -129,7 +129,8 @@ Propriedades, responsável e conversas não vão no arquivo.
 
 ## Como funciona por trás
 
-- **Importar não envia mensagem nem dispara automação.** Os contatos só entram na base.
+- **Importar não envia mensagem nem dispara automação.** Os contatos só entram na base:
+  nem o webhook `LEAD_CREATED` nem o gatilho **Novo lead criado** do Trigger Flow saem.
   Para falar com eles, use uma [campanha](/produto/campanhas) com template da Meta.
 - **Lead novo pelo WhatsApp** entra sozinho na coluna de entrada.
 - **Não há botão de deduplicar** no painel. A importação já ignora telefones repetidos.

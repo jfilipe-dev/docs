@@ -18,6 +18,9 @@ O texto de `error` é em inglês e serve para diagnóstico. Monte a lógica pelo
 HTTP** e, quando precisar distinguir casos com o mesmo código, pelo começo do texto
 (listado abaixo).
 
+No [`PUT /leads/{numero}`](/api/leads), um 500 ou 502 que
+acontece depois de o lead ser gravado traz também `result`, com o que já foi aplicado.
+
 Duas exceções ao formato:
 
 - **429** (limite de requisições) vem com `message` em vez de `error`. Ver [Limites](/api/limites).
@@ -38,7 +41,7 @@ Duas exceções ao formato:
 | 413 | Arquivo acima de 50 MB. | Reduza o arquivo. |
 | 429 | Limite de requisições, ou o provedor de WhatsApp limitou o envio. | Espere e tente de novo. |
 | 500 | Erro interno. | Tente de novo mais tarde; se persistir, fale com o [suporte pelo WhatsApp](https://api.whatsapp.com/send/?phone=5511952132715&text&type=phone_number&app_absent=0). |
-| 502 | O provedor externo falhou (WhatsApp não oficial, notificação push). | Tente de novo mais tarde. |
+| 502 | O provedor externo falhou (WhatsApp não oficial, notificação push), ou o `PUT /leads` não conseguiu aplicar as tags. | Tente de novo mais tarde. |
 | 503 | O provedor de WhatsApp está indisponível. | Tente de novo mais tarde. |
 
 ## Erros de validação (400)
@@ -51,6 +54,8 @@ por `;`.
 | `Lead number is required` | Faltou `lead_number`. |
 | `Message is required` | `message` vazio ou ausente. |
 | `Invalid phone number` | `leadNumber` do histórico com menos de 10 ou mais de 15 caracteres. |
+| `Numeric property value cannot be represented exactly (…); send it as a string` | No `PUT /leads`, número JSON grande demais ou em notação científica. Mande como string. |
+| `Value "…" is not a valid number for property "…"` | Propriedade `NUMBER` com valor que não é número. |
 | `Invalid boolean value` | `enabled`, `llm_format` ou `delete_previous_note` não é `true`/`false`. |
 | `pause_minutes only allowed when enabled is false` | `pause_minutes` junto com `enabled: true`. |
 | `Send either user_email or user_id, not both` | Os dois juntos no responsável. |
@@ -119,7 +124,7 @@ PROVIDER_ERROR→502, PROVIDER_RATE_LIMITED→429, PROVIDER_UNAVAILABLE→503).
 Diferença de status para lead inexistente:
 - rotas `/leads/{numero}/…` e `GET /messages/history`: **404** `Lead with number … not found` (histórico: `Lead with phone number … not found`);
 - `POST /messages/text|image|audio|video|file`: **400** `Lead with number … not found`;
-- `POST /messages/template`: cria o lead;
+- `POST /messages/template` e `PUT /leads/{numero}`: criam o lead;
 - `POST /automations/trigger`: **404** `Lead <id> not found`;
 - `POST /flows/trigger`: **404** `Lead … not found for this attendant`.
 </Visibility>

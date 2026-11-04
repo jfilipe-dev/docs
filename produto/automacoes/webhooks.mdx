@@ -36,7 +36,7 @@ Todas as chaves começam desligadas. A chave **ligada / desligada** fica na list
 
 | Evento | Chave | Quando sai | Conexões |
 |---|---|---|---|
-| `LEAD_CREATED` | Leads Criados | Um lead novo nasce: primeira mensagem de um número desconhecido, ou template enviado (pela API ou pelo CRM) para um número novo. Importação de CSV não gera. | Todas. `adsData` só na oficial. |
+| `LEAD_CREATED` | Leads Criados | Um lead novo nasce: primeira mensagem de um número desconhecido, template enviado (pela API ou pelo CRM) para um número novo, ou [`PUT /leads/{numero}`](/api/leads) que cria o lead. Importação de CSV não gera. | Todas. `adsData` só na oficial. |
 | `LEAD_INTERACTION` | Conversas | O lead manda uma mensagem. Um evento por mensagem, antes do agente responder. | Todas |
 | `AI_RESPONSE` | Conversas | O agente respondeu ao lead. | Todas |
 | `HUMAN_INTERACTION` | Conversas | Um humano respondeu **pelo app WhatsApp Business** no mesmo número. | Só coexistência |

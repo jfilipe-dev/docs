@@ -1,11 +1,11 @@
 ---
 title: "Catálogos: colunas, tags e propriedades"
 description: "Descubra os ids das colunas do funil e das tags e os slugs das propriedades que as outras rotas da API pedem."
-keywords: ["GET /kanban", "GET /tags", "GET /properties", "column_id", "tag_id", "slug", "colunas do funil"]
+keywords: ["GET /kanban", "GET /tags", "GET /properties", "property_type", "display_format", "numeric_value", "column_id", "tag_id", "slug", "colunas do funil"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando for descobrir os ids e slugs que as outras rotas pedem: `GET /kanban` (colunas do funil), `GET /tags`, `GET /properties` e `GET /properties/{slug}/values` (valores aceitos de uma propriedade em lista), com respostas, erros e exemplos.
+**Quando ler esta página:** quando for descobrir os ids e slugs que as outras rotas pedem: `GET /kanban` (colunas do funil), `GET /tags`, `GET /properties` (com `property_type` TEXT/NUMBER/ENUM/FLOAT_ENUM e `display_format`) e `GET /properties/{slug}/values` (valores aceitos de uma propriedade em lista, com `numeric_value` em FLOAT_ENUM), com respostas, erros e exemplos.
 </Visibility>
 
 As rotas de lead pedem **ids** (de coluna e de tag) e **slugs** (de propriedade), nunca
@@ -79,8 +79,10 @@ curl "https://api.zatten.com/api/v1/properties" \
 
 ```json
 [
-  { "id": "a7b8c9d0-0000-4000-8000-000000000010", "name": "Cidade", "slug": "cidade", "is_enum": false },
-  { "id": "a7b8c9d0-0000-4000-8000-000000000011", "name": "Convênio", "slug": "convenio", "description": "Plano de saúde do paciente", "is_enum": true }
+  { "id": "a7b8c9d0-0000-4000-8000-000000000010", "name": "Cidade", "slug": "cidade", "is_enum": false, "property_type": "TEXT", "display_format": "NONE" },
+  { "id": "a7b8c9d0-0000-4000-8000-000000000011", "name": "Convênio", "slug": "convenio", "description": "Plano de saúde do paciente", "is_enum": true, "property_type": "ENUM", "display_format": "NONE" },
+  { "id": "a7b8c9d0-0000-4000-8000-000000000012", "name": "Valor do orçamento", "slug": "valor_orcamento", "is_enum": false, "property_type": "NUMBER", "display_format": "CURRENCY_BRL" },
+  { "id": "a7b8c9d0-0000-4000-8000-000000000013", "name": "Plano", "slug": "plano", "is_enum": true, "property_type": "FLOAT_ENUM", "display_format": "CURRENCY_BRL" }
 ]
 ```
 
@@ -88,8 +90,17 @@ curl "https://api.zatten.com/api/v1/properties" \
 |---|---|
 | `slug` | O identificador usado na API, nos templates (`{{slug}}`) e nas tools do agente. |
 | `name` | Nome no painel. |
-| `is_enum` | `true`: propriedade com **valores pré-definidos** (só aceita um da lista). `false`: texto livre. |
+| `property_type` | O tipo, que decide o valor aceito ao gravar (ver abaixo). |
+| `display_format` | `NONE` ou `CURRENCY_BRL` (o painel mostra o número como moeda, R$). Moeda só existe em `NUMBER` e `FLOAT_ENUM`. Não muda o que a API aceita: o valor vai sem `R$`. |
+| `is_enum` | Campo antigo. `true` nas propriedades com valores pré-definidos (`ENUM`, `FLOAT_ENUM`). Prefira `property_type`. |
 | `description` | Descrição. Some quando vazia. |
+
+| `property_type` | O que é | Valor ao gravar no lead |
+|---|---|---|
+| `TEXT` | Texto livre | Qualquer texto |
+| `NUMBER` | Número | Dígitos com ponto decimal: `"1999.90"`, `"-3"`. Sem vírgula nem separador de milhar. |
+| `ENUM` | Valores pré-definidos | Um dos `value` de `GET /properties/{slug}/values` |
+| `FLOAT_ENUM` | Valores pré-definidos, cada um com um número (`numeric_value`), que as métricas do funil somam | Um dos `value` (o slug da opção, como `plano_anual`), nunca o número |
 
 ## `GET /properties/{slug}/values`
 
@@ -107,14 +118,39 @@ curl "https://api.zatten.com/api/v1/properties/convenio/values" \
   "slug": "convenio",
   "name": "Convênio",
   "is_enum": true,
+  "property_type": "ENUM",
+  "display_format": "NONE",
   "values": [
-    { "id": "f1e2d3c4-0000-4000-8000-000000000020", "value": "Unimed" },
-    { "id": "f1e2d3c4-0000-4000-8000-000000000021", "value": "Particular", "description": "Sem convênio" }
+    { "id": "f1e2d3c4-0000-4000-8000-000000000020", "value": "Unimed", "numeric_value": null },
+    { "id": "f1e2d3c4-0000-4000-8000-000000000021", "value": "Particular", "description": "Sem convênio", "numeric_value": null }
   ]
 }
 ```
 
-Mande o `value` exatamente como vem aqui (maiúsculas e acentos contam).
+Numa propriedade `FLOAT_ENUM`, cada opção traz o número dela:
+
+```json
+{
+  "slug": "plano",
+  "name": "Plano",
+  "is_enum": true,
+  "property_type": "FLOAT_ENUM",
+  "display_format": "CURRENCY_BRL",
+  "values": [
+    { "id": "f1e2d3c4-0000-4000-8000-000000000030", "value": "plano_mensal", "description": "Plano mensal", "numeric_value": 199.9 },
+    { "id": "f1e2d3c4-0000-4000-8000-000000000031", "value": "plano_anual", "description": "Plano anual", "numeric_value": 1999 }
+  ]
+}
+```
+
+| Campo da opção | O que é |
+|---|---|
+| `value` | O que você manda ao gravar. Em `FLOAT_ENUM` é um slug (`a-z`, `0-9`, `_`, `-`). |
+| `description` | O texto que o painel mostra. Some quando vazio. |
+| `numeric_value` | O número da opção em `FLOAT_ENUM`. `null` em `ENUM`. |
+
+Mande o `value` exatamente como vem aqui (maiúsculas e acentos contam). Em
+`FLOAT_ENUM`, mande o `value`, não o `numeric_value` nem a `description`.
 
 | Código | `error` | Causa |
 |---|---|---|
@@ -141,6 +177,10 @@ use os catálogos daqui. Ver [Referência do template](/trabalhar-com-ia/referen
 - **Nome não serve como identificador.** Coluna e tag vão pelo id; propriedade, pelo
   slug.
 - **Slug não é o nome.** "Convênio" tem slug `convenio`. Confira em `GET /properties`.
+- **Em `FLOAT_ENUM`, grave o `value`, não o número.** Mandar `1999` numa propriedade
+  `FLOAT_ENUM` dá 400; mande `plano_anual`.
+- **Moeda é só exibição.** `display_format: "CURRENCY_BRL"` não muda o valor aceito:
+  grave `"1999.90"`, nunca `"R$ 1.999,90"`.
 - **Valor de lista é exato.** `unimed` não é `Unimed`.
 - **Ids são por projeto.** A tag "VIP" de um cliente tem outro id no outro cliente. Não
   reaproveite ids entre projetos.

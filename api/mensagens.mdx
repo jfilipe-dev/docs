@@ -156,7 +156,8 @@ curl -X POST "https://api.zatten.com/api/v1/messages/template" \
 ### O que acontece no projeto
 
 - Lead novo: nasce na primeira coluna do funil, com o `name` enviado. Os webhooks
-  recebem `LEAD_CREATED`.
+  recebem `LEAD_CREATED` e rodam os fluxos **Novo lead criado** do
+  [Trigger Flow](/produto/trigger-flow/blocos).
 - O template aparece no chat do lead já preenchido. Os webhooks recebem `WA_TEMPLATE`
   no envio e `API_KEY_INTERACTION` na entrega.
 - Template **não agenda automações**.
@@ -165,7 +166,7 @@ curl -X POST "https://api.zatten.com/api/v1/messages/template" \
 
 <Visibility for="agents">
 - `POST /messages/text` → 201 `{wa_id, thread_id}`. Síncrono: o envio ao provedor acontece antes da resposta.
-- `POST /messages/template` → 201 `{wa_id, name, thread_id}`. Cria o lead se não existir (dispara `LEAD_CREATED`).
+- `POST /messages/template` → 201 `{wa_id, name, thread_id}`. Cria o lead se não existir (dispara `LEAD_CREATED` e `lead.created` com `trigger.source = "template"`).
 - A janela de 24h é checada só na conexão oficial: `lead.conversation_expires_in` (última mensagem do lead + 24h) no passado → 400.
 - A mensagem de texto pela API é gravada com `from: ATTENDANT`. Não pausa a IA.
 - Não há limite de caracteres próprio da Zatten no `message`; vale o limite do WhatsApp.

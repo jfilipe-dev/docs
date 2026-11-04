@@ -27,6 +27,7 @@ ligar e desligar, referências por nome) estão em
 | `tags` | Tags do projeto | `slug` (ou nome) | [Tags](/produto/tags) |
 | `columns` | Colunas do funil | `slug` (ou nome) | [Funil (Kanban)](/produto/funil-kanban) |
 | `properties` | Propriedades personalizadas e seus valores | `slug` (ou nome) | [Propriedades](/produto/propriedades) |
+| `kanban_column_metrics` | Métricas no topo das colunas do funil | coluna + tipo + propriedade ou tag + limiar ou valor | [Funil (Kanban)](/produto/funil-kanban) |
 | `skills` | Skills do agente | `slug` | [Skills do agente](/engenharia-de-ia/skills) |
 | `follow_ups` | Follow-ups e reengajamentos | nome | [Follow-up](/produto/automacoes/follow-up), [Reengajamento](/produto/automacoes/reengajamento) |
 | `webhooks` | Webhooks de eventos | nome | [Webhooks de eventos](/produto/automacoes/webhooks) |
@@ -144,21 +145,48 @@ encerrar o atendimento.
 
 ### properties
 
-As propriedades personalizadas: texto livre, número, lista fechada de valores ou
-lista com valor numérico.
+As propriedades personalizadas, de quatro tipos: texto livre (`TEXT`), número
+(`NUMBER`), lista fechada (`ENUM`) e lista fechada com um número por opção
+(`FLOAT_ENUM`, que as métricas do funil somam).
 
 **Na escrita:**
 
-- O tipo vai em `property_type` (ausente = não mexe). `ENUM` e `FLOAT_ENUM` exigem
-  ao menos uma opção; em `FLOAT_ENUM`, cada opção leva `numeric_value`.
-- Sem `property_type`, vale o jeito antigo: `is_enum: true` com `values` vira lista.
-- Propriedade já preenchida em algum contato não troca de tipo (nota com a
-  contagem), salvo entre `ENUM` e `FLOAT_ENUM`. Para virar `FLOAT_ENUM`, reenvie
-  todas as opções que existem, cada uma com `numeric_value`.
+- O tipo vai em `property_type`. Ausente, não mexe no tipo de uma propriedade que
+  já existe; numa propriedade nova, vale `TEXT`. O campo antigo `is_enum: true`
+  ainda funciona e equivale a `ENUM`. Com `property_type` `ENUM` ou `FLOAT_ENUM`,
+  não precisa mandar `is_enum`.
+- Lista fechada (`ENUM`, `FLOAT_ENUM`) precisa de `values` com ao menos um valor,
+  sem repetidos (maiúsculas não contam). `values` numa propriedade que não é de
+  lista é ignorado, com nota.
+- Em `FLOAT_ENUM`, cada opção tem `numeric_value` (obrigatório) e o `value` é um
+  **slug**: só `a-z`, `0-9`, `_` e `-` (ex.: `plano_anual`). É esse slug que o
+  agente e a API gravam no lead; o texto que a tela mostra vai em `description`.
+- Troca de tipo de uma propriedade já preenchida em algum contato **não é feita**,
+  com nota e a contagem de contatos. A exceção é `ENUM` ⇄ `FLOAT_ENUM`, sempre
+  permitida (o valor gravado no lead é o mesmo).
+- `ENUM` → `FLOAT_ENUM`: opções que já existiam e não vieram com `numeric_value`
+  ficam sem número e não entram nas métricas, com nota. `FLOAT_ENUM` → `ENUM`
+  apaga o `numeric_value` das opções e volta o formato para `NONE`.
+- `display_format`: `CURRENCY_BRL` mostra o número como moeda (R$) e só vale em
+  `NUMBER` e `FLOAT_ENUM`; nos outros tipos é ignorado, com nota. Ausente, não
+  mexe no formato.
 - Valor retirado de `values` continua existindo: pode haver lead preenchido com ele.
 - `send_to_ai` decide se o valor entra no contexto do agente. Padrão: `true`
   (propriedade criada pelo painel vai para a IA). Não aparece no formulário do
   painel; só se altera pelo template.
+
+```json
+{
+  "name": "Plano",
+  "slug": "plano",
+  "property_type": "FLOAT_ENUM",
+  "display_format": "CURRENCY_BRL",
+  "values": [
+    { "value": "plano_mensal", "description": "Plano mensal", "numeric_value": 199.9 },
+    { "value": "plano_anual", "description": "Plano anual", "numeric_value": 1999 }
+  ]
+}
+```
 
 <Visibility for="agents">
 | Campo | Tipo | Notas |
@@ -167,11 +195,13 @@ lista com valor numérico.
 | `slug` | string ou null | Chave de identidade; é o nome do parâmetro nas tools do agente |
 | `description` | string ou null | |
 | `scope` | `lead` ou `conversation` | |
-| `property_type` | `TEXT`, `NUMBER`, `ENUM`, `FLOAT_ENUM` | Ausente = não mexe |
-| `display_format` | `NONE` ou `CURRENCY_BRL` | Moeda, só em `NUMBER` e `FLOAT_ENUM`. Ausente = não mexe |
-| `is_enum` | boolean | Legado: liga a lista quando `property_type` não vem |
+| `property_type` | `TEXT`, `NUMBER`, `ENUM` ou `FLOAT_ENUM` | Fonte de verdade do tipo. Ausente = não mexe (nova: `TEXT`) |
+| `is_enum` | boolean | Legado. Sem `property_type`, `true` = `ENUM`. Dispensável com `property_type` `ENUM`/`FLOAT_ENUM` |
+| `display_format` | `NONE` ou `CURRENCY_BRL` | Moeda só em `NUMBER` e `FLOAT_ENUM`. Ausente = não mexe |
 | `send_to_ai` | boolean | Injeta o valor no contexto do agente |
-| `values` | lista de `{ value, description?, numeric_value? }` | Chave de cada valor: `value` (slug em `FLOAT_ENUM`). `numeric_value` obrigatório em `FLOAT_ENUM` |
+| `values` | lista de `{ value, description?, numeric_value? }` | Chave de cada valor: `value`. Só em `ENUM`/`FLOAT_ENUM`; ao menos um, sem repetidos |
+| `values[].numeric_value` | número | Obrigatório em `FLOAT_ENUM` (falta = template inválido); fora dele é gravado como vazio |
+| `values[].value` em `FLOAT_ENUM` | string | Slug `^[a-z0-9]+([_-][a-z0-9]+)*$` |
 </Visibility>
 
 ### kanban_column_metrics
@@ -179,21 +209,58 @@ lista com valor numérico.
 As métricas por coluna do funil: soma e contagens que aparecem no topo de cada
 coluna ([Funil](/produto/funil-kanban)).
 
-**Na escrita:** aponta para coluna e tag pelo nome e para a propriedade pelo slug.
-A métrica é identificada pela combinação inteira (coluna, tipo, propriedade ou tag,
-operador e valor): mudar uma parte cria outra, e a antiga vira órfã.
+| `metric_type` | Mostra | Pede | Propriedade aceita |
+|---|---|---|---|
+| `SUM` | A soma da propriedade nos leads da coluna | `property_slug` | `NUMBER` ou `FLOAT_ENUM` (soma o `numeric_value` da opção) |
+| `COUNT_THRESHOLD` | Quantos leads têm a propriedade acima ou abaixo de um valor | `property_slug`, `threshold_value`, `threshold_operator` | `NUMBER` ou `FLOAT_ENUM` |
+| `COUNT_TAG` | Quantos leads da coluna têm a tag | `tag_name` | — |
+| `COUNT_EQ` | Quantos leads têm uma opção da propriedade | `property_slug`, `eq_value` | Só `ENUM` |
+
+**Na escrita:**
+
+- A coluna vai por nome (`column_name`), a propriedade pelo slug e a tag pelo
+  nome. Coluna, propriedade ou tag que não existem no projeto: a métrica é
+  ignorada, com nota.
+- `threshold_operator`: `"gt"` (maior que) ou `"lt"` (menor que). Ausente vale
+  `"gt"`. Só em `COUNT_THRESHOLD`, junto com `threshold_value`.
+- `COUNT_EQ` só com propriedade `ENUM`, e `eq_value` precisa ser um dos `value`
+  dela. Senão, a métrica é ignorada, com nota.
+- Campo que não pertence ao tipo (tag em `SUM`, limite em `COUNT_TAG`, operador
+  em `COUNT_EQ`…) torna o template inválido.
+- A métrica não tem nome nem slug: é identificada pela combinação coluna + tipo +
+  propriedade ou tag + limite e operador (ou valor). Trocar o limite, o operador ou
+  o valor cria **outra** métrica; a antiga continua.
+- **Métrica que não vem no JSON não é apagada.** Ela volta em `orphans`. Para tirar
+  uma métrica, use o painel.
+- `display_order` define a ordem na coluna. Ausente, não mexe.
+
+```json
+"kanban_column_metrics": [
+  { "column_name": "Proposta enviada", "metric_type": "SUM", "property_slug": "plano" },
+  {
+    "column_name": "Proposta enviada",
+    "metric_type": "COUNT_THRESHOLD",
+    "property_slug": "valor_orcamento",
+    "threshold_operator": "lt",
+    "threshold_value": 500
+  },
+  { "column_name": "Novo lead", "metric_type": "COUNT_EQ", "property_slug": "convenio", "eq_value": "Unimed" }
+]
+```
 
 <Visibility for="agents">
 | Campo | Tipo | Notas |
 |---|---|---|
 | `column_name` | string | Obrigatório |
-| `metric_type` | `SUM`, `COUNT_THRESHOLD`, `COUNT_EQ`, `COUNT_TAG` | `SUM` e `COUNT_THRESHOLD` em `NUMBER`/`FLOAT_ENUM`; `COUNT_EQ` em `ENUM` |
-| `property_slug` | string ou null | Obrigatório em `SUM`, `COUNT_THRESHOLD` e `COUNT_EQ` |
-| `tag_name` | string ou null | Obrigatório em `COUNT_TAG` |
-| `threshold_operator` | `gt` ou `lt` | Só em `COUNT_THRESHOLD`; ausente = `gt` |
-| `threshold_value` | número | Obrigatório em `COUNT_THRESHOLD` |
-| `eq_value` | string | Slug da opção; obrigatório em `COUNT_EQ` |
-| `display_order` | número | Ausente = não mexe |
+| `metric_type` | `SUM`, `COUNT_THRESHOLD`, `COUNT_TAG` ou `COUNT_EQ` | Obrigatório |
+| `property_slug` | string ou null | Obrigatório em `SUM`, `COUNT_THRESHOLD`, `COUNT_EQ`; proibido em `COUNT_TAG` |
+| `tag_name` | string ou null | Obrigatório em `COUNT_TAG`; proibido nos outros |
+| `threshold_operator` | `gt`, `lt` ou null | Só `COUNT_THRESHOLD`; ausente = `gt`. Faz parte da identidade |
+| `threshold_value` | número ou null | Obrigatório em `COUNT_THRESHOLD`; proibido nos outros |
+| `eq_value` | string ou null | Obrigatório em `COUNT_EQ` (o `value` da opção); proibido nos outros |
+| `display_order` | inteiro ≥ 0 | Ausente = não mexe |
+
+Chave calculada: `column_name::metric_type::(property_slug | tag_name)::(threshold_operator:threshold_value | eq_value)`. O `get_template` devolve `threshold_operator` só em `COUNT_THRESHOLD` (null nos outros).
 </Visibility>
 
 ### skills
@@ -476,8 +543,9 @@ Os fluxos do Trigger Flow: gatilho, condições e ações, desenhados no editor.
 - Fluxo sem nó de gatilho não é criado. Dois fluxos com o mesmo caminho de webhook
   de entrada também não.
 - Gatilhos **em breve** (`lead.message_received`, `lead.property_changed`,
-  `lead.inactive`) não rodam hoje, nem pela API. Não monte
-  fluxos com eles.
+  `lead.inactive`) não rodam hoje, nem pela API. Não monte fluxos com eles.
+  `lead.created` (**Novo lead criado**) está disponível; ele não roda para leads
+  importados por CSV (ver [quando dispara](/produto/trigger-flow/blocos#novo-lead-criado-quando-dispara)).
 
 <Visibility for="agents">
 | Campo | Tipo | Notas |

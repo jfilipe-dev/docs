@@ -1,11 +1,11 @@
 ---
 title: "Leads"
-description: "Veja e altere um lead pela API: dados, conversas, anotação, propriedades, tags, coluna do funil e responsável."
-keywords: ["/leads/{numero}", "propriedades", "tags", "coluna do funil", "responsável", "anotação", "listar leads"]
+description: "Veja, crie e altere um lead pela API: dados, conversas, criar ou atualizar (upsert), anotação, propriedades, tags, coluna do funil e responsável."
+keywords: ["/leads/{numero}", "PUT /leads", "upsert", "criar lead", "propriedades", "tags", "coluna do funil", "responsável", "anotação", "listar leads"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando for consultar e alterar um lead pela API: dados do lead, conversas, anotação, propriedades, tags, coluna do funil e responsável, com corpo, resposta, erros, exemplos e o que cada mudança dispara (ou não) no projeto. Também: como obter uma lista de leads, já que não há endpoint de listagem.
+**Quando ler esta página:** quando for consultar, criar e alterar um lead pela API: dados do lead, conversas, criar ou atualizar o lead de uma vez (`PUT`, upsert com nome, propriedades e tags), anotação, propriedades, tags, coluna do funil e responsável, com corpo, resposta, erros, exemplos e o que cada mudança dispara (ou não) no projeto. Também: como obter uma lista de leads, já que não há endpoint de listagem.
 </Visibility>
 
 As rotas de lead ficam em `/leads/{numero}`, em que `{numero}` é o número do WhatsApp
@@ -92,13 +92,27 @@ Cria o lead se o número ainda não existe no projeto; se existe, atualiza. Numa
 só: nome, várias propriedades e tags. Serve para trazer contatos de outro sistema (um
 CRM, um formulário) sem enviar mensagem.
 
+| Situação | O que acontece |
+|---|---|
+| Número novo no projeto | Cria o lead na primeira coluna do funil, com o responsável do rodízio do departamento padrão, e aplica o resto do corpo. Responde **201**. |
+| Lead já existe | Atualiza só o que veio no corpo. Responde **200**, mesmo que nada tenha mudado. |
+
+A busca do lead existente aceita o número com ou sem o 9º dígito (ver
+[Identificar o lead](/api/identificar-o-lead)). O lead **criado** guarda o número
+exatamente como veio na URL.
+
+O lead nasce **sem conversa**: não aparece no funil até a primeira conversa, e
+**Primeira mensagem do lead** roda quando o cliente escrever pela primeira vez. Para
+falar primeiro com o lead, envie um [template](/api/mensagens).
+
 | Campo | Tipo | Obrigatório | Regra |
 |---|---|---|---|
-| `name` | string ou null | Não | Até 255 caracteres. Ausente não mexe no nome. |
-| `properties` | objeto `{ slug: valor }` | Não | Várias propriedades de uma vez, pelo **slug**. Número e booleano viram texto. `null` ou `""` **apaga** o valor. As regras de cada tipo valem (lista fechada, número). |
-| `tags` | `{ "mode": "add" \| "replace", "ids": [...] }` | Não | Pelo **id**. `add` (padrão) acrescenta; `replace` deixa o lead só com essas tags. |
+| `name` | string ou null | Não | Até 255 caracteres. Ausente não mexe no nome; `null` ou `""` apaga o nome. |
+| `properties` | objeto `{ slug: valor }` | Não | Várias propriedades de uma vez, pelo **slug**. Número e booleano viram texto. `null` ou `""` **apaga** o valor. As regras de cada tipo valem (lista fechada, número; ver abaixo). |
+| `tags` | `{ "mode": "add" \| "replace", "ids": [...] }` | Não | Pelo **id** (de `GET /tags`); `ids` é obrigatório quando `tags` vem, e ids repetidos contam uma vez. `add` (padrão) acrescenta e não tira nenhuma; `replace` deixa o lead só com essas tags (`"replace"` com `ids: []` tira todas). |
 
-Campo fora desses três dá 400. O número segue as mesmas regras das outras rotas: só
+Campo fora desses três dá 400. Corpo vazio (`{}`) cria o lead só com o número, ou não
+faz nada se ele já existe. O número segue as mesmas regras das outras rotas: só
 dígitos, com DDI, de 10 a 15 dígitos.
 
 ```bash
@@ -107,6 +121,30 @@ curl -X PUT "https://api.zatten.com/api/v1/leads/5511999998888" \
   -H "Content-Type: application/json" \
   -d '{ "name": "Maria", "properties": { "convenio": "Unimed", "valor_orcamento": 1500 }, "tags": { "mode": "add", "ids": ["b2c1d0e9-0000-4000-8000-000000000001"] } }'
 ```
+
+### Valor de cada tipo de propriedade
+
+O tipo de cada propriedade vem no campo `property_type` de `GET /properties`
+([Catálogos](/api/catalogos)).
+
+| `property_type` | Aceita | Exemplo |
+|---|---|---|
+| `TEXT` | Qualquer texto. | `"Campinas"` |
+| `NUMBER` | Número com ponto decimal, sinal de menos opcional. Sem vírgula, sem separador de milhar, sem `+`, sem notação científica. | `"1999.90"`, `"-3"`, `42` |
+| `ENUM` | Exatamente um dos `value` de `GET /properties/{slug}/values` (maiúsculas e acentos contam). | `"Unimed"` |
+| `FLOAT_ENUM` | Igual ao `ENUM`: o `value` da opção, **nunca** o número dela (`numeric_value`). | `"Plano anual"` |
+
+`null` e `""` apagam o valor em qualquer tipo, sem passar por essa validação.
+Apagar uma propriedade que o lead não tem não dá erro.
+
+<Warning>
+**Número grande vai como texto.** Um número JSON que não cabe com exatidão (inteiro
+acima de 9007199254740991 em módulo, ou que vira notação científica, como `1e21` ou
+`0.0000001`) já chega arredondado ao servidor e dá **400**. Mande como string:
+`"12345678901234567890"`.
+</Warning>
+
+### Resposta: 200 ou 201
 
 **201** quando criou, **200** quando atualizou. O corpo diz o que mudou:
 
@@ -119,20 +157,69 @@ curl -X PUT "https://api.zatten.com/api/v1/leads/5511999998888" \
 }
 ```
 
+| Campo | O que é |
+|---|---|
+| `created` | `true` se esta chamada criou o lead. |
+| `lead` | Id, número e nome do lead. |
+| `properties.updated` | Slugs gravados (novos ou com valor diferente). |
+| `properties.removed` | Slugs apagados. |
+| `properties.unchanged` | Slugs que já estavam com esse valor, ou que mandaram apagar algo que não existia. |
+| `tags.added`, `tags.removed` | Ids das tags que entraram e saíram. |
+| `tags.current` | Ids de todas as tags do lead depois da chamada. |
+
+### Erros
+
 | Código | `error` | Causa |
 |---|---|---|
-| 400 | `Invalid lead number …` | Número fora do formato. |
-| 404 | `Properties not found: …` | Slug que não existe no projeto. |
-| 404 | `One or more tags not found: …` | Id de tag que não existe no projeto. |
-| 400 | `Value "…" is not allowed for property "…"` / `… is not a valid number …` | Valor fora da lista ou não numérico. |
+| 400 | `Invalid lead number … Use the country code followed by the number, digits only (e.g. 5511999998888)` | Número com menos de 10 ou mais de 15 dígitos. |
+| 400 | `Unrecognized key(s) in object: '…'` | Campo fora da tabela do corpo. |
+| 400 | `Numeric property value cannot be represented exactly (…); send it as a string` | Número JSON grande demais ou em notação científica. Mande como string. |
+| 400 | `Value "…" is not a valid number for property "…"` | Propriedade `NUMBER` com valor que não é número. |
+| 400 | `Value "…" is not allowed for property "…". Allowed values: …` | `ENUM` ou `FLOAT_ENUM` com valor fora da lista. A mensagem traz os valores aceitos. |
+| 400 | `Property "…" is an enum property but has no configured values` | Lista fechada sem nenhum valor cadastrado. |
+| 404 | `Properties not found: …` | Slugs que não existem no projeto (todos listados). |
+| 404 | `One or more tags not found: …` | Tag inexistente ou de outro projeto. |
+| 500 | `Internal server error` | Falha interna. Pode vir com `result` (abaixo). |
+| 502 | `Failed to apply tags` | Falhou ao pôr ou tirar uma tag. Vem com `result`. |
 
 Tudo é validado **antes** de gravar: um erro de propriedade ou de tag não deixa o lead
 criado pela metade. Se uma falha acontecer depois de o lead ser gravado, a resposta de
 erro traz `result` com o que já foi aplicado, e repetir o `PUT` é seguro.
 
-Lead criado assim dispara o webhook `LEAD_CREATED` e os fluxos **Novo lead criado**. Ele
-nasce **sem conversa**: não aparece no funil até a primeira conversa, e **Primeira
-mensagem do lead** roda quando o cliente escrever pela primeira vez.
+### Falha no meio: `{ error, result }`
+
+Um **500** ao gravar ou apagar propriedades, ou um **502** nas tags, pode acontecer
+**depois** de o lead ter sido criado ou alterado. O campo `result` vem no mesmo
+formato da resposta de sucesso:
+
+```json
+{
+  "error": "Failed to apply tags",
+  "result": {
+    "created": true,
+    "lead": { "id": "6f1c2b9e-3a4d-4c55-9a77-0d2e1f3b4c5d", "number": "5511999998888", "name": "Maria Souza" },
+    "properties": { "updated": ["convenio"], "removed": [], "unchanged": [] },
+    "tags": { "added": [], "removed": [], "current": [] }
+  }
+}
+```
+
+Para completar, repita o mesmo `PUT`. Ele cai no caminho de atualização (200) e
+aplica só o que faltou; o que já está igual volta em `unchanged`.
+
+### O que o `PUT` dispara
+
+Lead criado assim dispara o webhook `LEAD_CREATED` e os fluxos **Novo lead criado**.
+
+| Quando | Efeito |
+|---|---|
+| Criou o lead (`created: true`) | Webhook `LEAD_CREATED` e o gatilho **Novo lead criado** do [Trigger Flow](/produto/trigger-flow/blocos), uma vez cada, com o lead já com as propriedades e tags desta chamada. Saem mesmo se a chamada terminar em 500 ou 502 depois de criar. |
+| Pôs ou tirou tag | O mesmo de `POST`/`DELETE /leads/{numero}/tag`: webhooks `LEAD_TAG_ADDED`/`LEAD_TAG_REMOVED` e fluxos **Tag adicionada**/**Tag removida**. |
+| Gravou ou apagou propriedade | Nada além de gravar. |
+| Lead já existia | Nenhum `LEAD_CREATED` e nenhum **Novo lead criado**. |
+
+O webhook e o fluxo saem em segundo plano: a resposta não espera a entrega. Num
+`PUT` que cria o lead com tags, os eventos de tag saem **antes** do `LEAD_CREATED`.
 
 ## `GET /leads/{numero}/threads`
 
@@ -201,7 +288,7 @@ curl -X PATCH "https://api.zatten.com/api/v1/leads/5511999998888/properties" \
 | 404 | `Property not found` | Não há propriedade com esse slug no projeto. |
 | 400 | `Value "…" is not allowed for property "…". Allowed values: …` | Valor fora da lista. A mensagem traz os valores aceitos. |
 | 400 | `Property "…" is an enum property but has no configured values` | Lista fechada sem nenhum valor cadastrado. |
-| 400 | `Value "…" is not a valid number for property "…"` | Propriedade **Número** com valor que não é número. |
+| 400 | `Value "…" is not a valid number for property "…"` | Propriedade **Número** com valor que não é número (aceita só dígitos com ponto decimal, como `1999.90`). |
 | 400 | `Value must be at least 1 character long` | `value` vazio. |
 | **200** | `Property … already has value "…"` (no campo `error`) | O lead já tinha esse valor. Nada mudou. Trate como sucesso. |
 
@@ -299,7 +386,7 @@ departamento: nada foi gravado e ninguém perdeu a vez no rodízio.
 
 | Mudança pela API | Efeitos no projeto | Não faz |
 |---|---|---|
-| Criar pelo `PUT` | Webhook `LEAD_CREATED`; roda os fluxos **Novo lead criado**. | Não abre conversa (o lead só entra no funil na primeira conversa). |
+| Criar pelo `PUT` | Webhook `LEAD_CREATED`; roda os fluxos **Novo lead criado**, uma vez. As tags do corpo disparam o mesmo que pôr tag. | Não abre conversa nem roda **Primeira mensagem do lead** (o lead só entra no funil na primeira conversa). |
 | Mover no funil | Aplica **Desativar IA** e **Transbordo** da coluna; envia conversões, o webhook `LEAD_KANBAN_UPDATED` e roda os fluxos **Movido no Kanban**. | Não aciona **Disparar automações** da coluna. |
 | Pôr ou tirar tag | Webhooks `LEAD_TAG_ADDED` / `LEAD_TAG_REMOVED`; roda os fluxos **Tag adicionada** / **Tag removida**. | — |
 | Propriedade | Grava o valor. | Não roda fluxos (o gatilho **Propriedade alterada** está em breve). |
@@ -313,7 +400,7 @@ mesmo evento, ou o fluxo roda duas vezes. Para agendar automações, chame
 [`/automations/trigger`](/api/automacoes) (só na conexão oficial).
 
 <Visibility for="agents">
-- PUT lead → 201 (criou) / 200 (atualizou) `{created, lead: {id, number, name}, properties: {updated, removed, unchanged}, tags: {added, removed, current}}`. Corpo estrito (só `name`, `properties`, `tags`). Erro depois da escrita vem com `result` parcial.
+- PUT lead → 201 (criou) / 200 (existia, ou criado em paralelo por outra chamada) `{created, lead: {id, number, name}, properties: {updated, removed, unchanged}, tags: {added, removed, current}}`. Corpo `.strict()`: `name?: string|null` (≤255), `properties?: {slug: string|number|boolean|null}`, `tags?: {mode?: "add"|"replace", ids: string[]}`. Valores viram `String(v).trim()`; `""` e `null` apagam. NUMBER: `^-?\d+(\.\d+)?$`. ENUM/FLOAT_ENUM: `value` exato da opção (grava também o id da opção). Número JSON fora de ±2^53−1 ou em notação científica → 400. Tudo validado antes de escrever (400/404 sem efeito). Falha depois de escrever → 500 (propriedades) ou 502 `Failed to apply tags`, com `{error, result}`; repetir o PUT completa. Criado → webhook `LEAD_CREATED` + `lead.created` (`trigger.source = "upsert"`), sem `await`, mesmo com 500/502. Lead nasce sem thread; `lead.first_message` sai na primeira mensagem do cliente.
 - GET lead → `{lead: {id, name?, phone, ai_status: "active"|"inactive", kanban_column?: {id,name}, current_tags?: [{id,name}], metadata?: {slug: value}, annotation?, assigned_to_user?: {id,name}, assigned_to_team?: {id,name}, created_at}}`. Campos `undefined` são omitidos.
 - `ai_status: "inactive"` = `ai_response_block_until` no futuro (pausada ou desligada).
 - threads → `{threads: [{thread_id, created_at, closed_at|null}]}`, ordem `created_at` desc.
@@ -327,6 +414,12 @@ mesmo evento, ou o fluxo roda duas vezes. Para agendar automações, chame
 
 ## Armadilhas
 
+- **`PUT` com `tags.mode: "replace"` tira as tags que não vieram.** Para só acrescentar,
+  use o padrão `"add"`.
+- **No `PUT`, `null` e `""` apagam.** Uma integração que manda campo vazio "por
+  padrão" apaga a propriedade. Tire do corpo o que não quer mudar.
+- **Lead criado pelo `PUT` não tem conversa.** Texto e mídia pela API exigem a janela
+  de 24h aberta na conexão oficial: comece com um [template](/api/mensagens).
 - **Tag e coluna vão pelo id; propriedade vai pelo slug.** Nome não funciona em nenhum dos
   três. Pegue os ids em [Catálogos](/api/catalogos).
 - **Mover para coluna com "Desativar IA" desliga a IA do lead.** Diga isso a quem pediu.
