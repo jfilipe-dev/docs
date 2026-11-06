@@ -28,7 +28,7 @@ externos para o seu agente usar como ferramentas". A tela lista os apps com busc
 Para saber se um app existe, **busque pelo nome** nessa tela. Não há lista fixa
 nesta documentação: o catálogo tem mais de mil apps e é atualizado sozinho.
 
-Só **admin** e **editor** conectam e desconectam.
+**Admin**, **editor** e **gestor** conectam e desconectam.
 
 ## Sem custo e sem limite
 
@@ -69,8 +69,14 @@ Conectar não basta: adicione as ações no editor do agente (**Tools** →
 
 No card conectado, **Desconectar**. O agente perde acesso às ações daquele app até
 a conta ser conectada de novo. No LangChain Agent, as ações do app continuam no
-agente e o modelo continua vendo-as: quando ele chama uma, a chamada falha e ele
-recebe o erro. Tire as ações do agente se a conta não vai voltar.
+agente e o modelo continua vendo-as: quando ele chama uma, a chamada falha, a
+conversa segue e ele recebe o erro, com a mensagem de erro da ação, se houver
+(ver [Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes)).
+No editor do agente, essas ações aparecem marcadas **Não conectado**. Tire as
+ações do agente se a conta não vai voltar.
+
+A conexão é de cada projeto. Duplicar um projeto ou aplicar um template leva as
+ações, nunca a conta conectada: conecte de novo no projeto novo.
 
 ## Regras da conexão
 

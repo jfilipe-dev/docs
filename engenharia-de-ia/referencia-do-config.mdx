@@ -220,6 +220,7 @@ o agente ignora e devolve intactos. Mantenha-os como vieram do `get_template`.
 | `tools[].type` | `"composio"` | `"composio"` | ativo |
 | `tools[].toolkit` | string | obrigatório | ativo. Ex.: `gmail` |
 | `tools[].action` | string | obrigatório | ativo. Ex.: `send_email`. O nome visto pelo modelo é `TOOLKIT_ACTION` em maiúsculas (`GMAIL_SEND_EMAIL`) |
+| `tools[].on_error` | string | `""` | ativo. Instrução ao modelo quando esta chamada falha, como na tool `http`. Falha de ação nunca encerra a execução: vira o resultado da tool |
 | `tools[].require_approval` | boolean | `false` | sempre `false` |
 
 **`type: "mcp"`** ([Servidores MCP](/engenharia-de-ia/tools/mcp)). Uma entrada é

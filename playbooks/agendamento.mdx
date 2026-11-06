@@ -112,6 +112,8 @@ horários livres, avise que vai chamar a recepção e transfira para humano.
 
 Escreva também a regra de cada ação em **Quando usar no seu atendimento**, na própria ação. A regra perto da tool pesa mais na decisão do modelo. Veja [Escrever um bom prompt](/engenharia-de-ia/prompt).
 
+Se a agenda for um app integrado (Google Agenda, Cal.com), configure também a **Mensagem para a IA se a chamada falhar** em cada ação da agenda (consultar, criar, apagar). Ela chega ao modelo junto com o erro e decide o que ele faz quando a agenda cai: transferir para a recepção ou seguir agendando pela conversa no horário de atendimento. Escolha uma regra e use a mesma no prompt e nas ações. Veja [Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes).
+
 ## Decisões e o porquê
 
 **Por que preencher a propriedade antes de agendar o lembrete?** As variáveis do template são preenchidas **no momento do agendamento**, com os dados que o lead tem naquela hora. Se `data_agendamento` estiver vazia, o lembrete não é agendado, e o modelo recebe um erro.
