@@ -146,8 +146,10 @@ entre elas. Se todas falharem, grava o erro no chat e dispara o webhook de erro
 
 ## E quando a falha é de uma tool?
 
-Falha de tool não aciona fallback de modelo. O modelo recebe o erro (com a
-instrução `on_error` da tool, se houver) e decide o que dizer. Para repetir
+Falha de tool não aciona fallback de modelo e não encerra o atendimento. O modelo
+recebe o erro (com a instrução `on_error` da tool, se houver) e decide o que
+dizer. Vale para tools HTTP e para ações de [apps integrados](/engenharia-de-ia/tools/integracoes),
+inclusive quando a conta do app não está conectada. Para repetir
 chamadas a APIs instáveis, ligue **Repetir ao falhar** nas configurações das tools.
 Ver [Tool HTTP](/engenharia-de-ia/tools/http) e
 [Limites e segurança](/engenharia-de-ia/limites-e-seguranca).

@@ -8,7 +8,7 @@ keywords: ["versão da skill", "zatten-ops", "Zatten-OS", "atualizar", "changelo
 **Quando ler esta página:** no começo de cada sessão, para comparar a versão atual do Zatten-OS com a instalada (o `metadata.version` de qualquer uma das skills), avisar a agência se a instalada estiver velha e explicar como atualizar.
 </Visibility>
 
-**Versão atual do Zatten-OS: 4.3.0**
+**Versão atual do Zatten-OS: 4.3.1**
 
 As quatro skills (`zatten-ops`, `zatten-comercial`, `zatten-agencia` e `zatten-grill`)
 saem juntas e têm sempre a mesma versão.
@@ -36,6 +36,15 @@ No Claude Code, ligue a atualização automática do marketplace `zatten-os` em
 </Tip>
 
 ## O que mudou
+
+### 4.3.1
+
+- Ações de apps integrados (Google Agenda, Gmail…) aceitam `on_error`, a mensagem
+  para a IA quando a chamada falha, como a tool HTTP. A falha não encerra mais o
+  atendimento: o modelo recebe o erro e segue a mensagem
+  ([Integrações como ferramentas do agente](/engenharia-de-ia/tools/integracoes)).
+- Criar, duplicar ou aplicar um template avisa nas `notes` quando um app usado
+  pelo agente não está conectado no projeto. A conexão nunca viaja.
 
 ### 4.3.0
 
