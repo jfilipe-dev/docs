@@ -134,7 +134,7 @@ Respostas, pedidos para parar e a nota dos templates.
 
 ## Pelo MCP
 
-O bloco `follow_ups` traz follow-ups (`method: "FOLLOW_UP"`) e reengajamentos (`method: "RE_ENGAGEMENT"`). Tudo nasce desligado sem `status`. Templates não são criados pelo MCP.
+O bloco `follow_ups` traz follow-ups (`method: "FOLLOW_UP"`) e reengajamentos (`method: "RE_ENGAGEMENT"`). Tudo nasce desligado sem `status`. Template da Meta que ainda não existe pode ir no mesmo envio, no bloco `meta_templates`: é enviado à Meta para aprovação e o follow-up que o cita pelo nome é vinculado a ele. Antes, mostre o nome, a categoria e o texto exato e espere o "sim".
 
 <Visibility for="agents">
 ```json
@@ -151,7 +151,7 @@ O bloco `follow_ups` traz follow-ups (`method: "FOLLOW_UP"`) e reengajamentos (`
 ```
 
 - Os atrasos dos follow-ups são todos contados do fim da última interação: some os intervalos.
-- Antes de ligar (`ACTIVE`), pergunte explicitamente (regra 4 de [As regras](/trabalhar-com-ia/regras)) e confira se o template existe em `meta_templates` e está aprovado.
+- Antes de ligar (`ACTIVE`), pergunte explicitamente (regra 4 de [As regras](/trabalhar-com-ia/regras)) e confira se o template existe em `meta_templates` e, com `sync_meta_templates`, se está `APPROVED`.
 - Na conexão não oficial, `RE_ENGAGEMENT` não deve ser criado, e o template do follow-up é escolhido no painel.
 </Visibility>
 

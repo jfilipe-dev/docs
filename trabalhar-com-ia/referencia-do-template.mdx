@@ -425,10 +425,15 @@ criado nasce vazio, e alguém adiciona as pessoas no painel.
 
 Os templates da Meta do projeto. `get_template` traz todos.
 
-**Na escrita pelo MCP:** nada é criado nem alterado. Template existente nunca é
-atualizado (o estado é da Meta). Template que falta não é enviado à Meta: a nota
-lista quais faltam e sugere `submit_meta_templates: true`, opção que o MCP não
-tem. O envio é feito por uma pessoa, no painel.
+**Na escrita pelo MCP:** só no WhatsApp oficial (no não oficial, use
+`zapster_templates`). Template que falta (nome + idioma) é enviado à Meta para
+aprovação na hora e fica `PENDING`; se a Meta recusa no envio, nada é salvo e a
+nota traz o motivo. Template que já existe na conta do WhatsApp é só vinculado.
+Sem WhatsApp oficial conectado, fica em **Sincronização pendente**, para
+`sync_meta_templates`. Template existente com conteúdo diferente é editado na
+Meta e volta para revisão, dentro das regras de edição dela. Apagar e mídia nova
+no cabeçalho são pelo painel. Veja
+[Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona#templates-da-meta).
 
 <Visibility for="agents">
 | Campo | Tipo | Notas |
@@ -437,7 +442,10 @@ tem. O envio é feito por uma pessoa, no painel.
 | `language` | string | Ex.: `pt_BR` |
 | `category` | string ou null | `MARKETING`, `UTILITY`, `AUTHENTICATION` |
 | `components` | lista | Formato da Meta |
-| `parameter_format` | string ou null | Ex.: `NAMED` |
+| `parameter_format` | string ou null | `NAMED` (`{{nome}}`, exemplo em `body_text_named_params`) ou `POSITIONAL` (`{{1}}`) |
+
+Na criação, `category` vazio vira `UTILITY`. Cabeçalho de mídia só é aceito se o
+arquivo já está guardado na Zatten (como o de um template lido no `get_template`).
 </Visibility>
 
 ### zapster_templates

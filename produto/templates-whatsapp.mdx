@@ -80,6 +80,8 @@ O status, a categoria e a qualidade são atualizados sozinhos quando a Meta avis
 
 Depois de sincronizar, follow-ups que esperavam um template pendente são ligados a ele.
 
+Pelo MCP, a ferramenta `sync_meta_templates` faz o mesmo que o botão **Sincronizar** e devolve o status de cada template.
+
 **Por que a mídia fica guardada na Zatten.** A Meta devolve a mídia do cabeçalho como um endereço que expira. Por isso, o arquivo que você sobe no painel fica guardado pela Zatten, num endereço que não expira, e é reenviado à Meta a cada envio. Template criado **fora** da Zatten (no gerenciador da Meta) chega com o endereço da Meta e, quando ele expira, o envio falha: edite o template no painel e suba a mídia de novo.
 
 **Envio.** Antes de enviar, a Zatten confere se o template está aprovado e preenche as variáveis. Se faltar o valor de alguma variável no lead, o envio **não acontece** (a mensagem não sai pela metade).
@@ -117,12 +119,19 @@ Template salvo com `parameter_format: "NAMED"`. Componentes no formato da Meta:
 
 ## Pelo MCP
 
-O bloco `meta_templates` do template do projeto **só é lido**. `get_template` traz todos os templates da Meta do projeto, com categoria, idioma, componentes e formato.
+`get_template` traz todos os templates da Meta do projeto no bloco `meta_templates`, com categoria, idioma, componentes e formato. Esse bloco só vale na conexão **oficial**; na não oficial (QR Code), os modelos ficam em `zapster_templates` e não passam pela Meta.
 
-Na escrita, nada é criado nem alterado:
+Na escrita (`update_template`), o MCP cria e edita:
 
-- template que já existe nunca é atualizado: o estado é da Meta;
-- template que falta **não é enviado à Meta**. A resposta traz uma nota listando quais faltam. O envio é feito por uma pessoa, no painel (criando o template ou usando **Sincronizar** depois de importar um projeto).
+- template que falta (nome + idioma) é **enviado à Meta na hora** e fica **Pendente** até a Meta decidir. Só pode ser usado depois de aprovado;
+- se a Meta recusa no envio, nada é salvo; a nota traz o motivo;
+- se a conta do WhatsApp já tem um template com esse nome e idioma, ele é só vinculado;
+- sem WhatsApp oficial conectado, o template fica em **Sincronização pendente** até alguém sincronizar;
+- template que já existe, com conteúdo diferente, é **editado na Meta** e volta para **Pendente**. A Meta só edita template aprovado, pausado ou rejeitado (nunca em revisão), o aprovado 1 vez a cada 24 horas, e a categoria só muda no rejeitado; fora disso, a nota traz o motivo.
+
+Antes de enviar ou editar, o assistente mostra o nome, a categoria e o texto exato e espera o "sim". Excluir e criar ou editar template com mídia nova no cabeçalho são pelo painel.
+
+Para saber se foi aprovado, o assistente usa `sync_meta_templates`: envia os pendentes e traz o status de todos. O status não vem no `get_template`.
 
 Ao aplicar um template de projeto pelo painel (importar JSON ou duplicar), os templates entram como **Sincronização pendente**. Clique em **Sincronizar** em **WhatsApp → Templates** para enviá-los à Meta.
 
@@ -133,9 +142,11 @@ Ao aplicar um template de projeto pelo painel (importar JSON ou duplicar), os te
 | `language` | string | `pt_BR`, `en`, `en_US` |
 | `category` | string ou null | `MARKETING`, `UTILITY`, `AUTHENTICATION` |
 | `components` | lista | Formato da Meta |
-| `parameter_format` | string ou null | `NAMED` |
+| `parameter_format` | string ou null | `NAMED` ou `POSITIONAL` |
 
-Ao montar um follow-up ou campanha para o cliente, confira em `get_template` se o template existe **e** está aprovado (pergunte ao usuário ou veja no painel). Não prometa envio com template ausente ou pendente.
+Na criação pelo MCP, `category` padrão é `UTILITY`; `parameter_format` `NAMED` usa `{{nome}}` com exemplo em `body_text_named_params`, `POSITIONAL` usa `{{1}}`. Cabeçalho de mídia só é aceito se o arquivo já está guardado na Zatten (como o de um template lido no `get_template`).
+
+Ao montar um follow-up ou campanha para o cliente, confira em `get_template` se o template existe **e**, com `sync_meta_templates`, se está `APPROVED`. Não prometa envio com template ausente ou pendente.
 </Visibility>
 
 ## Armadilhas
@@ -160,10 +171,10 @@ Segundo a Meta, até 24 horas. A lista atualiza sozinha quando a decisão chega.
 Clique em **Sincronizar**. Se ele tiver mídia no cabeçalho, edite e suba o arquivo pelo painel para o endereço não expirar.
 </Accordion>
 <Accordion title="Posso usar variáveis numeradas, como na Meta?">
-Não. A Zatten não usa `{{1}}`, `{{2}}`: cria templates com variáveis nomeadas, preenchidas pelos dados do lead. Use `{{nome}}` ou o slug de uma propriedade.
+No painel, não: ele cria templates com variáveis nomeadas, preenchidas pelos dados do lead. Use `{{nome}}` ou o slug de uma propriedade. Pelo MCP, `parameter_format: "POSITIONAL"` aceita `{{1}}`, `{{2}}`, mas prefira as nomeadas: são elas que a Zatten preenche com os dados do lead.
 </Accordion>
 <Accordion title="O MCP pode criar o template para mim?">
-Não. O assistente pode redigir o texto, a categoria e as variáveis; quem cria e envia para aprovação é uma pessoa, no painel.
+Sim, na conexão oficial. O assistente redige o texto, a categoria e as variáveis, mostra tudo e, com o seu "sim", envia à Meta para aprovação. Também edita um template que já existe. Template com mídia nova no cabeçalho e exclusão são pelo painel.
 </Accordion>
 </AccordionGroup>
 

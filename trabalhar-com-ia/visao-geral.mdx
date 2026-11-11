@@ -38,7 +38,8 @@ playbooks e API mora nesta doc, que o assistente consulta quando precisa.
 | Testar o agente (mensagem, resposta e tools) | Sim, com "sim" uma vez | — | — | — |
 | Publicar a versão do agente | Não | Sim, com "sim" | — | Decide |
 | Migrar para o LangChain Agent | Não | Sim, com "sim" | — | Decide |
-| Criar e enviar template à Meta | Não | Sim, com "sim" | — | Decide |
+| Criar, editar e enviar template à Meta | Sim, com "sim" no texto exato | Mídia nova e exclusão | — | Decide |
+| Conferir a aprovação dos templates da Meta | Sim (`sync_meta_templates`) | — | — | — |
 | Campanhas | Não | Sim, com "sim" | — | — |
 | Conexão do WhatsApp | Não | Só guia | — | Faz |
 | Apagar qualquer coisa | Não | Só guia | — | Faz |
@@ -96,8 +97,9 @@ Estas travas não dependem do assistente seguir regras. O servidor recusa:
   nada acontece.
 - **Escrita sobre estado velho.** A escrita exige a revision da leitura. Se alguém
   mexeu no projeto no meio, a escrita é recusada.
-- **Apagar, publicar o agente, enviar template à Meta.** O MCP não faz nenhum dos
-  três.
+- **Apagar, publicar o agente, alterar template da Meta.** O MCP não faz nenhum
+  dos três. Template da Meta novo vai para aprovação só depois do "sim" no texto
+  exato.
 - **Conversa real no teste.** O `test_agent` só continua conversas de teste; a
   conversa de um lead nunca é lida nem continuada por ele.
 - **Exportar a base pelo MCP.** O `find_contacts` exige filtro, devolve até 20 e

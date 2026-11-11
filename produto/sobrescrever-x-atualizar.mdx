@@ -114,8 +114,9 @@ API de template.
   `https://app.zatten.com/api/v1/projects/{project_id}/template`, com
   `Authorization: Bearer <chave do projeto>`. O `POST` é o mesmo motor aditivo, mas não
   confere `revision` nem nome do projeto. Ele aceita também
-  `publish_agent` e `submit_meta_templates`, que o MCP não tem; pela regra do
-  assistente, nenhum dos dois é usado sem uma pessoa. Detalhes em
+  `publish_agent` e `submit_meta_templates` (padrão `false`). O MCP não tem
+  `publish_agent`; os templates da Meta novos ele envia sempre, sem opção, e por
+  isso o assistente só os manda depois do "sim" no texto exato. Detalhes em
   [API de template](/api/template).
 - Não existe parâmetro `mode`, `overwrite` ou equivalente em nenhum dos dois.
 </Visibility>

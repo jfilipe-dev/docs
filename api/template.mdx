@@ -145,14 +145,15 @@ Os erros desta API usam `ok` e `message`, não o `{ "error" }` da API do dia a d
 | Confere o nome do projeto | Sim (`project_id` + `project_name`) | Não |
 | Confere a `revision` | Sim: recusa se o projeto mudou desde a leitura | **Não**: aplica sobre o estado atual |
 | Publicar o agente | Não | `publish_agent: true` |
-| Enviar templates à Meta | Não | `submit_meta_templates: true` |
+| Enviar templates à Meta | Sim, sempre: todo template novo de `meta_templates` vai para aprovação | Só com `submit_meta_templates: true` |
+| Ver o status de aprovação | `sync_meta_templates` | Não |
 | Motor da escrita | Aditivo | O mesmo |
 
 Não há modo de sobrescrever em nenhum dos dois. Ver
 [Sobrescrever x atualizar](/produto/sobrescrever-x-atualizar).
 
 <Visibility for="agents">
-- Assistentes de IA usam o MCP, não esta API, para configurar projetos. Se usarem esta API, `publish_agent` e `submit_meta_templates` ficam em `false`: publicar o agente e enviar template à Meta são feitos por uma pessoa, no painel.
+- Assistentes de IA usam o MCP, não esta API, para configurar projetos. Pelo MCP, template da Meta novo é enviado à Meta depois do "sim" no texto exato. Se usarem esta API, `publish_agent` e `submit_meta_templates` ficam em `false`: publicar o agente é feito por uma pessoa, no painel, e o envio de template fica para o MCP.
 - Envio parcial: o conjunto de blocos é lido das chaves do objeto `template` antes da validação; `version`, `meta` e `llm_attendant` entram como preenchimento quando ausentes e não são aplicados.
 - Sem trava de concorrência: faça `GET` logo antes do `POST` e compare a `revision` você mesmo, se precisar.
 - Sem limite fixo de requisições publicado; a chave do projeto atualiza "Último uso".
