@@ -78,6 +78,7 @@ pendente; assinar e conectar o WhatsApp continuam no painel.
 - **Projeto criado não é projeto pago.** Todo projeto nasce pendente. Sem assinatura, o agente não liga.
 - **Com a conta bloqueada, não dá para criar outro projeto.** Se o primeiro checkout não foi concluído, termine a assinatura do projeto que já existe em vez de tentar criar outro.
 - **Importar JSON ou duplicar não traz a conexão do WhatsApp nem o histórico.** As chaves vêm junto: a chave do modelo, a do LangSmith, os headers das tools e os endereços de webhook do arquivo (ou do projeto duplicado) entram preenchidos no projeto novo. Confira se a chave da IA é mesmo a que esse cliente final deve usar.
+- **Duplicar esvazia as variáveis do prompt.** Nome, cidade, horário e endereço do cliente de origem não vão para o novo, a menos que você marque **Levar os valores das variáveis**. Preencha antes de ligar o agente, ou deixe o gestor do cliente novo responder ([O gestor responde as variáveis](/engenharia-de-ia/prompt)).
 - **O arquivo de template leva credenciais.** Guarde e compartilhe com cuidado, e nunca o coloque num repositório.
 - **Templates do WhatsApp copiados nascem pendentes.** Eles precisam ser enviados à Meta e aprovados de novo no projeto novo. Veja [Templates do WhatsApp](/produto/templates-whatsapp).
 

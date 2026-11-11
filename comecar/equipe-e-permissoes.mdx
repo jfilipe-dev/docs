@@ -38,7 +38,7 @@ Com o [Zatten-OS](/trabalhar-com-ia/visao-geral), o assistente faz o mesmo pelo 
 |---|---|---|
 | **Admin** | O dono da agência. É quem criou a conta. | Vê e faz tudo: assinatura, marca, domínio, projetos, ferramentas de IA (MCP). |
 | **Editor** | Quem configura projetos na agência. | Configura o agente, as automações, o WhatsApp, as chaves de API e os logs. Não vê assinatura, marca nem domínio. |
-| **Gestor** | O gerente da operação, muitas vezes do cliente final. | Opera CRM, campanhas, templates, conexão do WhatsApp e departamentos. Não vê nem edita o prompt, as automações e as chaves de API, e não conecta integrações. |
+| **Gestor** | O gerente da operação, muitas vezes do cliente final. | Opera CRM, campanhas, templates, conexão do WhatsApp e departamentos. Responde as informações do agente que a agência liberou para ele. Não vê nem edita o prompt, as automações e as chaves de API, e não conecta integrações. |
 | **Visualizador** | O atendente. | Vê só os leads atribuídos a ele (em Conversas e em Contatos) e as métricas. |
 
 ### O que cada papel vê
@@ -48,6 +48,7 @@ Com o [Zatten-OS](/trabalhar-com-ia/visao-geral), o assistente faz o mesmo pelo 
 | Setup Inicial | Sim | Sim | Não | Não |
 | Agente: configurar (prompt, modelo, ferramentas) | Sim | Sim | Não | Não |
 | Agente: conversar no chat de teste | Sim | Sim | Sim | Sim |
+| Agente: responder as **Informações** (variáveis liberadas para o gestor) e publicar | No builder | No builder | Sim | Não |
 | Agente: ligar e desligar | Sim | Sim | Sim | Não |
 | WhatsApp (conexão e templates) | Sim | Sim | Sim | Não |
 | Automações | Todas as abas | Todas as abas | Só **Mensagens rápidas** | Não |

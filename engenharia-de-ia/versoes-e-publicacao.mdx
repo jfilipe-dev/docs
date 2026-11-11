@@ -36,8 +36,13 @@ funil, as tags, as propriedades e as automações do projeto.
 Menu **Agente** (`/project`), no topo da página:
 
 - **Seletor de versões** (ícone de relógio com `vN`): lista as versões, da mais nova
-  para a mais antiga, com o tempo desde a criação. A publicada tem ponto verde e o selo
-  **publicada**. Clicar numa versão abre a configuração dela no editor.
+  para a mais antiga, com quem salvou, o que foi feito e o tempo desde a criação. A
+  publicada tem ponto verde e o selo **publicada**. Clicar numa versão abre a
+  configuração dela no editor.
+- **O que mudou** (ícone de diff, ao passar o mouse numa versão): abre um painel com a
+  diferença para a versão de onde ela partiu: variáveis (antes → depois), o prompt com
+  os trechos trocados marcados, as tools e as demais configurações. Chaves e headers
+  aparecem mascarados. As setas do painel andam pelas versões.
 - **Botão de ação**, que muda conforme o estado:
 
 | Botão | Quando aparece | O que faz |
@@ -69,6 +74,12 @@ Só uma pessoa, no painel. A versão aberta passa a ser a do ar.
 **Quando a mudança chega aos leads.** Conversas novas e conversas em andamento passam
 a usar a versão publicada **em até 2 minutos**. Uma mensagem que chegou logo depois de
 publicar ainda pode ser respondida pela versão anterior.
+
+**O gestor publica direto.** Quando o gestor responde as
+[informações do agente](/engenharia-de-ia/prompt) e clica em **Salvar e publicar**, a
+versão nova já vai ao ar, partindo da versão publicada. Se você tinha um rascunho
+salvo antes disso, publicá-lo traria os valores antigos de volta: o painel avisa e
+oferece **Trazer respostas e publicar**.
 
 ## Voltar a uma versão anterior
 

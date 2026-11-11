@@ -187,6 +187,7 @@ descartada sem erro.
 | `instructions.system_prompt` | string | `"You are a helpful assistant."` | ativo |
 | `instructions.inject_context` | boolean | `false` | ativo. Anexa o bloco "Contexto do lead atual" ao prompt |
 | `instructions.variables` | objeto (chave → texto) | `{}` | ativo. `{{chave}}` no `system_prompt` vira o valor. Chave `^[a-z][a-z0-9_]{0,49}$`. Pelo template: ausente mantém as atuais, `{}` apaga. `{{x}}` sem chave fica literal ([Variáveis do prompt](/engenharia-de-ia/prompt)) |
+| `instructions.variables_meta` | objeto (chave → `{ hint, gestor_editable }`) | `{}` | só do painel, o agente não lê. `gestor_editable: true` põe a variável na aba **Informações** do gestor; `hint` é a pergunta. Pelo template: ausente mantém ([O gestor responde as variáveis](/engenharia-de-ia/prompt)) |
 
 ### tools: campos por tipo
 

@@ -158,6 +158,34 @@ ver o valor delas no texto.
   aqui: eles vêm pelo [contexto do lead](/engenharia-de-ia/contexto-injetado).
 - Uma variável em uso no prompt não pode ser apagada. Renomear atualiza o prompt.
 - Mudar um valor, como qualquer mudança no agente, vale depois de **Publicar**.
+- O agente não liga enquanto uma variável usada no prompt estiver vazia: ele a
+  trocaria por nada, no meio da frase. A mensagem diz quais faltam.
+
+### O gestor responde as variáveis
+
+É o que substitui a planilha que o cliente preenchia para alguém copiar para o
+prompt: o próprio cliente responde, no painel.
+
+Na tabela de **Variáveis**, ligue **Gestor** na linha da variável e escreva, logo
+abaixo, a **Descrição**: a pergunta que o gestor vê, com um exemplo (por exemplo: "O horário de
+funcionamento da loja. Ex: segunda a sexta, das 9h às 18h"). Salve e **publique**:
+o gestor só vê as perguntas da versão publicada.
+
+Quem tem o papel **Gestor** passa a ver, em **Agente**, as abas **Testar o agente** e
+**Informações**. Em **Informações** ele vê só as perguntas liberadas (nunca o
+prompt), responde e clica em **Salvar e publicar**:
+
+- Cada salvamento é **uma** versão nova, já publicada. O agente usa as respostas
+  na hora.
+- Pode responder aos poucos: o que ele digita fica guardado no navegador até
+  salvar, e a tela mostra quantas faltam.
+- Com o agente ligado, ele não consegue apagar uma resposta.
+- No seletor de versões do builder, a versão aparece com o nome de quem respondeu,
+  e o ícone de diff mostra o que mudou ([Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)).
+
+Ao **duplicar** o projeto, as variáveis nascem **vazias**, a menos que você marque
+**Levar os valores das variáveis**. As perguntas e o **Gestor** vão junto: o cliente
+novo responde as dele.
 
 ## Exemplos curtos por nicho
 
@@ -240,7 +268,13 @@ painel. Veja [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-func
       "instructions": {
         "system_prompt": "# Identidade\nVocê atende pela {{nome_empresa}}...",
         "inject_context": true,
-        "variables": { "nome_empresa": "Clínica Exemplo" }
+        "variables": { "nome_empresa": "Clínica Exemplo", "loja_horario": "" },
+        "variables_meta": {
+          "loja_horario": {
+            "hint": "O horário de funcionamento da loja. Ex: segunda a sexta, das 9h às 18h",
+            "gestor_editable": true
+          }
+        }
       }
     }
   }
@@ -262,6 +296,16 @@ painel. Veja [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-func
   mantém as variáveis atuais; `{}` apaga todas. Um `{{x}}` sem chave declarada fica
   literal no prompt e a escrita devolve uma nota. Para adaptar um agente a outro
   cliente, troque os valores em `variables`, não o texto do prompt.
+- `instructions.variables_meta` (chave → `{ hint, gestor_editable }`) é só do
+  painel: o agente não lê. `gestor_editable: true` põe a variável na aba
+  **Informações** do gestor, com o `hint` como pergunta (pergunta e exemplo no mesmo
+  texto, "… Ex: …"). Ausente mantém o atual. Chave de `variables_meta` sem a mesma
+  chave em `variables` gera nota: a pergunta não aparece.
+- O gestor só vê o que está **publicado**, e o MCP não publica: depois de ligar
+  `gestor_editable`, diga à pessoa para publicar a versão. Quem responde e publica
+  depois é o gestor; leia de novo com `get_template` antes de escrever, para não
+  gravar por cima das respostas dele com valores velhos.
+- Variável usada no prompt e vazia impede ligar o agente.
 - Antes de propor um prompt novo, leia o atual inteiro e as descrições das tools:
   a regra pode já estar numa descrição ou numa skill.
 </Visibility>
@@ -279,6 +323,8 @@ painel. Veja [Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-func
   LangChain Agent. Revise. Veja [Migrar](/engenharia-de-ia/migrar).
 - **`{{...}}` sem variável declarada.** O modelo lê o texto literal. Declare a
   variável em **Variáveis** ou troque o trecho pelo valor.
+- **Ligou "Gestor" e ele não vê nada.** As perguntas aparecem para o gestor só
+  depois de **Publicar** a versão.
 - **Repetir informação do contexto.** Pedir o nome de um lead que já está no
   "Contexto do lead atual" irrita o lead. Diga no prompt para usar o que já está lá.
 

@@ -8,7 +8,7 @@ keywords: ["versão da skill", "zatten-ops", "Zatten-OS", "atualizar", "changelo
 **Quando ler esta página:** no começo de cada sessão, para comparar a versão atual do Zatten-OS com a instalada (o `metadata.version` de qualquer uma das skills), avisar a agência se a instalada estiver velha e explicar como atualizar.
 </Visibility>
 
-**Versão atual do Zatten-OS: 4.3.1**
+**Versão atual do Zatten-OS: 4.4.0**
 
 As quatro skills (`zatten-ops`, `zatten-comercial`, `zatten-agencia` e `zatten-grill`)
 saem juntas e têm sempre a mesma versão.
@@ -36,6 +36,18 @@ No Claude Code, ligue a atualização automática do marketplace `zatten-os` em
 </Tip>
 
 ## O que mudou
+
+### 4.4.0
+
+- O gestor responde as variáveis do prompt: `instructions.variables_meta` diz, por
+  variável, a pergunta (`hint`) e se o gestor a responde (`gestor_editable`). Ele
+  responde na aba **Informações** do agente e publica na hora
+  ([O gestor responde as variáveis](/engenharia-de-ia/prompt)).
+- Duplicar um projeto esvazia as variáveis do prompt, salvo com
+  `keep_variable_values: true` no `create_project` (no painel, **Levar os valores das
+  variáveis**). O agente não liga com variável usada no prompt vazia.
+- O seletor de versões do builder mostra quem salvou e o que mudou em cada versão
+  ([Versões e publicação](/engenharia-de-ia/versoes-e-publicacao)).
 
 ### 4.3.1
 

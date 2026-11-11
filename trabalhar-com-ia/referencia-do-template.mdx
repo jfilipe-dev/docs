@@ -580,6 +580,10 @@ ajustes (retry, fallback, resumo, LangSmith e outros).
   apaga todas. Um `{{x}}` no prompt sem variável declarada gera nota. Para adaptar
   um agente a outro cliente, troque os valores das variáveis, não o prompt
   ([Variáveis do prompt](/engenharia-de-ia/prompt)).
+- `instructions.variables_meta` diz, por variável, a pergunta (`hint`) e se o
+  gestor a responde (`gestor_editable`). Ausente mantém o atual, independente de
+  `variables`. Chave sem variável correspondente gera nota. O gestor só vê depois
+  de a versão ser publicada.
 - A memória entre conversas liga com a tool
   `{ "type": "builtin", "name": "historico_conversas" }`
   ([Memória entre conversas](/engenharia-de-ia/memoria-entre-conversas)).

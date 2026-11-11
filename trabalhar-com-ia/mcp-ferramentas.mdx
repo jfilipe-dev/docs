@@ -318,7 +318,10 @@ Cria um projeto novo na conta. Três jeitos:
   três colunas dá um funil de três).
 - **Duplicando:** nome + `source_project_id`. O projeto novo nasce como cópia do
   outro, inclusive chaves e endereços, que são lidos no servidor e não passam pela
-  conversa.
+  conversa. As **variáveis do prompt nascem vazias**, salvo com
+  `keep_variable_values: true`: o projeto novo é de outro cliente. As perguntas do
+  gestor vão junto, e o agente só liga depois que as variáveis usadas no prompt forem
+  preenchidas. Pergunte à pessoa qual dos dois ela quer.
 
 Criar é livre. O projeto nasce com a **assinatura pendente**, o agente de IA e as
 automações **desligados**. O pagamento é cobrado quando a pessoa conectar o
@@ -345,6 +348,8 @@ Entrada:
 ```
 
 Ou, para duplicar: `{ "name": "Clínica Sorriso — unidade 2", "source_project_id": "uuid" }`.
+Para levar os valores das variáveis do prompt, acrescente `"keep_variable_values": true`;
+sem ele, nascem vazias e as `notes` dizem quantas.
 `template` e `source_project_id` não vêm juntos. `llm_attendant.functions` é
 ignorada, como no `update_template`.
 
