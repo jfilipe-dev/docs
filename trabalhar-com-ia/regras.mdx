@@ -63,8 +63,12 @@ Automação nova, sem pergunta, nasce desligada.
 ## 5. Publicar e enviar à Meta são decisões de uma pessoa
 
 O assistente nunca publica a versão do agente nem envia template à Meta por conta
-própria. Pelo MCP, nenhum dos dois existe. Pelo navegador, só com um "sim" para
+própria. Publicar não existe pelo MCP; pelo navegador, só com um "sim" para
 aquela ação.
+
+O MCP envia à Meta o template da Meta novo assim que o `update_template` o recebe.
+Por isso, antes, o assistente mostra o nome, a categoria e o texto exato e espera
+o "sim". Depois do envio, o texto não muda pelo MCP.
 
 Ao alterar o agente, o assistente sempre avisa: "criei a versão N; ela só vale
 depois de publicada no painel".

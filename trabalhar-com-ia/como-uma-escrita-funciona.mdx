@@ -176,12 +176,26 @@ Detalhes em [Versões e publicação](/engenharia-de-ia/versoes-e-publicacao).
 
 ## Templates da Meta
 
-Pelo MCP, o bloco `meta_templates` não cria nem altera nada:
+O bloco `meta_templates` só vale no WhatsApp **oficial**. No não oficial (QR
+Code), use `zapster_templates`; `meta_templates` enviado a esse projeto é
+recusado, com nota. Use só o bloco do modo do projeto (`project.whatsapp.mode`).
 
-- template que já existe nunca é atualizado (o estado dele é da Meta);
-- template que falta não é enviado. A nota lista quais faltam e sugere
-  `submit_meta_templates: true`, opção que o MCP **não tem**. O envio à Meta é
-  feito por uma pessoa, no painel.
+Pelo MCP, o bloco `meta_templates` cria, mas não altera:
+
+- template que falta (nome + idioma) é **enviado à Meta na hora**. Entra em
+  `changes` como `create`, e a nota diz que ficou `PENDING` até a Meta revisar.
+  Só pode ser usado depois de aprovado;
+- se a Meta recusa no envio, **nada é salvo** e a nota traz o motivo. Corrija e
+  envie de novo, com o mesmo nome;
+- se a conta do WhatsApp já tem um template com esse nome e idioma, ele é só
+  vinculado, sem envio novo;
+- sem WhatsApp oficial conectado, o template fica em **Sincronização pendente**
+  e vai à Meta depois, com `sync_meta_templates`;
+- template que já existe nunca é atualizado. Com conteúdo diferente, a nota diz
+  que ele **não foi alterado** e pede um nome novo.
+
+O status de aprovação não vem no `get_template`. Para conferir, use
+[`sync_meta_templates`](/trabalhar-com-ia/mcp-ferramentas#sync_meta_templates).
 
 ## Repetir é seguro
 
