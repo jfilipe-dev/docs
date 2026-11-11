@@ -44,13 +44,15 @@ No Claude Code, ligue a atualização automática do marketplace `zatten-os` em
   oficial, sem aprovação; `meta_templates` no oficial, nunca os dois.
 - No `update_template`, template da Meta novo é **enviado à Meta na hora** e fica
   `PENDING` até a aprovação. Se a Meta recusa no envio, nada é salvo e a nota traz
-  o motivo. Template que já existe nunca é alterado pelo MCP
+  o motivo
   ([Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona#templates-da-meta)).
 - Ferramenta nova `sync_meta_templates`: envia à Meta os templates pendentes e
   traz o status de aprovação de todos, como o botão **Sincronizar**
   ([ferramentas do MCP](/trabalhar-com-ia/mcp-ferramentas#sync_meta_templates)).
-- Regra: antes de enviar um template da Meta, mostrar o nome, a categoria e o
-  texto exato e esperar o "sim". Depois do envio, o texto não muda pelo MCP.
+- Template da Meta que já existe se edita pelo `update_template` (mesmo nome,
+  conteúdo diferente) e volta para revisão.
+- Regra: antes de enviar ou editar um template da Meta, mostrar o nome, a
+  categoria e o texto exato e esperar o "sim". Mandar só os que mudarem.
 
 ### 4.4.0
 

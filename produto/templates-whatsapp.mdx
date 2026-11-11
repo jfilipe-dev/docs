@@ -121,15 +121,15 @@ Template salvo com `parameter_format: "NAMED"`. Componentes no formato da Meta:
 
 `get_template` traz todos os templates da Meta do projeto no bloco `meta_templates`, com categoria, idioma, componentes e formato. Esse bloco só vale na conexão **oficial**; na não oficial (QR Code), os modelos ficam em `zapster_templates` e não passam pela Meta.
 
-Na escrita (`update_template`), o MCP cria, mas não altera:
+Na escrita (`update_template`), o MCP cria e edita:
 
 - template que falta (nome + idioma) é **enviado à Meta na hora** e fica **Pendente** até a Meta decidir. Só pode ser usado depois de aprovado;
 - se a Meta recusa no envio, nada é salvo; a nota traz o motivo;
 - se a conta do WhatsApp já tem um template com esse nome e idioma, ele é só vinculado;
 - sem WhatsApp oficial conectado, o template fica em **Sincronização pendente** até alguém sincronizar;
-- template que já existe nunca é alterado. Com conteúdo diferente, a nota pede um nome novo.
+- template que já existe, com conteúdo diferente, é **editado na Meta** e volta para **Pendente**. A Meta só edita template aprovado, pausado ou rejeitado (nunca em revisão), o aprovado 1 vez a cada 24 horas, e a categoria só muda no rejeitado; fora disso, a nota traz o motivo.
 
-Antes de enviar, o assistente mostra o nome, a categoria e o texto exato e espera o "sim": depois do envio, o texto não muda pelo MCP. Editar, excluir e criar template com mídia nova no cabeçalho são pelo painel.
+Antes de enviar ou editar, o assistente mostra o nome, a categoria e o texto exato e espera o "sim". Excluir e criar ou editar template com mídia nova no cabeçalho são pelo painel.
 
 Para saber se foi aprovado, o assistente usa `sync_meta_templates`: envia os pendentes e traz o status de todos. O status não vem no `get_template`.
 
@@ -174,7 +174,7 @@ Clique em **Sincronizar**. Se ele tiver mídia no cabeçalho, edite e suba o arq
 No painel, não: ele cria templates com variáveis nomeadas, preenchidas pelos dados do lead. Use `{{nome}}` ou o slug de uma propriedade. Pelo MCP, `parameter_format: "POSITIONAL"` aceita `{{1}}`, `{{2}}`, mas prefira as nomeadas: são elas que a Zatten preenche com os dados do lead.
 </Accordion>
 <Accordion title="O MCP pode criar o template para mim?">
-Sim, na conexão oficial. O assistente redige o texto, a categoria e as variáveis, mostra tudo e, com o seu "sim", envia à Meta para aprovação. Template com mídia nova no cabeçalho, edição e exclusão são pelo painel.
+Sim, na conexão oficial. O assistente redige o texto, a categoria e as variáveis, mostra tudo e, com o seu "sim", envia à Meta para aprovação. Também edita um template que já existe. Template com mídia nova no cabeçalho e exclusão são pelo painel.
 </Accordion>
 </AccordionGroup>
 

@@ -257,7 +257,7 @@ O que `update_template` **não faz**:
 
 - apagar qualquer coisa;
 - publicar a versão do agente (cria uma versão nova, não publicada);
-- alterar ou apagar um template da Meta que já existe (só pelo painel);
+- apagar um template da Meta (só pelo painel);
 - migrar o projeto de motor;
 - reescrever o desenho de um fluxo que já existe;
 - gravar `llm_attendant.functions`;
@@ -319,7 +319,7 @@ Vale o bloco do modo do WhatsApp do projeto (`project.whatsapp.mode` no
 - `oficial`: bloco `meta_templates`. Cada template que ainda não existe (nome +
   idioma) é **enviado à Meta para aprovação na hora**.
 
-O que volta de um template da Meta novo:
+O que volta de um template da Meta novo ou editado:
 
 - **Enviado:** aparece em `changes` como `create`, e uma nota diz que foi
   enviado. Fica `PENDING` até a Meta revisar (de minutos a horas) e só pode ser
@@ -333,14 +333,20 @@ O que volta de um template da Meta novo:
 
 Follow-ups que esperavam um template com esse nome são vinculados sozinhos.
 
-Template da Meta que já existe **nunca é alterado pelo MCP**. Devolvido como foi
-lido, não gera nada. Com o mesmo nome e conteúdo diferente, volta a nota "Já
-existe(m) e NÃO foi(ram) alterado(s): … crie um com nome novo". Editar, apagar e
-criar template com mídia nova no cabeçalho são pelo painel
+- **Editado:** template que já existe, com o mesmo nome e idioma e conteúdo
+  diferente, é editado na Meta e volta para revisão (`PENDING`). Aparece em
+  `changes` como `update`, e a nota diz "Editado(s) na Meta". Ainda em
+  **Sincronização pendente**, a linha do projeto é reescrita e vai no mesmo envio.
+- **Edição recusada:** a Meta só edita template aprovado, pausado ou rejeitado (nunca em revisão), o aprovado 1 vez a cada 24 horas, e a categoria só muda no rejeitado. Fora disso, a nota traz o motivo e nada
+  muda.
+
+Devolvido como foi lido, o template não gera nada. Por isso, mande só os que
+criar ou editar: cada edição volta o template à revisão e gasta a edição do dia.
+Apagar e criar ou editar template com mídia nova no cabeçalho são pelo painel
 ([Templates do WhatsApp](/produto/templates-whatsapp)).
 
-Antes de enviar, o assistente mostra o nome, a categoria e o texto exato e espera
-o "sim": depois do envio, o texto não muda pelo MCP.
+Antes de enviar ou editar, o assistente mostra o nome, a categoria e o texto exato
+e espera o "sim".
 
 <Visibility for="agents">
 - Padrões: `category` `UTILITY`; `parameter_format` `NAMED` (`{{nome}}`, com o
@@ -397,7 +403,7 @@ Resposta:
 - `follow_ups_linked`: follow-ups que esperavam um desses templates e foram
   vinculados.
 - `templates[].status`: `PENDING` (em revisão), `APPROVED` (pode ser usado),
-  `REJECTED` (veja `rejected_reason`; crie outro, com nome novo) ou
+  `REJECTED` (veja `rejected_reason`; corrija e reenvie com o mesmo nome) ou
   `NOT_SUBMITTED` (não enviado).
 </Visibility>
 
@@ -970,8 +976,8 @@ Quando a operação é recusada, nada é alterado. As mensagens dizem o que faze
 - **Template da Meta enviado não é template aprovado.** Depois do
   `update_template`, ele fica `PENDING`. Confira com `sync_meta_templates` antes
   de ligar um follow-up ou uma campanha que dependa dele.
-- **O texto enviado à Meta não muda pelo MCP.** Para corrigir, crie outro com
-  nome novo, ou edite no painel.
+- **Editar devolve o template à revisão.** Logo depois da aprovação, ou em
+  revisão, a Meta recusa a edição; o aprovado só se edita 1 vez a cada 24 horas.
 
 ## Para saber mais
 
