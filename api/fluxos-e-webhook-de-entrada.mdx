@@ -52,8 +52,9 @@ existe fluxo ligado com ele, e a resposta vem com `matched: 0`.
 | `lead.column_changed` | `to_column_id`; `from_column_id` se o fluxo filtra a origem | `trigger.column.id`, `trigger.column.name` |
 | `lead.tag_added`, `lead.tag_removed` | `tag_id` | `trigger.tag.id`, `trigger.tag.name` |
 | `lead.property_changed` (em breve) | `property` (o **slug**), `value` | `trigger.property.slug`, `trigger.property.value` |
-| `lead.assignee_changed` | `department_id`, `user_email` ou `user_id` (os que se aplicam) | `trigger.assignee.*`, `trigger.previous_assignee.*`, `trigger.actor.*` |
+| `lead.assignee_changed` | `department_id`, `user_email` ou `user_id` (os que se aplicam) | `trigger.assignee.*`, `trigger.previous_assignee.*`, `trigger.actor.*`, `trigger.assignment_source` (`entry` na atribuição automática da entrada) |
 | `lead.conversation_closed` | — | `trigger.thread.id` |
+| `lead.attendance_inactive`, `lead.lead_inactive` | — (roda o fluxo na hora, sem esperar o prazo e sem mexer na contagem) | `trigger.inactivity.started_at`, `trigger.inactivity.minutes` (só no disparo automático) |
 | `lead.inactive` (em breve) | — | — |
 | `webhook.inbound` | `path`, `body` (prefira `/hooks`) | `trigger.body` |
 | `lead.ai_toggled` | `enabled` | — (o editor não tem esse gatilho) |
@@ -88,6 +89,7 @@ estão em [Trigger Flow: blocos](/produto/trigger-flow/blocos).
 | `deduped` | `true`: a `idempotency_key` já foi usada nas últimas 24 horas. Nada rodou. |
 | `runs[].status` | `running` (começou) ou `skipped` (o filtro do gatilho não casou). |
 | `runs[].reason` | Qual filtro não casou, quando `skipped`. |
+| `runs[].replaced_run_id` | Só quando acontece: o fluxo já tinha uma execução ativa para o lead, que foi cancelada e substituída por esta (no máximo uma ativa por fluxo e lead). |
 
 O 202 quer dizer "despachado", não "terminou". O resultado de cada execução fica em
 [Execuções](/produto/trigger-flow/execucoes), no painel.

@@ -44,7 +44,7 @@ tag: não chame `/flows/trigger` de novo para o mesmo evento, ou o fluxo roda du
 vezes.
 
 <Warning>
-Os gatilhos **em breve** (Mensagem recebida, Propriedade alterada, Lead inativo)
+Os gatilhos **em breve** (Mensagem recebida, Propriedade alterada, Lead inativo por…)
 estão indisponíveis hoje, **também pela API**. A rota
 aceita esses tipos, mas não existe fluxo ligado com eles para rodar: a resposta
 vem com `matched: 0`. Para receber eventos de outro sistema, prefira o
@@ -83,6 +83,7 @@ O que mandar em `trigger_event`:
 | `lead.property_changed` | `property` (o **slug**), `value` (em breve: nenhum fluxo roda) |
 | `lead.assignee_changed` | `department_id`, `user_email` ou `user_id` (os que se aplicam) |
 | `lead.conversation_closed` | — |
+| `lead.attendance_inactive`, `lead.lead_inactive` | — (roda o fluxo na hora, sem esperar o prazo e sem mexer na contagem de inatividade) |
 | `lead.inactive` | — (em breve: nenhum fluxo roda) |
 | `webhook.inbound` | `path`, `body` (prefira a rota `/hooks`) |
 
@@ -107,6 +108,9 @@ A resposta diz quantos fluxos casaram e o que aconteceu com cada um:
 - `dispatched`: quantos de fato rodaram. Menor que `matched` não é erro: o
   `reason` diz qual filtro do gatilho não bateu.
 - `deduped: true`: a `idempotency_key` já foi usada nas últimas 24 horas. Nada rodou.
+- `replaced_run_id` (só quando acontece): o fluxo já tinha uma execução ativa para
+  o lead, que foi cancelada e substituída por esta. Um fluxo tem no máximo uma
+  execução ativa por lead.
 
 ### Webhook de entrada: `POST /hooks/<path>`
 

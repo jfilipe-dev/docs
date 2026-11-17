@@ -103,7 +103,7 @@ Não. As mensagens ficam na conversa encerrada, que aparece na seção **Convers
 Não. A memória do agente é por conversa: a nova começa sem as mensagens da anterior. O que é do contato (nome, tags e propriedades de vínculo contato) continua no lead.
 </Accordion>
 <Accordion title="Dá para encerrar automaticamente depois de um tempo sem resposta?">
-Não existe gatilho automático por tempo (o gatilho **Lead inativo** do Trigger Flow está em breve). Use uma rotina externa (um agendador, por exemplo) que chame `PATCH /api/v1/leads/{numero}/thread`, ou que chame o webhook de entrada de um fluxo com a ação **Encerrar atendimento**. Veja [Disparar fluxos](/api/fluxos-e-webhook-de-entrada).
+Use um fluxo do Trigger Flow com o gatilho **Inatividade do lead** (o lead não respondeu no prazo) ou **Inatividade de atendimento** (ninguém respondeu o lead no prazo) e a ação **Encerrar atendimento**. O prazo vai de 1 minuto a 30 dias. Ver [o que conta na inatividade](/produto/trigger-flow/blocos#inatividade-o-que-conta). Por fora da Zatten, uma rotina externa pode chamar `PATCH /api/v1/leads/{numero}/thread`.
 </Accordion>
 </AccordionGroup>
 

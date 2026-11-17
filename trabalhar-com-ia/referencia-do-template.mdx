@@ -546,6 +546,10 @@ Os fluxos do Trigger Flow: gatilho, condições e ações, desenhados no editor.
   `lead.inactive`) não rodam hoje, nem pela API. Não monte fluxos com eles.
   `lead.created` (**Novo lead criado**) está disponível; ele não roda para leads
   importados por CSV (ver [quando dispara](/produto/trigger-flow/blocos#novo-lead-criado-quando-dispara)).
+- Os blocos **Aguardar** (`logic.wait`), **Agendar template**
+  (`message.schedule_template`) e os gatilhos de inatividade
+  (`lead.attendance_inactive`, `lead.lead_inactive`) viajam como os outros: tempo e
+  unidade vão como estão, e o template vai por nome.
 
 <Visibility for="agents">
 | Campo | Tipo | Notas |
