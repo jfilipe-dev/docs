@@ -65,7 +65,7 @@ config do agente no LangChain Agent; `llm_attendant` são os campos do projeto.
 |---|---|---|---|---|
 | C1 | `columns[]` com `order: 0` e `shutdown_ai: true` | A coluna de entrada recebe todo lead novo. Com **Desativar IA**, a IA nunca responde ninguém. | Desligar **Desativar IA** na coluna de entrada. | [Funil (Kanban)](/produto/funil-kanban) |
 | C2 | `llm_attendant.message_buffer` vazio ou `0` | Com buffer vazio ou 0, a mensagem do lead é salva e os webhooks saem, mas ela **não vai ao agente**: a IA não responde. | Definir um buffer entre 1 e 30 segundos. | [Buffer de mensagens](/engenharia-de-ia/buffer) |
-| C3 | `follow_ups[]` com `method: "FOLLOW_UP"` e `template_name` vazio ou ausente de `meta_templates[].name` | Follow-up sem template não envia nada; é salvo desligado. | Associar um template; conferir em `/meta` se ele está **aprovado**. | [Follow-up](/produto/automacoes/follow-up) |
+| C3 | `follow_ups[]` com `method: "FOLLOW_UP"` e `template_name` vazio ou ausente de `meta_templates[].name` | Follow-up sem template não envia nada; é salvo desligado. | Associar um template; conferir com `sync_meta_templates` (ou em `/meta`) se ele está **aprovado**. | [Follow-up](/produto/automacoes/follow-up) |
 | C4 | Conexão do projeto x recursos usados | Na conexão por QR Code, reengajamento, conversões e campanhas não funcionam. Na oficial, texto livre só vale dentro da janela de 24h. | Ver a tabela "Conexão x recursos" abaixo. | [Qual conexão escolher](/comecar/conexoes-whatsapp) |
 | C5 | `webhooks[]`, `integration_webhooks[]`, `mcps[]` com `status: "ACTIVE"` e `url` vazia; `custom_actions[]` com `is_active: true` e `webhook_url` vazia | Parece ligado, mas não tem para onde mandar. | Pôr o endereço (no painel ou pelo MCP) ou desligar. | [Webhooks](/produto/automacoes/webhooks), [Servidores MCP](/engenharia-de-ia/tools/mcp) |
 | C6 | `langchain.config.settings.human_approval.enabled: true`, qualquer `tools[].require_approval: true`, ou `mcps[].request_approval: true` | O painel não tem tela de aprovação. A conversa fica esperando uma aprovação que nunca vem. | Desligar a aprovação humana. | [Limites e segurança](/engenharia-de-ia/limites-e-seguranca) |
@@ -98,7 +98,7 @@ config do agente no LangChain Agent; `llm_attendant` são os campos do projeto.
 
 ### Conexão x recursos
 
-O template não diz qual é a conexão. Pergunte, ou leia em `/meta` pelo navegador.
+O template não diz qual é a conexão: veja `project.whatsapp.mode` no `get_template` (`oficial` ou `nao_oficial`), pergunte, ou leia em `/meta` pelo navegador.
 
 | Recurso no template | Oficial (Cloud API) e coexistência | Não oficial (QR Code) |
 |---|---|---|
@@ -106,7 +106,7 @@ O template não diz qual é a conexão. Pergunte, ou leia em `/meta` pelo navega
 | `conversions[]` (Meta Ads) | Funciona para leads vindos de anúncio | **Não funciona** |
 | Campanhas | Tela `/crm/campaigns` | **O menu não aparece** |
 | `follow_ups[]` com `FOLLOW_UP` | Template da Meta **aprovado** | Template próprio da conexão por QR |
-| `meta_templates[]` | Precisam de aprovação da Meta | Não se aplicam |
+| `meta_templates[]` | Precisam de aprovação da Meta | Não se aplicam: use `zapster_templates[]` |
 | Texto livre (transbordo por inatividade, reengajamento) | Só dentro da janela de 24h | Sem janela de 24h |
 
 ## Como entregar o resultado

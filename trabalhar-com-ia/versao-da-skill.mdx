@@ -8,7 +8,7 @@ keywords: ["versão da skill", "zatten-ops", "Zatten-OS", "atualizar", "changelo
 **Quando ler esta página:** no começo de cada sessão, para comparar a versão atual do Zatten-OS com a instalada (o `metadata.version` de qualquer uma das skills), avisar a agência se a instalada estiver velha e explicar como atualizar.
 </Visibility>
 
-**Versão atual do Zatten-OS: 4.4.0**
+**Versão atual do Zatten-OS: 4.5.0**
 
 As quatro skills (`zatten-ops`, `zatten-comercial`, `zatten-agencia` e `zatten-grill`)
 saem juntas e têm sempre a mesma versão.
@@ -36,6 +36,23 @@ No Claude Code, ligue a atualização automática do marketplace `zatten-os` em
 </Tip>
 
 ## O que mudou
+
+### 4.5.0
+
+- O MCP cria templates do WhatsApp dos dois tipos. Vale o bloco do modo do
+  projeto (`project.whatsapp.mode` no `get_template`): `zapster_templates` no não
+  oficial, sem aprovação; `meta_templates` no oficial, nunca os dois.
+- No `update_template`, template da Meta novo é **enviado à Meta na hora** e fica
+  `PENDING` até a aprovação. Se a Meta recusa no envio, nada é salvo e a nota traz
+  o motivo
+  ([Como uma escrita funciona](/trabalhar-com-ia/como-uma-escrita-funciona#templates-da-meta)).
+- Ferramenta nova `sync_meta_templates`: envia à Meta os templates pendentes e
+  traz o status de aprovação de todos, como o botão **Sincronizar**
+  ([ferramentas do MCP](/trabalhar-com-ia/mcp-ferramentas#sync_meta_templates)).
+- Template da Meta que já existe se edita pelo `update_template` (mesmo nome,
+  conteúdo diferente) e volta para revisão.
+- Regra: antes de enviar ou editar um template da Meta, mostrar o nome, a
+  categoria e o texto exato e esperar o "sim". Mandar só os que mudarem.
 
 ### 4.4.0
 

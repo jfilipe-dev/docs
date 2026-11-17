@@ -176,10 +176,10 @@ Mover o lead pela API aplica as chaves **Desativar IA** e **Transbordo** da colu
 
 ## Pelo MCP
 
-Viajam no template do projeto: colunas, propriedades (com `send_to_ai`), as ações da Zatten e as tools HTTP, MCP e de apps integrados (bloco `langchain`), e os follow-ups. **Não viajam:**
+Viajam no template do projeto: colunas, propriedades (com `send_to_ai`), as ações da Zatten e as tools HTTP, MCP e de apps integrados (bloco `langchain`), os follow-ups e os templates da Meta novos (enviados à Meta com o "sim" no texto exato; ver [Templates do WhatsApp](/produto/templates-whatsapp#pelo-mcp)). **Não viajam:**
 
 - a conexão da conta do app: uma pessoa conecta em **Integrações**;
-- os templates da Meta: o MCP só lê; uma pessoa cria e envia à Meta no painel;
+- a aprovação dos templates da Meta: quem decide é a Meta;
 - a publicação da versão do agente.
 
 <Visibility for="agents">
@@ -187,7 +187,7 @@ Viajam no template do projeto: colunas, propriedades (com `send_to_ai`), as aç�
 - Cancelar: `_zatten.template = "schedule.remove"`, mesmo `target_name`. Cancela todos os envios futuros daquele template para o lead.
 - Por trás, as Integrações usam o Composio como provedor; a agência não precisa de conta nele. Tool de app integrado: `{ "type": "composio", "toolkit": "googlecalendar", "action": "find_free_slots", "require_approval": false }`. Nome visto pelo modelo: `GOOGLECALENDAR_FIND_FREE_SLOTS`.
 - Ações do Cal.com: toolkit `cal`, ver https://docs.composio.dev/toolkits/cal. Google Agenda: https://docs.composio.dev/toolkits/googlecalendar. Catálogo: https://docs.composio.dev/toolkits.
-- Antes de propor o lembrete, confira em `get_template` (bloco `meta_templates`) se o template existe; pergunte se está aprovado. Não prometa envio com template ausente ou pendente.
+- Antes de propor o lembrete, confira em `get_template` (bloco `meta_templates`) se o template existe e, com `sync_meta_templates`, se está `APPROVED`. Não prometa envio com template ausente ou pendente.
 - Ligar o follow-up de "não marcou" pede pergunta explícita (regra 4 de [As regras](/trabalhar-com-ia/regras)).
 </Visibility>
 

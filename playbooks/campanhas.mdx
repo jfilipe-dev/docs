@@ -123,7 +123,7 @@ Como regra da agência:
 
 Campanhas não viajam no template do projeto: o MCP não lê nem cria campanhas. O assistente de IA da agência **não** dispara mensagem em lote pela API: isso é campanha, e campanha tem tela própria (regra 8 de [As regras](/trabalhar-com-ia/regras)). O que ele pode fazer:
 
-- redigir o texto do template, a categoria e as variáveis (quem cria e envia à Meta é uma pessoa, no painel);
+- redigir o texto do template, a categoria e as variáveis e, com o "sim" no texto exato, criar e enviar o template à Meta pelo MCP (`update_template`, bloco `meta_templates`); a aprovação se confere com `sync_meta_templates`;
 - montar o plano de público, tags e lotes;
 - pelo [navegador](/trabalhar-com-ia/navegador), preparar a campanha com "sim" a cada passo; o clique em **Iniciar Campanha** é de uma pessoa.
 

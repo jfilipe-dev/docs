@@ -1,14 +1,14 @@
 ---
 title: "O MCP da Zatten: ferramentas"
-description: "As ferramentas do MCP da Zatten (projetos, template, criar projeto, organizações, testar o agente, contatos, métricas, membros e acessos, white label e feedback): o que pedem, o que devolvem e os erros possíveis."
-keywords: ["MCP", "ferramentas", "list_projects", "get_template", "update_template", "create_project", "test_agent", "find_contacts", "get_metrics", "create_organization", "rename_organization", "move_project", "list_members", "create_member", "update_member_access", "get_white_label", "send_feedback", "whoami", "erros"]
+description: "As ferramentas do MCP da Zatten (projetos, template, templates da Meta, criar projeto, organizações, testar o agente, contatos, métricas, membros e acessos, white label e feedback): o que pedem, o que devolvem e os erros possíveis."
+keywords: ["MCP", "ferramentas", "list_projects", "get_template", "update_template", "sync_meta_templates", "create_project", "test_agent", "find_contacts", "get_metrics", "create_organization", "rename_organization", "move_project", "list_members", "create_member", "update_member_access", "get_white_label", "send_feedback", "whoami", "erros"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando precisar saber o que faz cada ferramenta do MCP da Zatten (list_projects, get_template, update_template, create_project, create_organization, rename_organization, move_project, test_agent, find_contacts, get_metrics, list_members, create_member, update_member_access, get_white_label, whoami e send_feedback), o que cada uma pede e devolve, e os erros que cada uma pode dar.
+**Quando ler esta página:** quando precisar saber o que faz cada ferramenta do MCP da Zatten (list_projects, get_template, update_template, sync_meta_templates, create_project, create_organization, rename_organization, move_project, test_agent, find_contacts, get_metrics, list_members, create_member, update_member_access, get_white_label, whoami e send_feedback), o que cada uma pede e devolve, e os erros que cada uma pode dar.
 </Visibility>
 
-O MCP da Zatten tem dezesseis ferramentas. Todas agem em nome da conta da agência,
+O MCP da Zatten tem dezessete ferramentas. Todas agem em nome da conta da agência,
 dentro do alcance da conexão criada no painel.
 
 | Ferramenta | Faz | Escreve? |
@@ -17,6 +17,7 @@ dentro do alcance da conexão criada no painel.
 | `list_projects` | Lista os projetos que a conexão alcança, com organização, plano, cobrança e WhatsApp | Não |
 | `get_template` | Lê um projeto inteiro em JSON, com a `revision` e as informações do projeto | Não |
 | `update_template` | Aplica alterações num projeto: cria e atualiza, nunca apaga | Sim |
+| `sync_meta_templates` | Envia à Meta os templates pendentes e traz o status de aprovação de todos | Sim |
 | `create_project` | Cria um projeto: em branco, com blocos ou como cópia de outro | Sim |
 | `create_organization` | Cria uma organização (pasta do painel) | Sim |
 | `rename_organization` | Renomeia uma organização | Sim |
@@ -256,7 +257,7 @@ O que `update_template` **não faz**:
 
 - apagar qualquer coisa;
 - publicar a versão do agente (cria uma versão nova, não publicada);
-- enviar template à Meta (o envio é pelo painel);
+- apagar um template da Meta (só pelo painel);
 - migrar o projeto de motor;
 - reescrever o desenho de um fluxo que já existe;
 - gravar `llm_attendant.functions`;
@@ -305,6 +306,105 @@ Resposta:
 - `agent`: aparece quando o bloco `langchain` ou `skills` foi enviado a um
   projeto no LangChain Agent. `published` é `false` quando há versão por publicar.
 - A resposta **não traz `revision`**. Releia com `get_template`.
+</Visibility>
+
+### Templates do WhatsApp
+
+Vale o bloco do modo do WhatsApp do projeto (`project.whatsapp.mode` no
+`get_template`), nunca os dois:
+
+- `nao_oficial` (QR Code): bloco `zapster_templates`. Sem aprovação: vale assim
+  que salvo. `meta_templates` enviado a esse projeto é recusado, com uma nota
+  apontando para `zapster_templates`.
+- `oficial`: bloco `meta_templates`. Cada template que ainda não existe (nome +
+  idioma) é **enviado à Meta para aprovação na hora**.
+
+O que volta de um template da Meta novo ou editado:
+
+- **Enviado:** aparece em `changes` como `create`, e uma nota diz que foi
+  enviado. Fica `PENDING` até a Meta revisar (de minutos a horas) e só pode ser
+  usado depois de aprovado.
+- **Recusado no envio** (ex.: corpo só com uma variável): **nada é salvo**. A nota
+  traz o motivo da Meta. Corrija e envie de novo; o mesmo nome serve.
+- **Já existe na conta do WhatsApp** com esse nome e idioma: é só vinculado ao
+  projeto, sem envio novo. A nota avisa.
+- **Projeto sem WhatsApp oficial conectado:** o template é salvo como
+  **Sincronização pendente** e vai à Meta depois, com `sync_meta_templates`.
+
+Follow-ups que esperavam um template com esse nome são vinculados sozinhos.
+
+- **Editado:** template que já existe, com o mesmo nome e idioma e conteúdo
+  diferente, é editado na Meta e volta para revisão (`PENDING`). Aparece em
+  `changes` como `update`, e a nota diz "Editado(s) na Meta". Ainda em
+  **Sincronização pendente**, a linha do projeto é reescrita e vai no mesmo envio.
+- **Edição recusada:** a Meta só edita template aprovado, pausado ou rejeitado (nunca em revisão), o aprovado 1 vez a cada 24 horas, e a categoria só muda no rejeitado. Fora disso, a nota traz o motivo e nada
+  muda.
+
+Devolvido como foi lido, o template não gera nada. Por isso, mande só os que
+criar ou editar: cada edição volta o template à revisão e gasta a edição do dia.
+Apagar e criar ou editar template com mídia nova no cabeçalho são pelo painel
+([Templates do WhatsApp](/produto/templates-whatsapp)).
+
+Antes de enviar ou editar, o assistente mostra o nome, a categoria e o texto exato
+e espera o "sim".
+
+<Visibility for="agents">
+- Padrões: `category` `UTILITY`; `parameter_format` `NAMED` (`{{nome}}`, com o
+  exemplo em `body_text_named_params`) ou `POSITIONAL` (`{{1}}`).
+- Cabeçalho de mídia só é aceito se o arquivo já está guardado na Zatten (por
+  exemplo, o de um template lido no `get_template`). Mídia nova: criar no painel.
+- Criar um template não oficial nunca exige um oficial.
+</Visibility>
+
+## sync_meta_templates
+
+Envia à Meta os templates em **Sincronização pendente** e traz da Meta o status
+atual de todos os templates do projeto. É o mesmo motor do botão **Sincronizar**
+de **WhatsApp → Templates**.
+
+- Pendentes são os criados no painel sem envio, os que vieram de duplicação ou
+  importação e os salvos antes de conectar o WhatsApp.
+- É **o jeito de saber se um template foi aprovado**. O status não vem no
+  `get_template` de propósito: mudaria a `revision`.
+- Só no WhatsApp **oficial**. Num projeto não oficial, é recusado.
+- Sem WhatsApp oficial conectado, volta um erro dizendo quantos templates estão
+  pendentes e que é preciso conectar o número no painel.
+
+**Quem pode:** conexão de **Leitura e edição**.
+
+<Visibility for="agents">
+Entrada:
+
+```json
+{ "project_id": "uuid", "project_name": "Clínica Sorriso" }
+```
+
+Resposta:
+
+```json
+{
+  "project_id": "uuid",
+  "project_name": "Clínica Sorriso",
+  "submitted": 1,
+  "adopted": 0,
+  "failed": [{ "name": "promo_relampago", "message": "motivo da Meta" }],
+  "follow_ups_linked": 1,
+  "templates": [
+    { "name": "lembrete_consulta", "language": "pt_BR", "category": "UTILITY", "status": "APPROVED" },
+    { "name": "retorno_30d", "language": "pt_BR", "category": "MARKETING", "status": "REJECTED", "rejected_reason": "…" }
+  ],
+  "notes": ["…"]
+}
+```
+
+- `submitted`: quantos foram enviados à Meta agora. `adopted`: quantos já
+  existiam na conta do WhatsApp e foram só vinculados. `failed`: os que a Meta
+  recusou no envio, com o motivo.
+- `follow_ups_linked`: follow-ups que esperavam um desses templates e foram
+  vinculados.
+- `templates[].status`: `PENDING` (em revisão), `APPROVED` (pode ser usado),
+  `REJECTED` (veja `rejected_reason`; corrija e reenvie com o mesmo nome) ou
+  `NOT_SUBMITTED` (não enviado).
 </Visibility>
 
 ## create_project
@@ -849,12 +949,15 @@ Quando a operação é recusada, nada é alterado. As mensagens dizem o que faze
 | Membro com leads no departamento | "…o membro tem leads atribuídos em …" | A pessoa passa os leads para outro atendente no painel |
 | Departamento ficaria sem ninguém recebendo | "…ficaria sem ninguém recebendo leads." | Ligue o recebimento de outra pessoa primeiro |
 | Mudar Admin | "Este membro é admin: papel e senha de admin só mudam no painel." | Guie a pessoa no painel |
+| `sync_meta_templates` sem WhatsApp oficial conectado | Quantos templates estão pendentes e que é preciso conectar o número | A pessoa conecta o WhatsApp oficial no painel; depois, chame de novo |
+| `meta_templates` em projeto não oficial | Nota apontando para `zapster_templates` | Use o bloco `zapster_templates` |
+| `sync_meta_templates` em projeto não oficial | Recusa: só vale no WhatsApp oficial | Templates do QR Code não precisam de aprovação; use `zapster_templates` |
 
 ## Armadilhas
 
 - **`ok: true` não quer dizer que tudo foi feito.** Recusas parciais (automação
   que não ligou por falta de endereço, conversão cuja coluna não existe, template
-  da Meta não enviado) aparecem só nas `notes`.
+  da Meta recusado pela Meta ou não alterado) aparecem só nas `notes`.
 - **A revision não vem na resposta da escrita.** Duas escritas seguidas com a
   mesma revision: a segunda é recusada, porque a primeira já mudou o projeto.
 - **Texto de exemplo numa chave do `langchain.config` grava por cima.** Chave
@@ -870,10 +973,11 @@ Quando a operação é recusada, nada é alterado. As mensagens dizem o que faze
   repita (plano, chat, arquivo, memória, `intent`). Ela não volta na resposta.
 - **Membro novo não vê nada.** O `create_member` cria sem projetos; o acesso vem no
   `update_member_access`.
-- **A nota sobre templates da Meta cita uma opção que o MCP não tem.** Quando faltam
-  templates, a nota sugere `submit_meta_templates: true`. Pelo MCP essa opção não
-  existe: o envio à Meta é feito por uma pessoa, no painel (**WhatsApp →
-  Templates**).
+- **Template da Meta enviado não é template aprovado.** Depois do
+  `update_template`, ele fica `PENDING`. Confira com `sync_meta_templates` antes
+  de ligar um follow-up ou uma campanha que dependa dele.
+- **Editar devolve o template à revisão.** Logo depois da aprovação, ou em
+  revisão, a Meta recusa a edição; o aprovado só se edita 1 vez a cada 24 horas.
 
 ## Para saber mais
 

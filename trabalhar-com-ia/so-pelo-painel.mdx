@@ -26,7 +26,7 @@ As regras do navegador estão em [Usar o painel pelo navegador](/trabalhar-com-i
 |---|---|---|---|
 | Publicar a versão do agente | `/project` (botão **Publicar** no editor do agente) | Navegador, com "sim" | Põe a mudança no ar para todos os leads. É decisão de uma pessoa. |
 | Migrar para o LangChain Agent | `/project` (botão **Migrar**) | Navegador, com "sim" | Troca o motor do atendimento; a volta não é feita pela tela. |
-| Enviar template à Meta | `/meta`, aba **Templates** | Navegador, com "sim" | Passa por revisão da Meta e conta para a qualidade do número. |
+| Template da Meta com mídia nova no cabeçalho, excluir template da Meta | `/meta`, aba **Templates** | Navegador, com "sim" | O MCP só aceita mídia já guardada na Zatten e não exclui. Criar e editar template sem mídia nova é pelo MCP. |
 | Criar e disparar campanha | `/crm/campaigns` | Navegador, com "sim" | Mensagem para muitos leads de uma vez. Ver [Campanhas](/produto/campanhas). |
 | Editar o desenho de um fluxo (Trigger Flow) | `/automations/flows/<id>` | Navegador, com "sim" | O MCP não reescreve o grafo do fluxo. |
 | Conectar, trocar ou remover a conexão do WhatsApp | `/meta`, aba **WhatsApp** | **Só guiar** | Pode derrubar o atendimento do cliente final. |
@@ -75,12 +75,14 @@ liberada para migrar: fale com o [suporte da Zatten pelo WhatsApp](https://api.w
 pela tela**; quem reverte é o suporte, pelo mesmo link. O checklist de antes e depois está em
 [Migrar para o LangChain Agent](/engenharia-de-ia/migrar).
 
-### Enviar template à Meta
+### Template da Meta com mídia nova ou exclusão
 
-O MCP pode deixar o template descrito no projeto, mas não o envia para aprovação.
+O MCP cria e edita o template e o envia para aprovação (bloco `meta_templates`),
+e `sync_meta_templates` traz o status. Pelo painel ficam: criar ou editar template
+com mídia nova no cabeçalho e excluir.
 
 1. Abra `/meta` e vá à aba **Templates**. Confira o nome do projeto.
-2. Crie ou revise o template e envie.
+2. Crie, edite ou exclua o template.
 3. Acompanhe o status (pendente, aprovado, rejeitado, pausado).
 
 Um follow-up só envia com template **aprovado**. Ver
