@@ -1,15 +1,15 @@
 ---
 title: "Trigger Flow: catálogo de blocos"
 description: "Veja o que faz cada bloco do Trigger Flow: os gatilhos, a condição e as ações, com seus campos."
-keywords: ["Trigger Flow", "blocos", "gatilhos", "condição", "ações", "operadores"]
+keywords: ["Trigger Flow", "blocos", "gatilhos", "condição", "ações", "operadores", "inatividade", "aguardar", "agendar template"]
 ---
 
 <Visibility for="agents">
-**Quando ler esta página:** quando precisar saber o que cada bloco do Trigger Flow faz e quais campos tem: os 11 gatilhos (8 disponíveis e 3 em breve), de onde vem cada um (inclusive quando o Novo lead criado dispara e quando não dispara), a condição com todos os campos e operadores, e as 16 ações.
+**Quando ler esta página:** quando precisar saber o que cada bloco do Trigger Flow faz e quais campos tem: os 13 gatilhos (10 disponíveis e 3 em breve), de onde vem cada um (inclusive quando o Novo lead criado dispara e quando não dispara, e o que conta nos gatilhos de inatividade), a condição com todos os campos e operadores, e as 18 ações (inclusive Aguardar e Agendar template).
 </Visibility>
 
-O Trigger Flow tem **11 gatilhos** (8 disponíveis hoje e 3 em breve), **1 bloco
-de condição** e **16 ações**. Esta
+O Trigger Flow tem **13 gatilhos** (10 disponíveis hoje e 3 em breve), **1 bloco
+de condição** e **18 ações**. Esta
 página lista cada um, com os campos e o que faz de verdade. Os conceitos (editor,
 variáveis, ligar e desligar) estão em
 [Trigger Flow: conceitos](/produto/trigger-flow/conceitos).
@@ -26,7 +26,9 @@ fluxo, nem pela API.
 | Primeira mensagem do lead | **Sim** | Toda vez que uma mensagem do lead abre uma conversa nova (inclusive depois de um encerramento) |
 | Movido no Kanban | **Sim** | Mover o lead pelo CRM (arrastar ou trocar a coluna), pelas ações da Zatten do agente e pelo transbordo por inatividade |
 | Tag adicionada / Tag removida | **Sim** | Pôr ou tirar tag pelo CRM e pelas ações da Zatten do agente |
-| Responsável alterado | **Sim** | Rodízio, escolha manual no painel, API, agente e a ação "Definir responsável" de outro fluxo. **Não** dispara ao "assumir" o lead respondendo no chat |
+| Responsável alterado | **Sim** | Rodízio, escolha manual no painel, API, agente e a ação "Definir responsável" de outro fluxo. **Não** dispara ao "assumir" o lead respondendo no chat. A atribuição automática na **entrada** do lead só dispara se o fluxo marcar "Disparar também quando o responsável é definido na entrada do lead" |
+| Inatividade de atendimento | **Sim** | O lead mandou mensagem e ninguém respondeu dentro do tempo definido. Ver [o que conta](#inatividade-o-que-conta) |
+| Inatividade do lead | **Sim** | Uma mensagem foi enviada ao lead e ele não respondeu dentro do tempo definido. Ver [o que conta](#inatividade-o-que-conta) |
 | Conversa encerrada | **Sim** | Encerrar atendimento pelo painel, pela API ou pela ação "Encerrar atendimento" de outro fluxo |
 | Webhook recebido | **Sim** | Chamada externa na URL do fluxo (`/hooks/<caminho>`) |
 | **Mensagem recebida** | **Não, em breve** | — |
@@ -70,6 +72,41 @@ não tem conversa: o **Primeira mensagem do lead** só roda quando o cliente esc
 - Lead criado dentro de uma execução de fluxo herda a profundidade; no limite de profundidade o disparo é recusado, como qualquer gatilho.
 </Visibility>
 
+### Inatividade: o que conta
+
+Os dois gatilhos de inatividade contam o tempo a partir de uma mensagem e
+disparam se nada acontecer do outro lado até o fim do prazo.
+
+| Gatilho | Começa a contar quando | Zera quando |
+|---|---|---|
+| **Inatividade de atendimento** | O lead manda mensagem | Alguém envia uma mensagem ao lead (atendente, IA, celular ou automação nativa) |
+| **Inatividade do lead** | Uma mensagem é enviada ao lead | O lead responde |
+
+- **Mensagens de fluxos e templates não contam.** Uma mensagem enviada por
+  qualquer fluxo, ou um template (por qualquer caminho), não inicia nem zera a
+  contagem. Assim um fluxo de "Inatividade do lead" que manda um lembrete não
+  reinicia a si mesmo.
+- **Reação não conta.** Figurinha e localização contam. Envio que falhou não conta.
+- **Mensagens seguidas do mesmo lado não reiniciam o prazo:** conta a primeira.
+- **Encerrar o atendimento zera os dois** e cancela as execuções em andamento. A
+  exceção é a própria execução que encerrou: ela segue até o fim.
+- **Quando zera, a execução em andamento é cancelada**, inclusive a que está parada
+  num bloco **Aguardar**. Ela fica como **Cancelado** no histórico, com o motivo
+  (ex.: "Cancelada: o lead respondeu").
+- Depois que o fluxo roda, o ciclo só recomeça no próximo início (nova mensagem do
+  lead, ou nova mensagem enviada a ele).
+- Prazo: inteiro de 1 minuto a 30 dias.
+
+<Visibility for="agents">
+- `lead.attendance_inactive`: mensagem do lead (`from = LEAD`, não template) **inicia**; mensagem enviada válida **zera**. `lead.lead_inactive`: o contrário.
+- Ignoradas pelos dois: mensagem de qualquer fluxo (chamada interna do Trigger Flow), template enviado (`TEMPLATE` com `from ≠ LEAD`), `REACTION`, envio `FAILED`, tipos fora de texto, áudio, imagem, documento, vídeo, contato, botão, figurinha, localização.
+- Mensagem de um `http.request` que chama a API com a chave do cliente **não** é de fluxo: conta como envio normal. Mensagem digitada no celular conta como enviada.
+- Uma execução ativa por fluxo e lead: se já há uma rodando ou aguardando, a mensagem não inicia outra contagem.
+- Motivos de cancelamento (`error` da execução): `Cancelada: mensagem enviada ao lead`, `Cancelada: o lead respondeu`, `Cancelada: conversa encerrada`.
+- Fluxo desligado ou editado com contagem pendente: no fim do prazo o fluxo precisa estar ligado e com o mesmo gatilho, senão nada roda. Desligar não cancela execução em andamento.
+- `POST /flows/trigger` com esses gatilhos roda o fluxo na hora e não mexe na contagem.
+</Visibility>
+
 ## Gatilhos
 
 Filtro vazio vale para qualquer valor. Quando há mais de um filtro, todos precisam
@@ -85,8 +122,10 @@ desenhados, mas não podem ser usados hoje.
 | **Tag adicionada** | **Tag** (qualquer, se vazio) | Roda quando a tag é aplicada ao lead. |
 | **Tag removida** | **Tag** (qualquer, se vazio) | Roda quando a tag é retirada. |
 | **Propriedade alterada** | **Propriedade** (obrigatório), **Novo valor** (qualquer, se vazio) | **Em breve.** Pensado para rodar quando a propriedade muda para o valor (valor exato). |
-| **Responsável alterado** | **Departamento**, **Usuário** (qualquer, se vazio) | Roda quando o lead muda de fato de departamento ou de responsável. Escolher o mesmo responsável de novo não dispara. |
+| **Responsável alterado** | **Departamento**, **Usuário** (qualquer, se vazio), **Disparar também quando o responsável é definido na entrada do lead** (Sim ou Não; padrão Não) | Roda quando o lead muda de fato de departamento ou de responsável. Escolher o mesmo responsável de novo não dispara. Com **Sim**, roda também quando o rodízio define o responsável de um lead que acabou de entrar; nesse caso `{{trigger.assignment_source}}` vale `entry`. |
 | **Conversa encerrada** | — | Roda quando o atendimento é encerrado. Publica o id da conversa encerrada. |
+| **Inatividade de atendimento** | **Tempo** (≥ 1), **Unidade** (minutos, horas, dias; padrão 1 hora). Máximo de 30 dias | Roda quando o lead mandou mensagem e ninguém respondeu no prazo. Card: "Sem resposta ao lead há 2h". |
+| **Inatividade do lead** | **Tempo** (≥ 1), **Unidade** (minutos, horas, dias; padrão 1 hora). Máximo de 30 dias | Roda quando uma mensagem foi enviada ao lead e ele não respondeu no prazo. Card: "Lead sem responder há 1d". |
 | **Lead inativo por…** | **Tempo sem interação** (≥ 1), **Unidade** (minutos, horas, dias; padrão 1 hora) | **Em breve.** Pensado para leads parados. |
 | **Webhook recebido** | **Path** (obrigatório, único no projeto), **Campos que você vai receber** | Roda quando um sistema externo chama `POST /api/v1/hooks/<path>`. Cada campo declarado vira `{{trigger.body.<campo>}}`. |
 
@@ -99,8 +138,9 @@ desenhados, mas não podem ser usados hoje.
 | `lead.column_changed` | `from_column_id`, `to_column_id` (`""` = qualquer) | `trigger.column.id`, `trigger.column.name` |
 | `lead.tag_added`, `lead.tag_removed` | `tag_id` (`""` = qualquer) | `trigger.tag.id`, `trigger.tag.name` |
 | `lead.property_changed` (em breve) | `property` (slug, obrigatório), `value` (`""` = qualquer) | `trigger.property.slug`, `trigger.property.value` |
-| `lead.assignee_changed` | `department_id`, `user_email` (`""` = qualquer; e-mail sem diferença de caixa) | `trigger.assignee.*`, `trigger.previous_assignee.*`, `trigger.actor.user_id`, `trigger.actor.origin` (`CRM`, `API`, `AI_AGENT`, `SYSTEM`) |
+| `lead.assignee_changed` | `department_id`, `user_email` (`""` = qualquer; e-mail sem diferença de caixa), `include_entry_assignment` (`'true'`/`'false'`, ausente = `'false'`) | `trigger.assignee.*`, `trigger.previous_assignee.*` (ausente na entrada), `trigger.actor.user_id`, `trigger.actor.origin` (`CRM`, `API`, `AI_AGENT`, `SYSTEM`), `trigger.assignment_source` (`entry` só na atribuição da entrada) |
 | `lead.conversation_closed` | — | `trigger.thread.id` |
+| `lead.attendance_inactive`, `lead.lead_inactive` | `delay` (inteiro ≥ 1), `delay_unit` (`MINUTES`, `HOURS`, `DAYS`); total ≤ 30 dias | `trigger.inactivity.started_at` (ISO-8601, início da contagem), `trigger.inactivity.minutes` (prazo em minutos) |
 | `lead.inactive` (em breve) | `delay` (número ≥ 1), `delay_unit` (`MINUTES`, `HOURS`, `DAYS`) | — |
 | `webhook.inbound` | `path` (`^[a-z0-9]+(-[a-z0-9]+)*$`), `body_fields` (lista de caminhos com ponto) | `trigger.body`, `trigger.body.<campo>`, `trigger.path` |
 
@@ -186,7 +226,7 @@ Operadores: `contains`, `not_contains`, `is`, `is_not`, `starts_with`, `is_empty
 | **Remover tag** | **Tag** | Retira a tag do lead. |
 | **Atualizar propriedade** | **Propriedade**, **Valor** (aceita variáveis) | Grava o valor na propriedade. |
 | **Atualizar anotação** | **Anotação** (aceita variáveis), **Substituir a anotação anterior** | Desligado, acrescenta o texto à anotação; ligado, substitui. |
-| **Definir responsável** | **Departamento** (obrigatório), **Usuário** (opcional, filtrado pelo departamento) | Atribui o lead. Sem usuário, a Zatten escolhe pelo **rodízio** do departamento. Dispara os fluxos de "Responsável alterado". |
+| **Definir responsável** | **Departamento** (obrigatório), **Usuário** (opcional, filtrado pelo departamento) | Atribui o lead. Sem usuário, a Zatten escolhe pelo **rodízio** do departamento, **pulando o responsável atual** (se só ele for elegível, mantém). Dispara os fluxos de "Responsável alterado". |
 | **Ligar, desligar ou pausar a IA** | **O que fazer** (ligar, desligar, pausar), **Pausar por** (1 a 10.080 minutos, só ao pausar) | Desligar vale até alguém religar. Pausar não religa uma IA desligada; numa IA já pausada, só estende (nunca encurta). A IA volta sozinha no fim. Usa a mesma rota da API (`pause_minutes`). |
 | **Notificar responsável** | **Título** (até 100 caracteres; vazio = nome do lead), **Mensagem** (até 500; vazio = texto padrão) | Envia push ao responsável **atual** do lead. Sem responsável, não envia e a execução segue. |
 | **Encerrar atendimento** | — | Encerra o atendimento, como [Encerrar atendimento](/produto/encerrar-atendimento): fecha a conversa, zera o contexto da IA e religa a IA. A conversa nova só nasce na próxima mensagem. Dispara os fluxos de "Conversa encerrada". |
@@ -203,6 +243,7 @@ Operadores: `contains`, `not_contains`, `is`, `is_not`, `starts_with`, `is_empty
 |---|---|---|
 | **Enviar texto** | **Mensagem** (aceita variáveis) | Envia texto livre no WhatsApp. Na conexão oficial, só dentro da janela de 24h. |
 | **Enviar template** | **Template** | Envia um template aprovado da Meta. As variáveis do template são preenchidas com os dados do lead, como num envio pela API. Funciona fora da janela. |
+| **Agendar template** | **Template** (o mesmo seletor do Enviar template), **Daqui quanto tempo** e **Unidade** (minutos, horas, dias; padrão 1 dia), **Horário (Brasília)** (só em dias; padrão 09:00) | Agenda o template. Em minutos ou horas, sai daqui a esse tempo. Em dias, sai no dia (hoje + N) no horário de Brasília; com 0 dias e o horário já passado, vai para amanhã. Aparece nas **mensagens agendadas** do lead e pode ser cancelado lá. |
 | **Enviar imagem** | **Imagem** (URL, upload ou variável), **Legenda** | Até 5 MB. |
 | **Enviar arquivo** | **Arquivo**, **Nome do arquivo** | Até 50 MB. |
 | **Enviar vídeo** | **Vídeo**, **Legenda** | Até 16 MB. |
@@ -212,7 +253,35 @@ Nas mídias, a Zatten **baixa o arquivo da URL** na hora do envio: 30 segundos d
 limite e no máximo 3 redirecionamentos. A URL precisa ser pública. O arquivo
 enviado pelo editor fica guardado pela Zatten e vira uma URL.
 
-As mensagens enviadas por um fluxo aparecem no chat como enviadas pela API.
+As mensagens enviadas por um fluxo, inclusive templates, aparecem no chat como
+enviadas pelo agente (ícone do robô).
+
+**Agendar template**, em detalhe:
+
+- Mínimo de 1 em minutos e horas e de 0 em dias (hoje). Máximo de 365 dias (ou o
+  equivalente em horas e minutos).
+- As variáveis do template são preenchidas **na hora de agendar**, com os dados que
+  o lead tem naquele momento.
+- Cada vez que o bloco roda, agenda um envio novo: não há checagem de "já
+  agendado".
+- O envio agendado não depende mais do fluxo: desligar o fluxo ou a execução ser
+  cancelada não desfaz o agendamento. Para desfazer, cancele nas mensagens
+  agendadas do lead.
+- Template não inicia nem zera os gatilhos de inatividade.
+
+### Lógica
+
+| Ação | Campos | O que faz |
+|---|---|---|
+| **Aguardar** | **Tempo** (≥ 1), **Unidade** (minutos, horas, dias; padrão 1 hora). Máximo de 30 dias | Pausa a execução pelo tempo definido e segue para o próximo bloco. Enquanto espera, a execução aparece como **Aguardando**, com o horário em que retoma. |
+
+- **Aguardar no fim do fluxo não espera:** sem bloco depois, a execução termina na
+  hora. O editor avisa.
+- Depois de esperar, os blocos seguintes usam os dados **atuais** do lead.
+- Em fluxos de inatividade, a resposta do outro lado durante a espera cancela a
+  execução. Nos outros gatilhos, nenhuma mensagem cancela uma execução parada
+  num Aguardar; um **novo disparo do mesmo fluxo para o mesmo lead** a substitui
+  (ver [Execuções e depuração](/produto/trigger-flow/execucoes)).
 
 ### Integrações
 
@@ -243,6 +312,8 @@ Cuidados da Requisição HTTP:
 | `lead.reset_thread` | — |
 | `message.send_text` | `message` |
 | `message.send_template` | `template_name` |
+| `message.schedule_template` | `template_name`, `delay` (inteiro; `MINUTES`/`HOURS` ≥ 1, `DAYS` ≥ 0; até 365 dias equivalentes), `delay_unit` (`MINUTES`, `HOURS`, `DAYS`), `time` (`HH:mm`, obrigatório e usado só com `DAYS`; fuso `America/Sao_Paulo`) |
+| `logic.wait` | `delay` (inteiro ≥ 1), `delay_unit` (`MINUTES`, `HOURS`, `DAYS`); total ≤ 30 dias. Sem chamada de API: a execução fica `waiting` com `resume_at` |
 | `message.send_image`, `message.send_video` | `file_url`, `caption` |
 | `message.send_file`, `message.send_audio` | `file_url`, `filename` |
 | `http.request` | `method`, `url`, `headers` (`[{key, value}]`), `body` (string JSON), `timeout` (segundos, 1–120, padrão 30), `response_fields` (lista de caminhos) |
@@ -263,8 +334,12 @@ criação, nomes viram ids. Propriedade vai por slug e template por nome. O usu�
 
 ## Armadilhas
 
-- **"Definir responsável" sem usuário usa o rodízio**, não deixa o lead "só no
-  departamento".
+- **"Definir responsável" sem usuário usa o rodízio e troca o responsável**, mesmo
+  que o lead já esteja nesse departamento. Não deixa o lead "só no departamento".
+- **Ação que dispara o próprio fluxo deve ser a última do ramo.** Ex.: "Responsável
+  alterado" → … → "Definir responsável". O novo disparo substitui a execução em
+  andamento, e os blocos depois dessa ação não rodam.
+- **Aguardar como último bloco** não espera nada: a execução termina na hora.
 - **"Notificar responsável" depois de "Conversa encerrada" não tem destinatário:**
   encerrar remove o responsável. O editor avisa.
 - **Tag ou propriedade de vínculo "conversa" aplicada depois de "Conversa
@@ -273,8 +348,9 @@ criação, nomes viram ids. Propriedade vai por slug e template por nome. O usu�
   fica gravada na conversa encerrada. Se o lead já respondeu e abriu outra, vai
   para a nova.
 - **Gatilho "em breve" não roda.** Mensagem recebida, Propriedade alterada e Lead
-  inativo não podem ser usados hoje, nem pela API. Monte o fluxo com um dos 8
-  gatilhos disponíveis.
+  inativo por… não podem ser usados hoje, nem pela API. Monte o fluxo com um dos 10
+  gatilhos disponíveis. Para lead parado, use **Inatividade do lead** ou
+  **Inatividade de atendimento**.
 - **Novo lead criado e Primeira mensagem no mesmo fluxo de boas-vindas.** Um contato
   novo que manda mensagem dispara os dois, sem ordem garantida entre as execuções.
   Escolha um só para não mandar duas mensagens.
@@ -304,6 +380,16 @@ roda uma vez por conversa nova.
 No gatilho **Movido no Kanban**, use `{{trigger.column.name}}`. A variável
 `{{lead.column}}` traz o id.
 </Accordion>
+<Accordion title="Qual a diferença entre 'Lead inativo por…' e os dois gatilhos de inatividade?">
+"Lead inativo por…" está em breve e não roda. Os disponíveis são **Inatividade de
+atendimento** (o lead escreveu e ninguém respondeu) e **Inatividade do lead** (foi
+enviada uma mensagem e o lead não respondeu). Ver [o que conta](#inatividade-o-que-conta).
+</Accordion>
+<Accordion title="Como mando um template daqui a alguns dias?">
+Use **Agendar template**, com a unidade em dias e o horário. O agendamento aparece
+nas mensagens agendadas do lead. Para esperar e depois fazer outras ações (não só
+enviar), use **Aguardar** antes delas.
+</Accordion>
 <Accordion title="Posso enviar um template com variáveis?">
 Sim. O bloco escolhe só o template; as variáveis são preenchidas com os dados do
 lead. Ver [Templates do WhatsApp](/produto/templates-whatsapp).
@@ -317,4 +403,4 @@ lead. Ver [Templates do WhatsApp](/produto/templates-whatsapp).
 - [Trigger Flow: execuções e depuração](/produto/trigger-flow/execucoes)
 - [Departamentos e distribuição](/produto/departamentos)
 - [Janela de 24h](/comecar/janela-de-24h)
-- Termos para buscar: "gatilho", "condição", "contém algum dos termos", "Requisição HTTP", "rodízio".
+- Termos para buscar: "gatilho", "condição", "contém algum dos termos", "Requisição HTTP", "rodízio", "inatividade", "Aguardar", "Agendar template".

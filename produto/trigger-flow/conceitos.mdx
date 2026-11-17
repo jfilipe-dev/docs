@@ -17,7 +17,7 @@ cliente final.
 
 <Note>
 Nem todo gatilho está disponível. Três aparecem como **em breve** (Mensagem
-recebida, Propriedade alterada e Lead inativo) e hoje não podem
+recebida, Propriedade alterada e Lead inativo por…) e hoje não podem
 ser usados, nem pela API. A lista de quem dispara cada gatilho está em
 [Trigger Flow: catálogo de blocos](/produto/trigger-flow/blocos#de-onde-vem-cada-gatilho).
 </Note>
@@ -40,7 +40,7 @@ mensagens rápidas. Ver [Usuários, papéis e permissões](/produto/papeis-e-per
 |---|---|---|
 | **Gatilho** | Exatamente 1 | O evento que inicia o fluxo para um lead. Pode ter filtros (ex.: "só a tag VIP"). Filtro vazio vale para qualquer valor. |
 | **Condição** | Quantas quiser | Testa regras sobre o lead, a mensagem ou a resposta de um bloco anterior. Tem duas saídas: **Sim** e **Não**. |
-| **Ação** | Quantas quiser | Faz algo: tag, coluna, propriedade, anotação, responsável, IA, notificação, mensagem, requisição HTTP. |
+| **Ação** | Quantas quiser | Faz algo: tag, coluna, propriedade, anotação, responsável, IA, notificação, mensagem, template agendado, requisição HTTP, ou **Aguardar** um tempo antes do próximo bloco. |
 
 Todo fluxo roda **para um lead**. Até o gatilho de webhook precisa dizer qual é o
 lead. O catálogo completo, com os campos de cada bloco, está em
@@ -68,7 +68,8 @@ O que o editor recusa ao salvar:
   mais no projeto (o card mostra "(item removido)").
 
 Um gatilho marcado como **em breve** no editor ainda não pode ser usado num fluxo
-ligado. Hoje estão em breve: Mensagem recebida, Propriedade alterada e Lead inativo.
+ligado. Hoje estão em breve: Mensagem recebida, Propriedade alterada e Lead inativo
+por…. Para lead parado, use **Inatividade do lead** ou **Inatividade de atendimento**.
 
 ### Variáveis
 
@@ -77,7 +78,7 @@ o bloco roda. Há três famílias:
 
 | Família | O que é | Exemplos |
 |---|---|---|
-| `lead.*` | Dados do lead, sempre disponíveis | `{{lead.name}}`, `{{lead.number}}`, `{{lead.property.cidade}}` |
+| `lead.*` | Dados do lead, sempre disponíveis e **atuais** no momento do bloco | `{{lead.name}}`, `{{lead.number}}`, `{{lead.property.cidade}}` |
 | `trigger.*` | O que o gatilho trouxe (varia por gatilho) | `{{trigger.tag.name}}`, `{{trigger.message.text}}`, `{{trigger.body.pedido_id}}` |
 | `node.<id>.*` | A resposta de um bloco **Requisição HTTP** que fica acima no caminho | `{{node.n4.response.status}}`, `{{node.n4.response.body.url}}` |
 
@@ -110,7 +111,8 @@ Variáveis `trigger.*` por gatilho:
 | `lead.column_changed` | `trigger.column.id`, `trigger.column.name` (coluna de destino) |
 | `lead.tag_added`, `lead.tag_removed` | `trigger.tag.id`, `trigger.tag.name` |
 | `lead.property_changed` (em breve) | `trigger.property.slug`, `trigger.property.value` |
-| `lead.assignee_changed` | `trigger.assignee.{user_id,user_email,user_name,department_id,department_name}`, `trigger.previous_assignee.{user_id,user_email,department_id,department_name}`, `trigger.actor.{user_id,origin}` |
+| `lead.assignee_changed` | `trigger.assignee.{user_id,user_email,user_name,department_id,department_name}`, `trigger.previous_assignee.{user_id,user_email,department_id,department_name}` (ausente na atribuição da entrada), `trigger.actor.{user_id,origin}`, `trigger.assignment_source` (`entry` na atribuição da entrada) |
+| `lead.attendance_inactive`, `lead.lead_inactive` | `trigger.inactivity.started_at` (início da contagem, ISO-8601), `trigger.inactivity.minutes` (prazo em minutos) |
 | `lead.conversation_closed` | `trigger.thread.id` |
 | `webhook.inbound` | `trigger.body`, `trigger.body.<campo>`, `trigger.path` |
 | `lead.created` | `trigger.source` (`whatsapp`, `template`, `upsert`; `api` no disparo manual). Não aparece no seletor do editor. |
@@ -140,12 +142,16 @@ aparece como "em breve".
    tentativa automática.
 
 Cada fluxo que bate gera uma execução separada. Dois fluxos com o mesmo gatilho
-rodam os dois, sem ordem garantida entre eles.
+rodam os dois, sem ordem garantida entre eles. O **mesmo** fluxo tem no máximo uma
+execução ativa por lead: um novo disparo cancela a anterior e começa outra.
 
-Os dados `lead.*` são uma **foto tirada no início** da execução. Uma ação que mude o
-lead no meio do fluxo (mover de coluna, pôr tag) não atualiza `{{lead.column}}` ou
-`{{lead.tags}}` nos blocos seguintes. A exceção é a janela de 24h: a condição
-**Janela de 24h** é reavaliada no momento em que roda.
+Os dados `lead.*` são **relidos antes de cada condição e de cada ação**. Depois de
+"Mover no Kanban", `{{lead.column}}` já traz a coluna nova; depois de um **Aguardar**
+de horas, a condição vê o lead como ele está agora. Os dados do gatilho
+(`{{trigger.*}}`) não mudam: são o evento que iniciou a execução.
+
+Um bloco **Aguardar** pausa a execução (status **Aguardando**) e retoma no
+horário, seguindo para o próximo bloco.
 
 Limites, timeouts e o histórico estão em
 [Trigger Flow: execuções e depuração](/produto/trigger-flow/execucoes).
@@ -175,7 +181,7 @@ obrigatórios). Depois de criar um fluxo pelo MCP, abra-o no editor, clique em
 ## Armadilhas
 
 - **Gatilho em breve.** Mensagem recebida, Propriedade alterada e Lead inativo
-  estão indisponíveis hoje, nem pela API. Um fluxo com esses
+  por… estão indisponíveis hoje, nem pela API. Um fluxo com esses
   gatilhos não pode ser ligado. Ver
   [o catálogo](/produto/trigger-flow/blocos#de-onde-vem-cada-gatilho).
 - **Ações do fluxo disparam outros fluxos.** Mover o lead, pôr ou tirar tag,
@@ -184,8 +190,8 @@ obrigatórios). Depois de criar um fluxo pelo MCP, abra-o no editor, clique em
   laço: um fluxo nunca deve recriar o evento que o disparou.
 - **`{{lead.column}}` e `{{lead.tags}}` trazem ids**, não nomes. Para o nome da
   coluna de destino, use `{{trigger.column.name}}` no gatilho de Kanban.
-- **Foto do início:** depois de "Mover no Kanban", `{{lead.column}}` ainda mostra a
-  coluna antiga.
+- **Ação que dispara o próprio fluxo:** o novo disparo substitui a execução em
+  andamento, e os blocos depois dessa ação não rodam. Deixe-a por último no ramo.
 - **Ações em massa no CRM não disparam fluxos.**
 - **Texto livre fora da janela de 24h falha** na conexão oficial e derruba a
   execução. Antes de "Enviar texto" ou mídia, use a condição **Janela de 24h** e,
@@ -197,13 +203,14 @@ obrigatórios). Depois de criar um fluxo pelo MCP, abra-o no editor, clique em
 <Accordion title="Qual a diferença entre um fluxo e as automações nativas?">
 As nativas (follow-up, reengajamento, webhooks, transbordo por inatividade) têm
 agendamento próprio e são ligadas ao ciclo de interação do lead. O fluxo reage a
-um evento e executa uma sequência de ações na hora, sem espera. Ver
-[Visão geral das automações](/produto/automacoes/visao-geral).
+um evento e executa uma sequência de ações, com esperas onde você puser um bloco
+**Aguardar**. Ver [Visão geral das automações](/produto/automacoes/visao-geral).
 </Accordion>
 <Accordion title="Dá para esperar um tempo entre duas ações?">
-Não. O editor não tem bloco de espera: os passos rodam em sequência, logo um após
-o outro. Para mensagens depois de um tempo, use
-[Follow-up](/produto/automacoes/follow-up).
+Sim, com o bloco **Aguardar** (de 1 minuto a 30 dias). Para só mandar um template
+daqui a alguns dias, use **Agendar template**: ele fica nas mensagens agendadas do
+lead e pode ser cancelado lá. Ver
+[o catálogo de blocos](/produto/trigger-flow/blocos).
 </Accordion>
 <Accordion title="O fluxo roda para leads que já estavam na coluna quando liguei?">
 Não. O fluxo reage a eventos que acontecem depois de ligado.
